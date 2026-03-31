@@ -2,7 +2,7 @@
 
 > **Status**: Design reference — master index of all shared engine modules  
 > **Last updated**: 2026-03-31  
-> **Module count**: 18 modules  
+> **Module count**: 20 modules + 1 workflow  
 > **Consolidation note**: Merged Prompt Schema Normalizer into SEALCaM (#5) and Tier Router + Provider Routing into a unified Provider & Tier Routing Engine (#9). Added Module #17 for post-production finishing and Module #18 for localization & cultural adaptation.
 
 ---
@@ -42,6 +42,14 @@ The enterprise engine layer consists of 18 shared modules that sit between famil
 | 16 | UGC Voiceover Extension | `engines/UGC_VOICEOVER_EXTENSION.md` | F1 UGC Video | Designed |
 | 17 | Delivery & Post-Production Engine | `engines/DELIVERY_POST_PRODUCTION_ENGINE.md` | Cross-family | Designed |
 | 18 | Localization & Cultural Adaptation Engine | `engines/LOCALIZATION_CULTURAL_ENGINE.md` | Cross-family | Designed |
+| 19 | Review Packet Engine | `engines/REVIEW_PACKET_ENGINE.md` | Cross-family | Designed |
+| 20 | Voice Management Engine | `engines/VOICE_MANAGEMENT_ENGINE.md` | Cross-family | Designed |
+
+### Workflows
+
+| # | Workflow | Doc Path | Status |
+|---|---------|----------|--------|
+| W6 | Campaign Multiplication | `workflows/CAMPAIGN_MULTIPLICATION_WORKFLOW.md` | Designed |
 
 ### Merged Modules (no longer standalone)
 
@@ -116,4 +124,9 @@ Phase D — Delivery (post-assembly)
 
 Phase E — Localization (post-delivery)
   └── 18. Localization & Cultural Adaptation Engine
+
+Phase F — Approval & Scaling
+  ├── 19. Review Packet Engine
+  ├── 20. Voice Management Engine
+  └── W6. Campaign Multiplication Workflow
 ```
