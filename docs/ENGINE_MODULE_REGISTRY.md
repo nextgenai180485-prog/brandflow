@@ -2,13 +2,14 @@
 
 > **Status**: Design reference — master index of all shared engine modules  
 > **Last updated**: 2026-03-31  
-> **Consolidation note**: Reduced from 18 to 16 modules — merged Prompt Schema Normalizer into SEALCaM (#5) and Tier Router + Provider Routing into a unified Provider & Tier Routing Engine (#9).
+> **Module count**: 17 modules (consolidated from 18, then extended with Delivery & Post-Production)  
+> **Consolidation note**: Merged Prompt Schema Normalizer into SEALCaM (#5) and Tier Router + Provider Routing into a unified Provider & Tier Routing Engine (#9). Added Module #17 for post-production finishing.
 
 ---
 
 ## Overview
 
-The enterprise engine layer consists of 16 shared modules that sit between family-specific orchestration logic and provider adapters. Each module is documented in its own design doc and adopted across multiple pipeline families.
+The enterprise engine layer consists of 17 shared modules that sit between family-specific orchestration logic and provider adapters. Each module is documented in its own design doc and adopted across multiple pipeline families.
 
 ---
 
@@ -39,6 +40,7 @@ The enterprise engine layer consists of 16 shared modules that sit between famil
 | 14 | Template-Driven Image Composer | `engines/SOCIAL_CAROUSEL_SCHEMA.md` | F4, Image Template Engine | Designed |
 | 15 | Motion Variant Selector | `engines/SPOKESPERSON_MOTION_VARIANT_ENGINE.md` | F2 AI Spokesperson | Designed |
 | 16 | UGC Voiceover Extension | `engines/UGC_VOICEOVER_EXTENSION.md` | F1 UGC Video | Designed |
+| 17 | Delivery & Post-Production Engine | `engines/DELIVERY_POST_PRODUCTION_ENGINE.md` | Cross-family | Designed |
 
 ### Merged Modules (no longer standalone)
 
@@ -76,6 +78,7 @@ The enterprise engine layer consists of 16 shared modules that sit between famil
 | 14. Template Image Composer | — | — | — | ✅ | — | — | — | — |
 | 15. Motion Variant Selector | — | ✅ | — | — | — | — | — | — |
 | 16. UGC Voiceover | ✅ | — | — | — | — | — | — | — |
+| 17. Delivery & Post-Production | ✅ | ✅ | ✅ | ✅ | ✅ | — | ✅ | ✅ |
 
 **Legend**: ✅ = adopted, ✅★ = reference pattern, opt = optional/opt-in, — = not applicable, ★ = is the module itself
 
@@ -105,4 +108,7 @@ Phase C — Media (heavy compute)
   ├── 14. Template Image Composer
   ├── 15. Motion Variant Selector
   └── 16. UGC Voiceover Extension
+
+Phase D — Delivery (post-assembly)
+  └── 17. Delivery & Post-Production Engine
 ```

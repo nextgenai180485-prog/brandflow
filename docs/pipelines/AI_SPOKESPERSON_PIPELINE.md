@@ -490,3 +490,16 @@ All provider calls route through the Provider Routing Layer:
 - Lip-sync: Sync Labs → LatentSync → Wav2Lip (fallback chain)
 - Voice: ElevenLabs direct (no fallback — unique capability)
 - See `engines/PROVIDER_ROUTING_POLICY.md` for health-check and failover logic
+
+### 15. Delivery & Post-Production (Module #17)
+
+After Assembly, output passes through Module #17 for enterprise-grade finishing:
+- **Auto-Subtitles**: ✅ (burned-in or sidecar — critical for talking-head content)
+- **Dubbing**: ✅ (ElevenLabs Dubbing API preserves speaker voice across 29+ languages)
+- **Audio Polish**: ✅ (loudness normalization, noise reduction, music ducking)
+- **Video Enhancement**: ✅ (upscale, denoise AI artifacts, color grading)
+- **Thumbnails**: ✅ (auto-extracted + brand overlay)
+- **Watermark**: ✅ (review versions watermarked, stream-only, 7-day expiry)
+- **Export**: ✅ (multi-format, multi-platform presets)
+- Review version shown at Plan Review Gate (#2); production version unlocked on approval
+- See `engines/DELIVERY_POST_PRODUCTION_ENGINE.md` for full specification

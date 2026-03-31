@@ -395,3 +395,15 @@ All provider calls route through the Provider Routing Layer:
 - Video: WaveSpeed Kling → Kie AI Kling → Fal.ai Kling (fallback chain)
 - Music: Kie AI Suno → Suno Direct → Udio (fallback chain)
 - See `engines/PROVIDER_ROUTING_POLICY.md` for health-check and failover logic
+
+### 14. Delivery & Post-Production (Module #17)
+
+After Assembly, output passes through Module #17 for enterprise-grade finishing:
+- **Auto-Subtitles**: ✅ (BytePlus VOD Smart Captioning)
+- **Dubbing**: opt (user-selected)
+- **Audio Polish**: ✅ (loudness normalization, music ducking)
+- **Video Enhancement**: opt (upscale, denoise cloned footage artifacts)
+- **Thumbnails**: ✅ (auto-extracted + brand overlay)
+- **Watermark**: ✅ (review versions watermarked, stream-only)
+- **Export**: ✅ (multi-format, multi-platform presets)
+- See `engines/DELIVERY_POST_PRODUCTION_ENGINE.md` for full specification

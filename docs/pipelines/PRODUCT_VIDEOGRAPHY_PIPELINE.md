@@ -342,3 +342,15 @@ F3 already has a re-entrant state machine (Switch node) — **document as refere
 - Core Elements Board (F6) already connected to this pipeline via `Core Elements` input
 - Standardize: auto-pull from brand assets if available
 - If brand has no Core Elements Board → pipeline works without it (already optional)
+
+### 11. Delivery & Post-Production (Module #17)
+
+After Assembly, output passes through Module #17 for enterprise-grade finishing:
+- **Auto-Subtitles**: opt (product videos often have no dialogue)
+- **Dubbing**: opt
+- **Audio Polish**: ✅ (loudness normalization, music ducking)
+- **Video Enhancement**: ✅ (upscale product footage, color grading for premium feel)
+- **Thumbnails**: ✅ (auto-extracted product hero shots + brand overlay)
+- **Watermark**: ✅ (review versions watermarked, stream-only)
+- **Export**: ✅ (multi-format, multi-platform presets)
+- See `engines/DELIVERY_POST_PRODUCTION_ENGINE.md` for full specification
