@@ -121,9 +121,13 @@ All generated artifacts are stored in Supabase Storage with metadata in the `art
 }
 ```
 
-### Cost Tracking (All Families)
+### Cost Tracking (All Families) — Billing Hierarchy
 
-Every API call logs cost to `job_stages.cost`:
+> **CRITICAL: No Double-Charging.** Every billable API call is logged in exactly ONE billing source. Other tables mirror cost for observability only.
+
+#### Billing Source of Truth: `job_stages.cost`
+
+Every stage logs cost as a JSONB object:
 ```json
 {
   "provider": "kie_ai",
@@ -132,6 +136,60 @@ Every API call logs cost to `job_stages.cost`:
   "tier": "draft"
 }
 ```
+
+**Total job cost** = `SUM(job_stages.cost->>'cost_usd')` across all stages for that job.
+
+#### Domain Detail Tables (Feed Into `job_stages`, NOT Billed Separately)
+
+| Table | What It Logs | Relationship to `job_stages` |
+|-------|-------------|------------------------------|
+| `voice_generations.cost_usd` | Per-TTS/dub/clone call cost | `job_stages.cost.voice_total = SUM(voice_generations.cost_usd)` — do NOT add both |
+| `touchpoint_events.cost_usd` | Per-touchpoint mirror | **Observability only — NOT for billing.** Mirrors `job_stages.cost` for dashboards |
+
+#### Post-Production Cost Rule
+
+Module #17 runs 5-7 sub-operations (subtitles, watermark, enhance, thumbnail, export). These are logged as **ONE** `job_stages` entry with a cost breakdown:
+```json
+{
+  "stage": "post_production",
+  "cost": {
+    "provider": "byteplus_vod",
+    "cost_usd": 0.15,
+    "tier": "standard",
+    "breakdown": {
+      "subtitles": 0.03,
+      "watermark": 0.02,
+      "enhancement": 0.05,
+      "thumbnails": 0.02,
+      "export": 0.03
+    }
+  }
+}
+```
+Do NOT create separate `job_stages` rows for each sub-operation.
+
+#### Motion Variant Cost Rule (F2)
+
+When generating 3 Kling variants for motion selection, all 3 are real billable costs. Log as ONE `job_stages` entry:
+```json
+{
+  "stage": "base_video_generation",
+  "cost": {
+    "provider": "kie_ai",
+    "model": "kling_2.6",
+    "cost_usd": 0.36,
+    "tier": "standard",
+    "note": "3 variants generated, 1 selected (variant scoring cost: $0.03)"
+  }
+}
+```
+
+#### Estimate Tables (Not Billing)
+
+| Table | Purpose | Billing? |
+|-------|---------|----------|
+| `plan_object.cost_estimate` | Pre-generation estimate shown at Plan Review Gate | ❌ Never |
+| `review_packet.generation_cost_estimate` | Rolled up from `job_stages` for approval display | ❌ Never |
 
 ---
 
