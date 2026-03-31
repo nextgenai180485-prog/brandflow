@@ -304,9 +304,16 @@ CREATE TABLE voice_generations (
   input_params JSONB NOT NULL,
   output_url TEXT,
   duration_s NUMERIC,
-  cost_usd NUMERIC,
+  cost_usd NUMERIC,              -- DETAIL RECORD — feeds into job_stages.cost.voice_total
   provider TEXT NOT NULL,
   tier TEXT NOT NULL, -- 'draft' | 'standard' | 'premium'
   created_at TIMESTAMPTZ DEFAULT now()
 );
+
+-- BILLING NOTE:
+-- voice_generations.cost_usd is a DETAIL record, NOT a billing source.
+-- The parent job_stages entry for the voice stage aggregates:
+--   job_stages.cost.voice_total = SUM(voice_generations.cost_usd WHERE job_id = X)
+-- Do NOT sum voice_generations.cost_usd AND job_stages.cost separately — that is double-charging.
+-- See PIPELINE_CONTRACTS.md § "Cost Tracking — Billing Hierarchy" for the full policy.
 ```
