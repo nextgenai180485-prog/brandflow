@@ -59,12 +59,14 @@ Provider Adapter (Kie AI / Runway / WaveSpeed / etc.)
 | Category | Draft Model | Production Model |
 |----------|-------------|-----------------|
 | Video | veo3_fast | veo3 |
-| Video (PV) | Seedance 1.0 Lite | Seedance 1.0 |
 | Image | Seedream 5.0 Lite | Seedream 5.0 Pro |
-| Image Edit | SeedEdit 3.0 (draft) | SeedEdit 3.0 (full) |
 | Lip-sync | ByteDance LatentSync | Sync Labs Lipsync 2.0 |
 | Music | Suno V5 (30s) | Suno V5 (full) |
 | Voice | ElevenLabs Turbo v2.5 | ElevenLabs Multilingual V2 |
+
+**BytePlus fallback models** (available when primary providers are down):
+- Video: Seedance 1.0 (fallback for Kie AI Veo3)
+- Image: SeedEdit 3.0 / Seedream 5.0 (fallback for WaveSpeed)
 
 ### Auto-Tier Selection Rules
 
@@ -85,18 +87,10 @@ function resolveTier(job):
 
 | Priority | Provider | Model | Families |
 |----------|----------|-------|----------|
-| Primary | Kie AI | Veo3 / Veo3_fast | F1, F5, F7 |
+| Primary | Kie AI | Veo3 / Veo3_fast | F1, F3, F5, F7 |
 | Fallback 1 | BytePlus | Seedance 1.0 | F3, F5 |
 | Fallback 2 | Runway | Gen-4 | F1, F5, F7 |
 | Fallback 3 | Pika | Pika 2.2 | F1, F5, F7 |
-
-### Product Videography Video (F3-specific)
-
-| Priority | Provider | Model | Families |
-|----------|----------|-------|----------|
-| Primary | BytePlus | Seedance 1.0 (keyframe-driven) | F3 |
-| Fallback 1 | Kie AI | Veo3 (FIRST_AND_LAST_FRAMES) | F3 |
-| Fallback 2 | Runway | Gen-4 | F3 |
 
 ### Image Generation
 
