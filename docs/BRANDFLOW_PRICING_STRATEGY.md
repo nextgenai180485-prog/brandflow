@@ -198,15 +198,15 @@ Assuming 1,000 paying users after 12 months:
 
 | Tier | % of Users | Users | MRR |
 |------|-----------|-------|-----|
-| Starter | 40% | 400 | $11,600 |
-| Growth | 35% | 350 | $27,650 |
-| Pro | 18% | 180 | $35,820 |
+| Starter | 40% | 400 | $15,600 |
+| Growth | 35% | 350 | $34,650 |
+| Pro | 18% | 180 | $44,820 |
 | Agency | 7% | 70 | $34,930 |
-| **Total** | | **1,000** | **$110,000** |
+| **Total** | | **1,000** | **$130,000** |
 
-**Annual run rate**: ~$1.32M  
-**Estimated COGS** (at 50% usage): ~$15,000/month  
-**Gross margin**: ~86%
+**Annual run rate**: ~$1.56M  
+**Estimated COGS** (at 50% usage): ~$20,000/month  
+**Gross margin**: ~85%
 
 ---
 
