@@ -42,6 +42,14 @@ The enterprise engine layer consists of 18 shared modules that sit between famil
 | 16 | UGC Voiceover Extension | `engines/UGC_VOICEOVER_EXTENSION.md` | F1 UGC Video | Designed |
 | 17 | Delivery & Post-Production Engine | `engines/DELIVERY_POST_PRODUCTION_ENGINE.md` | Cross-family | Designed |
 | 18 | Localization & Cultural Adaptation Engine | `engines/LOCALIZATION_CULTURAL_ENGINE.md` | Cross-family | Designed |
+| 19 | Review Packet Engine | `engines/REVIEW_PACKET_ENGINE.md` | Cross-family | Designed |
+| 20 | Voice Management Engine | `engines/VOICE_MANAGEMENT_ENGINE.md` | Cross-family | Designed |
+
+### Workflows
+
+| # | Workflow | Doc Path | Status |
+|---|---------|----------|--------|
+| W6 | Campaign Multiplication | `workflows/CAMPAIGN_MULTIPLICATION_WORKFLOW.md` | Designed |
 
 ### Merged Modules (no longer standalone)
 
