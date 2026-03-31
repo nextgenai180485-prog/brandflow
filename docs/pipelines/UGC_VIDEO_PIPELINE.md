@@ -624,3 +624,35 @@ Resume from any stage via `job_stages` status check:
 - UGC aesthetic intentionally conflicts with cinematic structure (amateur vs polished)
 - Available as opt-in for users who want "premium UGC" style
 - When enabled, maps: action→Action, character→Subject, setting→Environment, camera→Camera
+
+### 11. Brand Voice DNA Integration
+
+Inject `voice_signature.json` into Stage 3 scene planning (dialogue generation):
+- Prepend `## Brand Voice Context` block to the scene planning agent's system prompt
+- Ensures generated dialogue matches brand personality (casual vs professional, emoji usage, vocabulary)
+- Critical for maintaining brand differentiation in UGC-style scripts
+- See `engines/BRAND_VOICE_DNA_ENGINE.md` for full schema and injection contract
+
+### 12. Character Consistency Integration (Variant B — multi-clip)
+
+For Variant B (merged multi-clip videos) with recurring characters:
+- Extract canonical character descriptor from reference image analysis (Stage 2)
+- Inject `## Character Consistency — MANDATORY` block into every scene's video prompt
+- All clips share the same base image (inherent consistency) but video prompts still need descriptor for Veo3 consistency
+- See `engines/CHARACTER_CONSISTENCY_ENGINE.md` for descriptor schema
+
+### 13. UGC Voiceover Extension (optional)
+
+Add optional voice overlay lane running parallel to video generation:
+- Script auto-generation from scene descriptions (or user-provided dialogue)
+- Voice persona matching to UGC archetype (Young Creator, Expert Friend, Honest Reviewer, Storyteller)
+- ElevenLabs TTS generation with UGC-optimized voice settings
+- Assembly Engine mixes: voice (100% vol) + music (25% vol), mutes Veo3 audio
+- See `engines/UGC_VOICEOVER_EXTENSION.md` for full specification
+
+### 14. Provider Routing
+
+All provider calls route through the Provider Routing Layer:
+- Video: Kie AI Veo3 → Runway → Pika (fallback chain)
+- Image: Kie AI → Fal AI → OpenAI (fallback chain)
+- See `engines/PROVIDER_ROUTING_POLICY.md` for health-check and failover logic

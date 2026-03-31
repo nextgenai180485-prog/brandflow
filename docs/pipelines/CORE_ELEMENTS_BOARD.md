@@ -234,3 +234,18 @@ After generation, the board is automatically available to:
 - Default template: standard 9:16 grid (CHARACTER / SETTING / PRODUCT)
 - Future: Allow custom templates per brand or per industry
 - Template versioning: track which template version was used for each board
+
+### 7. Core Elements Board V2
+
+Upgrade to V2 with named slots and partial regeneration:
+- **Named slots**: Replace order-dependent image upload with named drop zones (`wireframe`, `character`, `environment`, `product`)
+- **Preview overlays**: Color-coded wireframe overlay showing where each upload maps to on the board
+- **Partial regeneration**: Use SeedEdit 3.0 to selectively regenerate individual sections (`character_only`, `product_only`, `environment_only`, `layout_only`)
+- Cost: ~$0.02-0.05 per partial regeneration vs ~$0.10 for full board
+- See `engines/CORE_ELEMENTS_BOARD_V2.md` for full V2 spec
+
+### 8. Provider Routing
+
+All provider calls route through the Provider Routing Layer:
+- Image: WaveSpeed nano-banana-pro → Kie AI nano-banana-pro (fallback chain)
+- See `engines/PROVIDER_ROUTING_POLICY.md` for health-check and failover logic

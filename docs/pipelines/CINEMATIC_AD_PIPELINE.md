@@ -467,4 +467,30 @@ Each of the 5 lanes gets independent resume capability:
 
 - Already a prerequisite for this pipeline (F6 → F5 dependency)
 - Standardize: auto-pull from brand assets during brief intake
+
+### 11. Brand Voice DNA Integration
+
+Inject `voice_signature.json` into Stage 3 script generation:
+- Prepend `## Brand Voice Context` block to the scene planning agent's system prompt
+- Ensures ad scripts match brand tone, vocabulary, and CTA patterns
+- Platform variations applied if generating for specific social platform distribution
+- See `engines/BRAND_VOICE_DNA_ENGINE.md` for full schema and injection contract
+
+### 12. Character Consistency Integration
+
+For multi-scene cinematic ads with recurring characters:
+- Extract canonical character descriptor from Elements Board analysis (Stage 2)
+- Inject `## Character Consistency — MANDATORY` block into EVERY scene's image prompt
+- Pass Scene N end-frame as visual reference to Scene N+1 start-frame generation
+- Store `character_seed_reference` per initiative for cross-session consistency
+- See `engines/CHARACTER_CONSISTENCY_ENGINE.md` for descriptor schema and passthrough logic
+
+### 13. Provider Routing
+
+All provider calls route through the Provider Routing Layer:
+- Video: Kie AI → Runway → Pika (fallback chain)
+- Image: WaveSpeed → OpenAI Images → SDXL (fallback chain)
+- Music: Suno → Udio (fallback chain)
+- Voice: ElevenLabs → WaveSpeed ElevenLabs proxy (fallback chain)
+- See `engines/PROVIDER_ROUTING_POLICY.md` for health-check and failover logic
 - If brand has no Core Elements Board → prompt user to generate one first

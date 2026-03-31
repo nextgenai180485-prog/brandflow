@@ -295,16 +295,23 @@ All 8 families have been updated with Enterprise Engine Integration sections. St
 
 | Module | F1 | F2 | F3 | F4 | F5 | F6 | F7 | F8 |
 |--------|----|----|----|----|----|----|----|----|
-| Creative Director Agent | ✅ | ✅ | ✅ | ✅ | ✅ | — | ✅★ | ✅ |
-| Plan Review Gate | ✅ | ✅ | ✅ | ✅ | ✅ | — | ✅★ | ✅ |
-| Revision Agent | ✅ | ✅ | ✅ | ✅ | ✅ | — | ✅★ | ✅ |
-| Asset Analyzer | ✅ | ✅ | ✅ | — | ✅ | ✅ | ✅ | ✅★ |
-| SEALCaM | opt | opt | ✅ | — | ✅ | — | ✅ | ✅★ |
-| Core Elements Board | ✅ | ✅ | ✅ | ✅ | ✅ | ★ | ✅ | ✅ |
-| Music Engine | ✅ | ✅ | ✅ | — | ✅ | — | ✅ | ✅ |
-| Assembly Engine | ✅ | ✅ | ✅ | — | ✅ | — | ✅ | ✅ |
-| Tier Router | ✅ | ✅ | ✅ | — | ✅ | — | ✅ | ✅ |
-| Re-entry Controller | ✅ | ✅ | ✅★ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Hook Library | — | — | — | ✅ | ✅ | — | ✅ | ✅ |
+| 1. Creative Director Agent | ✅ | ✅ | ✅ | ✅ | ✅ | — | ✅★ | ✅ |
+| 2. Plan Review Gate | ✅ | ✅ | ✅ | ✅ | ✅ | — | ✅★ | ✅ |
+| 3. Revision Agent | ✅ | ✅ | ✅ | ✅ | ✅ | — | ✅★ | ✅ |
+| 4. Asset Analyzer | ✅ | ✅ | ✅ | — | ✅ | ✅ | ✅ | ✅★ |
+| 5. SEALCaM | opt | opt | ✅ | — | ✅ | — | ✅ | ✅★ |
+| 6. Core Elements Board | ✅ | ✅ | ✅ | ✅ | ✅ | ★ | ✅ | ✅ |
+| 7. Music Engine | ✅ | ✅ | ✅ | — | ✅ | — | ✅ | ✅ |
+| 8. Assembly Engine | ✅ | ✅ | ✅ | — | ✅ | — | ✅ | ✅ |
+| 9. Tier Router | ✅ | ✅ | ✅ | — | ✅ | — | ✅ | ✅ |
+| 10. Re-entry Controller | ✅ | ✅ | ✅★ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| 11. Hook Library | — | ✅ | — | ✅ | ✅ | — | ✅ | ✅ |
+| 12. Brand Voice DNA | ✅ | ✅ | — | ✅ | ✅ | — | ✅ | ✅ |
+| 13. Character Consistency | ✅ | — | — | — | ✅ | — | — | ✅ |
+| 14. Provider Routing | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| 15. Template Image Composer | — | — | — | ✅ | — | — | — | — |
+| 16. Motion Variant Selector | — | ✅ | — | — | — | — | — | — |
+| 17. UGC Voiceover | ✅ | — | — | — | — | — | — | — |
+| 18. Prompt Schema Normalizer | — | — | — | — | — | — | ✅ | — |
 
 **Legend**: ✅ = adopted, ✅★ = reference pattern (other families should follow this implementation), opt = optional/opt-in, — = not applicable, ★ = is the module itself
