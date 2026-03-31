@@ -1,19 +1,20 @@
 # Engine Module Registry — Brandflow Enterprise Engine Layer
 
 > **Status**: Design reference — master index of all shared engine modules  
-> **Last updated**: 2026-03-31
+> **Last updated**: 2026-03-31  
+> **Consolidation note**: Reduced from 18 to 16 modules — merged Prompt Schema Normalizer into SEALCaM (#5) and Tier Router + Provider Routing into a unified Provider & Tier Routing Engine (#9).
 
 ---
 
 ## Overview
 
-The enterprise engine layer consists of 18 shared modules that sit between family-specific orchestration logic and provider adapters. Each module is documented in its own design doc and adopted across multiple pipeline families.
+The enterprise engine layer consists of 16 shared modules that sit between family-specific orchestration logic and provider adapters. Each module is documented in its own design doc and adopted across multiple pipeline families.
 
 ---
 
 ## Module Registry
 
-### Original 11 Modules (from Cross-Family Engine Audit)
+### Original Modules (from Cross-Family Engine Audit, consolidated)
 
 | # | Module | Doc Path | Owner/Reference Family | Status |
 |---|--------|----------|----------------------|--------|
@@ -25,7 +26,7 @@ The enterprise engine layer consists of 18 shared modules that sit between famil
 | 6 | Core Elements Generator | `pipelines/CORE_ELEMENTS_BOARD.md` | F6 (is the module) | Designed |
 | 7 | Music Engine | `pipelines/CROSS_FAMILY_ENGINE_AUDIT.md` §8 | F5 Cinematic Ad (reference) | Designed |
 | 8 | Assembly Engine | `pipelines/CROSS_FAMILY_ENGINE_AUDIT.md` §9 | F5 Cinematic Ad (reference) | Designed |
-| 9 | Tier Router | `pipelines/CROSS_FAMILY_ENGINE_AUDIT.md` §10 | Cross-family | Designed |
+| 9 | Provider & Tier Routing Engine | `engines/PROVIDER_ROUTING_POLICY.md` | Infrastructure | Designed |
 | 10 | Re-entry Controller | `pipelines/CROSS_FAMILY_ENGINE_AUDIT.md` §5 | F3 Product Videography (reference) | Designed |
 | 11 | Hook Library | `pipelines/HOOK_LIBRARY_ENGINE_DESIGN.md` | Cross-family | Designed |
 
@@ -35,11 +36,16 @@ The enterprise engine layer consists of 18 shared modules that sit between famil
 |---|--------|----------|----------------------|--------|
 | 12 | Brand Voice DNA Engine | `engines/BRAND_VOICE_DNA_ENGINE.md` | Cross-family | Designed |
 | 13 | Character Consistency Engine | `engines/CHARACTER_CONSISTENCY_ENGINE.md` | F1, F5, F8 | Designed |
-| 14 | Provider Routing Layer | `engines/PROVIDER_ROUTING_POLICY.md` | Infrastructure | Designed |
-| 15 | Template-Driven Image Composer | `engines/SOCIAL_CAROUSEL_SCHEMA.md` | F4, Image Template Engine | Designed |
-| 16 | Motion Variant Selector | `engines/SPOKESPERSON_MOTION_VARIANT_ENGINE.md` | F2 AI Spokesperson | Designed |
-| 17 | UGC Voiceover Extension | `engines/UGC_VOICEOVER_EXTENSION.md` | F1 UGC Video | Designed |
-| 18 | Prompt Schema Normalizer | `engines/AD_CREATOR_SCHEMA.md` | F7 Ad Creator | Designed |
+| 14 | Template-Driven Image Composer | `engines/SOCIAL_CAROUSEL_SCHEMA.md` | F4, Image Template Engine | Designed |
+| 15 | Motion Variant Selector | `engines/SPOKESPERSON_MOTION_VARIANT_ENGINE.md` | F2 AI Spokesperson | Designed |
+| 16 | UGC Voiceover Extension | `engines/UGC_VOICEOVER_EXTENSION.md` | F1 UGC Video | Designed |
+
+### Merged Modules (no longer standalone)
+
+| Former # | Module | Merged Into | Rationale |
+|----------|--------|-------------|-----------|
+| 14 (old) | Provider Routing Layer | **#9 Provider & Tier Routing Engine** | Provider fallback + quality tier = single routing decision |
+| 18 (old) | Prompt Schema Normalizer | **#5 SEALCaM Prompt Builder** | F7 normalization is a SEALCaM compliance rule, not a separate engine |
 
 ### Supporting Docs
 
@@ -62,16 +68,14 @@ The enterprise engine layer consists of 18 shared modules that sit between famil
 | 6. Core Elements Generator | ✅ | ✅ | ✅ | ✅ | ✅ | ★ | ✅ | ✅ |
 | 7. Music Engine | ✅ | ✅ | ✅ | — | ✅ | — | ✅ | ✅ |
 | 8. Assembly Engine | ✅ | ✅ | ✅ | — | ✅ | — | ✅ | ✅ |
-| 9. Tier Router | ✅ | ✅ | ✅ | — | ✅ | — | ✅ | ✅ |
+| 9. Provider & Tier Routing | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | 10. Re-entry Controller | ✅ | ✅ | ✅★ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | 11. Hook Library | — | ✅ | — | ✅ | ✅ | — | ✅ | ✅ |
 | 12. Brand Voice DNA | ✅ | ✅ | — | ✅ | ✅ | — | ✅ | ✅ |
 | 13. Character Consistency | ✅ | — | — | — | ✅ | — | — | ✅ |
-| 14. Provider Routing | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| 15. Template Image Composer | — | — | — | ✅ | — | — | — | — |
-| 16. Motion Variant Selector | — | ✅ | — | — | — | — | — | — |
-| 17. UGC Voiceover | ✅ | — | — | — | — | — | — | — |
-| 18. Prompt Schema Normalizer | — | — | — | — | — | — | ✅ | — |
+| 14. Template Image Composer | — | — | — | ✅ | — | — | — | — |
+| 15. Motion Variant Selector | — | ✅ | — | — | — | — | — | — |
+| 16. UGC Voiceover | ✅ | — | — | — | — | — | — | — |
 
 **Legend**: ✅ = adopted, ✅★ = reference pattern, opt = optional/opt-in, — = not applicable, ★ = is the module itself
 
@@ -82,14 +86,13 @@ The enterprise engine layer consists of 18 shared modules that sit between famil
 ```
 Phase A — Foundation (no AI calls)
   ├── 10. Re-entry Controller
-  ├── 9. Tier Router
-  ├── 2. Plan Review Gate
-  └── 14. Provider Routing Layer
+  ├── 9. Provider & Tier Routing Engine
+  └── 2. Plan Review Gate
 
 Phase B — Intelligence (AI-powered)
   ├── 4. Asset Analyzer
   ├── 1. Creative Director Agent
-  ├── 5. SEALCaM Prompt Builder
+  ├── 5. SEALCaM Prompt Builder (includes F7 normalization)
   ├── 3. Revision Agent
   ├── 11. Hook Library
   └── 12. Brand Voice DNA Engine
@@ -99,10 +102,7 @@ Phase C — Media (heavy compute)
   ├── 8. Assembly Engine
   ├── 6. Core Elements Generator
   ├── 13. Character Consistency Engine
-  ├── 15. Template Image Composer
-  ├── 16. Motion Variant Selector
-  └── 17. UGC Voiceover Extension
-
-Phase D — Polish
-  └── 18. Prompt Schema Normalizer
+  ├── 14. Template Image Composer
+  ├── 15. Motion Variant Selector
+  └── 16. UGC Voiceover Extension
 ```

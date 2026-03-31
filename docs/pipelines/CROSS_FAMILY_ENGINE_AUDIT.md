@@ -180,23 +180,23 @@ A shared `AssemblyEngine` module handles:
 
 ---
 
-## 10. Cost/Quality Tier Routing
+## 9. Provider & Tier Routing Engine (consolidated)
 
-**Exists in**: No family currently  
-**Referenced in**: PROJECT.md Plan Object (`cost_tier`, `latency_tier` fields)
+> **Consolidation note**: Former modules #9 (Tier Router) and #14 (Provider Routing Layer) merged into a single engine — they are two halves of the same routing decision.
 
-No family currently has explicit cost-vs-quality routing. Users get whatever model is hardcoded.
+**Full spec**: `engines/PROVIDER_ROUTING_POLICY.md`
 
-### Proposed Standard
+Every generation request flows through a single routing engine that resolves:
 
-Every family should support at least two tiers:
+1. **Quality tier** — Draft (pre-approval, fast/cheap) vs Production (post-approval, high-fidelity)
+2. **Provider selection** — healthy primary from fallback chain, with automatic failover
 
 | Tier | Purpose | Models |
 |------|---------|--------|
-| **Draft/Preview** | Fast iteration, first drafts | veo3_fast, sora2, seedream lite |
-| **Final/Production** | Approved content, final render | veo3, sora2-pro, seedream pro |
+| **Draft/Preview** | Fast iteration, first drafts | veo3_fast, Seedream Lite, LatentSync |
+| **Final/Production** | Approved content, final render | veo3, Seedream Pro, Sync Labs 2.0 |
 
-The planner should auto-select based on whether this is a first draft or a final render after approval.
+Fallback chains cover: Video, Image, Image-to-Video, Lip-Sync, Music, Voice, and Vision Analysis. Health-check polling at 60s, 3-strike failover, gradual auto-recovery.
 
 ---
 
@@ -208,22 +208,20 @@ The planner should auto-select based on whether this is a first draft or a final
 | 2 | **Plan Review Gate** | All families | Pre-generation approval checkpoint |
 | 3 | **Revision Agent** | All families | Feedback-aware prompt regeneration |
 | 4 | **Asset Analyzer** | All families | Unified vision analysis (product/character/scene) |
-| 5 | **SEALCaM Prompt Builder** | F3, F5, F7, F8 | Structured prompt assembly |
+| 5 | **SEALCaM Prompt Builder** (includes F7 normalization) | F3, F5, F7, F8 | Structured prompt assembly |
 | 6 | **Core Elements Generator** | Brand onboarding | Auto-generate brand board during setup |
 | 7 | **Music Engine** | All video families | Optional background music generation |
 | 8 | **Assembly Engine** | All video families | FFmpeg merge + audio overlay + export |
-| 9 | **Tier Router** | All families | Draft vs production quality routing |
+| 9 | **Provider & Tier Routing Engine** | All families | Quality tier + provider failover in one call |
 | 10 | **Re-entry Controller** | All families | Resume-from-stage + retry logic |
 | 11 | **Hook Library** | F4, F5, F7, F8 | Performance-driven content intelligence |
 | 12 | **Brand Voice DNA Engine** | F1, F2, F4, F5, F7, F8 | Brand-specific voice signature injection |
 | 13 | **Character Consistency Engine** | F1, F5, F8 | Multi-scene character identity persistence |
-| 14 | **Provider Routing Layer** | All families | Fallback chains + health-check monitoring |
-| 15 | **Template-Driven Image Composer** | F4 | Template + brand palette → platform-optimized images |
-| 16 | **Motion Variant Selector** | F2 | 3-candidate idle motion generation + scoring |
-| 17 | **UGC Voiceover Extension** | F1 | Optional ElevenLabs voice overlay for UGC |
-| 18 | **Prompt Schema Normalizer** | F7 | Nested object prompts replacing stringified JSON |
+| 14 | **Template-Driven Image Composer** | F4 | Template + brand palette → platform-optimized images |
+| 15 | **Motion Variant Selector** | F2 | 3-candidate idle motion generation + scoring |
+| 16 | **UGC Voiceover Extension** | F1 | Optional ElevenLabs voice overlay for UGC |
 
-These 18 modules form the **enterprise engine layer** that sits between the family-specific logic and the provider adapters. Build these first, then each family becomes a thin orchestration config on top.
+These 16 modules form the **enterprise engine layer** that sits between the family-specific logic and the provider adapters. Build these first, then each family becomes a thin orchestration config on top.
 
 See `ENGINE_MODULE_REGISTRY.md` for full adoption matrix and build order.
 
@@ -234,13 +232,13 @@ See `ENGINE_MODULE_REGISTRY.md` for full adoption matrix and build order.
 ```
 Phase A — Foundation (no AI calls)
   ├── Re-entry Controller (state machine logic)
-  ├── Tier Router (config + routing logic)
+  ├── Provider & Tier Routing Engine (unified routing + failover)
   └── Plan Review Gate (approval UI + API)
 
 Phase B — Intelligence (AI-powered)
   ├── Asset Analyzer (unified vision analysis)
   ├── Creative Director Agent (AGENT framework)
-  ├── SEALCaM Prompt Builder (structured prompts)
+  ├── SEALCaM Prompt Builder (includes F7 normalization)
   └── Revision Agent (feedback loop)
 
 Phase C — Media (heavy compute)
@@ -291,7 +289,7 @@ A curated database of proven social media hooks, captions, and CTAs — scraped 
 
 ## Enterprise Engine Adoption Status
 
-All 8 families have been updated with Enterprise Engine Integration sections. Status:
+All 8 families have been updated with Enterprise Engine Integration sections. Consolidated to 16 modules:
 
 | Module | F1 | F2 | F3 | F4 | F5 | F6 | F7 | F8 |
 |--------|----|----|----|----|----|----|----|----|
@@ -299,19 +297,17 @@ All 8 families have been updated with Enterprise Engine Integration sections. St
 | 2. Plan Review Gate | ✅ | ✅ | ✅ | ✅ | ✅ | — | ✅★ | ✅ |
 | 3. Revision Agent | ✅ | ✅ | ✅ | ✅ | ✅ | — | ✅★ | ✅ |
 | 4. Asset Analyzer | ✅ | ✅ | ✅ | — | ✅ | ✅ | ✅ | ✅★ |
-| 5. SEALCaM | opt | opt | ✅ | — | ✅ | — | ✅ | ✅★ |
+| 5. SEALCaM (+ F7 normalization) | opt | opt | ✅ | — | ✅ | — | ✅ | ✅★ |
 | 6. Core Elements Board | ✅ | ✅ | ✅ | ✅ | ✅ | ★ | ✅ | ✅ |
 | 7. Music Engine | ✅ | ✅ | ✅ | — | ✅ | — | ✅ | ✅ |
 | 8. Assembly Engine | ✅ | ✅ | ✅ | — | ✅ | — | ✅ | ✅ |
-| 9. Tier Router | ✅ | ✅ | ✅ | — | ✅ | — | ✅ | ✅ |
+| 9. Provider & Tier Routing | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | 10. Re-entry Controller | ✅ | ✅ | ✅★ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | 11. Hook Library | — | ✅ | — | ✅ | ✅ | — | ✅ | ✅ |
 | 12. Brand Voice DNA | ✅ | ✅ | — | ✅ | ✅ | — | ✅ | ✅ |
 | 13. Character Consistency | ✅ | — | — | — | ✅ | — | — | ✅ |
-| 14. Provider Routing | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| 15. Template Image Composer | — | — | — | ✅ | — | — | — | — |
-| 16. Motion Variant Selector | — | ✅ | — | — | — | — | — | — |
-| 17. UGC Voiceover | ✅ | — | — | — | — | — | — | — |
-| 18. Prompt Schema Normalizer | — | — | — | — | — | — | ✅ | — |
+| 14. Template Image Composer | — | — | — | ✅ | — | — | — | — |
+| 15. Motion Variant Selector | — | ✅ | — | — | — | — | — | — |
+| 16. UGC Voiceover | ✅ | — | — | — | — | — | — | — |
 
 **Legend**: ✅ = adopted, ✅★ = reference pattern (other families should follow this implementation), opt = optional/opt-in, — = not applicable, ★ = is the module itself
