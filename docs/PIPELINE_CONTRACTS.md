@@ -51,7 +51,7 @@ Each pipeline family has a standardized contract defining its inputs, outputs, a
 | **Input** | Topic, keywords (optional), link (optional) |
 | **Output** | Platform-optimized posts for 7 platforms + generated image(s) |
 | **Primary Deliverable** | JSON with per-platform content + image URLs |
-| **Engine Modules** | Creative Director Agent, Plan Review Gate, Revision Agent, Hook Library, Core Elements Board, Re-entry Controller, Template-Driven Image Composer, Brand Voice DNA, Provider Routing |
+| **Engine Modules** | Creative Director Agent, Plan Review Gate, Revision Agent, Hook Library, Core Elements Board, Re-entry Controller, Template-Driven Image Composer, Brand Voice DNA, Provider & Tier Routing |
 | **Doc** | `pipelines/SOCIAL_CONTENT_PIPELINE.md` |
 
 ### F5 — Cinematic Ad
