@@ -73,7 +73,7 @@ Estimated per-unit generation costs based on current provider pricing:
 
 ---
 
-### Pro — $199/month
+### Pro — $249/month
 
 **Target**: Professional marketers, agencies (small), e-commerce brands
 
@@ -81,7 +81,7 @@ Estimated per-unit generation costs based on current provider pricing:
 |----------|----------|
 | Content batches | 300/month |
 | Image generations | 150/month |
-| Video generations | 20/month |
+| Video generations | 25/month |
 | Brands | 10 |
 
 **Features**:
@@ -95,8 +95,8 @@ Estimated per-unit generation costs based on current provider pricing:
 - Performance feedback loop
 - Priority generation queue
 
-**Our cost at full usage**: ~$3.00 (text) + ~$5.25 (images) + ~$30.00 (videos) = **~$38.25/month**  
-**Margin**: ~80%
+**Our cost at full usage**: ~$3.00 (text) + ~$5.25 (images) + ~$37.50 (videos) = **~$45.75/month**  
+**Margin**: ~82%
 
 ---
 
