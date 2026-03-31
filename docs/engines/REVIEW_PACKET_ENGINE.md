@@ -127,7 +127,19 @@ Without this engine, approvals are ad-hoc: reviewers get raw links, no context, 
     "require_all_approvers": false,
     "approvers": ["user_id"],
     "notification_channels": ["email", "in_app"]
-  }
+  },
+
+  "approval_chain": [
+    {
+      "step": 1,
+      "role": "reviewer | approver | admin | creative_director",
+      "user_id": "uuid",
+      "decision": "pending | approved | rejected | skipped",
+      "decided_at": "ISO 8601 | null",
+      "auto_approved": false,
+      "escalated_from_step": "number | null"
+    }
+  ]
 }
 ```
 
