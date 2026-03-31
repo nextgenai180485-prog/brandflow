@@ -242,3 +242,83 @@ The n8n workflow uses a two-part scheduled system:
 3. **The two-part batch pattern** maps naturally to `job_stages`: Stage 1 = prompt generation, Stage 2 = video generation
 4. **Sora2 API uses different endpoints** than Veo3 — the provider adapter must handle both `/api/v1/jobs/*` and `/api/v1/veo/*` patterns
 5. **Cameo/character references** should be stored as brand assets that users can select in the brief form
+
+---
+
+## Enterprise Engine Integration
+
+> Applied from Cross-Family Engine Audit — standardizes this pipeline with enterprise-grade shared modules.
+
+### 1. Asset Analyzer (replaces Stage 2)
+
+Switch from GPT-4o to the unified `AnalyzeAsset` Edge Function:
+- **Mode**: `character` (primary — spokesperson images) or `product` (if product image provided)
+- **Provider**: Gemini via Lovable AI Gateway
+- **Output**: Structured YAML with character/product details
+- Standardizes vision analysis across all families
+
+### 2. Creative Director Agent (upgrades Stage 3)
+
+Stage 3 already uses the AGENT framework — enhancements:
+- **Think Tool**: Add mandatory reasoning pass (reflect before generating prompts)
+- **Structured creative summary**: Include mood, style, cameo usage, estimated cost
+- **Deduplication**: Retain Sheet tool pattern but migrate to Supabase query
+
+### 3. Plan Review Gate (new Stage 3.5)
+
+Mandatory checkpoint between planning and generation:
+- User sees: planned scenes, cameo character, visual style, estimated cost
+- Actions: Approve / Reject / Edit individual scene prompts
+- Prevents expensive Sora2 calls on bad concepts
+
+### 4. Revision Loop (new Stage 3.6)
+
+When user rejects the plan:
+- **RevisionAgent** receives: original master prompt + original scenes + user comments
+- Generates revised scene prompts incorporating feedback
+- Re-submits to Plan Review Gate
+- Preserves master prompt style fidelity across revisions
+
+### 5. Core Elements Board Injection
+
+- Core Elements Board image (from F6) injected as visual context for avatar settings
+- Helps the AI agent understand the brand's setting and product context
+- If brand has no Core Elements Board → skip (optional)
+
+### 6. Music Engine (optional, parallel lane)
+
+- Toggle: "Add background music?" in the brief
+- If enabled: Suno V5 via Kie AI runs in parallel with video generation
+- Mood auto-detected from master prompt tone or user-specified
+- Music overlay applied via Assembly Engine after videos complete
+
+### 7. Assembly Engine
+
+- Multi-clip concatenation for spokesperson videos (currently produces standalone clips)
+- If music enabled: overlay music at reduced volume (25%)
+- Provider: Fal AI FFmpeg API
+- Assembly sequence: Concat clips → Mix music → Export
+
+### 8. Re-entry Controller
+
+Resume from any stage via `job_stages` status check:
+- `brief_intake` → `asset_analysis` → `scene_planning` → `plan_review` → `video_generation` → `assembly` → `delivery`
+- If Sora2 generation fails on one scene, retry only that scene
+- If user edits prompts, re-run only video generation + assembly
+
+### 9. Tier Router
+
+| Tier | Video Model | Use Case |
+|------|-------------|----------|
+| **Draft** | `sora2` | Fast iteration, first drafts |
+| **Production** | `sora2-pro` | Approved finals, high quality |
+
+- Auto-selects Draft before Plan Review Gate
+- Switches to Production after approval
+- `sora2-pro` adds `n_frames: "10"` and `size: "standard"` parameters
+
+### 10. SEALCaM Prompting
+
+- Not mandatory for spokesperson videos (dialogue-driven, not cinematic)
+- Available as opt-in for users who want structured cinematic spokesperson content
+- When enabled, structures prompts with Subject, Environment, Action, Lighting, Camera, Metatokens

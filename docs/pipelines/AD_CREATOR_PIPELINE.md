@@ -280,3 +280,98 @@ As of July 2025, Kie AI is the most cost-effective option for high-volume usage.
 5. **A/B test opportunity**: Test Seedream 5 Lite vs GPT-4o Image for the image generation step
 6. **Cost tracking**: Since this pipeline has an approval gate, track both "approved" and "rejected" generation costs separately
 7. **The AGENT framework** (Ask, Guidance, Examples, Notation, Tools) should be standardized across all AI agent prompts in Brandflow
+
+---
+
+## Enterprise Engine Integration
+
+> Applied from Cross-Family Engine Audit — F7 Ad Creator is already the most enterprise-ready pipeline. This section documents its reference patterns and remaining upgrades.
+
+### 1. Asset Analyzer (replaces Stage 2)
+
+Switch from GPT-4o to the unified `AnalyzeAsset` Edge Function:
+- **Mode**: `product` (primary — product ad pipeline)
+- **Provider**: Gemini via Lovable AI Gateway (standardize across families)
+- **Output**: Structured YAML with product details
+- Currently uses GPT-4o with "describe product, ignore background" — standardize to shared format
+
+### 2. Creative Director Agent ✅ (reference pattern)
+
+F7 already has the gold-standard Creative Director Agent:
+- Full AGENT framework (Ask, Guidance, Examples, Notation, Tools)
+- Think Tool for structured reasoning
+- Structured creative summary with emoji headers
+- 5 creative examples in system prompt
+- **This is the reference pattern** that all other families should adopt
+
+### 3. Plan Review Gate ✅ (reference pattern)
+
+F7 already has pre-generation approval:
+- Shows caption + creative summary to user before generation
+- Approve / Reject with comments
+- **This is the reference pattern** for the shared Plan Review Gate module
+
+### 4. Revision Loop ✅ (reference pattern)
+
+F7 already has the Revised Prompt Agent:
+- Takes original brief + rejection comments + original analysis
+- Generates new prompts incorporating feedback
+- Loops back to approval
+- **This is the reference pattern** for the shared RevisionAgent module
+
+### 5. SEALCaM Adoption
+
+- Recommended for image and video prompt structure
+- Map existing prompt fields to SEALCaM 6-field standard:
+  - description → Subject
+  - setting + background → Environment
+  - lighting → Lighting
+  - camera_type + camera_settings → Camera
+  - effects + style → Metatokens
+  - action (from video_prompt) → Action
+- Enables template reuse across families
+
+### 6. Core Elements Board Injection
+
+- Core Elements Board (from F6) injected as reference for the Creative Director
+- Provides visual context for product placement, brand setting, character style
+- If brand has Core Elements Board → include as additional image input to the agent
+- If no board → pipeline works without it (already optional)
+
+### 7. Music Engine (optional, parallel lane)
+
+- Toggle: "Add background music?" in the brief
+- If enabled: Suno V5 via Kie AI runs in parallel with video generation
+- Single-scene pipeline so music is a simple overlay
+- Mood auto-detected from creative summary or user-specified
+
+### 8. Assembly Engine
+
+- Single-scene pipeline — Assembly Engine handles music overlay only (no concatenation)
+- If music enabled: overlay music at reduced volume (25%) on the product video
+- Provider: Fal AI FFmpeg API (custom command for audio mix)
+
+### 9. Re-entry Controller
+
+Resume from any stage via `job_stages` status check:
+- `brief_intake` → `asset_analysis` → `creative_director` → `plan_review` → `image_generation` → `video_generation` → `assembly` → `delivery`
+- If image generation fails, retry without re-running the Creative Director
+- If user edits prompts after rejection, re-run only from plan_review
+
+### 10. Tier Router
+
+| Tier | Image Model | Video Model | Use Case |
+|------|-------------|-------------|----------|
+| **Draft** | GPT-4o Image (standard) | `veo3_fast` | Pre-approval iteration |
+| **Production** | GPT-4o Image (high quality) | `veo3` | Post-approval final render |
+
+- Auto-selects Draft before Plan Review Gate (save money during iteration)
+- Switches to Production after user approval
+- This is the pipeline where tier routing has the highest ROI (approval gate ensures production tier only fires once)
+
+### 11. Hook Library Injection
+
+- Query `hooks` table for top-performing hooks in brand's industry
+- Inject hooks into caption generation (the `caption` field in output)
+- Ensures captions use proven engagement patterns
+- See `HOOK_LIBRARY_ENGINE_DESIGN.md` for schema and query patterns

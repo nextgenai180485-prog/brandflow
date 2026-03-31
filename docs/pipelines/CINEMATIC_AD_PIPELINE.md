@@ -267,18 +267,54 @@ POST https://api.wavespeed.ai/api/v3/elevenlabs/turbo-v2.5
 
 ---
 
-## Stage 8: Assembly (Post-Production)
+## Stage 8: Automated Assembly Pipeline
 
-**Not automated in n8n workflow** — currently requires manual assembly of:
-- Scene videos (in order)
-- Background music track
-- Voiceover audio
+**Now automated** — replaces the previously manual assembly process.
 
-**Brandflow opportunity**: Automate assembly using FFmpeg (via Fal AI's `ffmpeg-api/merge-videos` or server-side processing):
-1. Concatenate scene videos in order
-2. Mix background music at reduced volume
-3. Overlay voiceover audio
-4. Export final MP4
+### Step 1 — Concatenate Scene Videos
+
+**Provider**: Fal AI (`fal-ai/ffmpeg-api/merge-videos`)
+
+```json
+POST https://queue.fal.run/fal-ai/ffmpeg-api/merge-videos
+{
+  "video_urls": ["<scene1_url>", "<scene2_url>", "<scene3_url>", "<scene4_url>", "<scene5_url>"]
+}
+```
+
+- Input: Array of scene video URLs in chronological order
+- Output: Single concatenated video URL
+- Polling: ~60s, check `video.url` in response
+- Authentication: API key via header (`Authorization: Key <FAL_API_KEY>`)
+
+### Step 2 — Mix Audio Layers
+
+**Provider**: Fal AI FFmpeg API (custom FFmpeg command)
+
+```
+ffmpeg -i concat.mp4 -i music.mp3 -i voice.mp3 \
+  -filter_complex "[1:a]volume=0.25[bg];[2:a]volume=1.0[vo];[bg][vo]amix=inputs=2[a]" \
+  -map 0:v -map "[a]" -c:v copy -c:a aac -shortest output.mp4
+```
+
+- Input: Concatenated video + music URL (from Stage 6) + voice URL (from Stage 7)
+- Background music at 25% volume
+- Voiceover at 100% volume
+- `-shortest` flag ensures output matches video duration
+- Output: Final video with mixed audio
+
+### Step 3 — Add Transitions (optional)
+
+- 0.5s crossfade between scenes using FFmpeg `xfade` filter
+- Applied during the concatenation step if enabled in brief settings
+- Transition types: crossfade (default), fade-to-black, dissolve
+
+### Step 4 — Export
+
+- Aspect ratio enforcement (16:9 or 9:16 based on brief)
+- Store final MP4 in Supabase Storage
+- Create artifact record linked to the generation job
+- Notify user that assembly is complete
 
 ---
 
@@ -335,3 +371,100 @@ Each lane runs independently on its own schedule:
 5. **Music generation** could offer genre/mood presets alongside custom prompts
 6. **Total pipeline time**: ~20-30 minutes (prompts: 30s → images: 2min → videos: 15min each + music: 3min + voice: 1min)
 7. **Cost optimization**: This is the most expensive pipeline — consider offering scene count limits on lower tiers
+
+---
+
+## Enterprise Engine Integration
+
+> Applied from Cross-Family Engine Audit — standardizes this pipeline with enterprise-grade shared modules.
+
+### 1. Asset Analyzer (replaces Stage 2)
+
+Switch from Gemini free-text to the unified `AnalyzeAsset` Edge Function:
+- **Mode**: `composite` (analyzes character + setting + product from the Elements Board)
+- **Provider**: Gemini via Lovable AI Gateway (already uses Gemini, standardize output)
+- **Output**: Structured YAML with character, setting, and product sections
+- Eliminates inconsistent free-text analysis
+
+### 2. Creative Director Agent (upgrades Stage 3)
+
+Stage 3 already uses the AGENT framework ("Multimedia Ad Director") — enhancements:
+- **Think Tool**: Ensure mandatory reasoning pass before generating scenes
+- **SEALCaM output format**: Standardize scene prompts to SEALCaM 6-field structure
+- **Structured creative summary**: Include scene-by-scene breakdown with estimated generation time per lane
+
+### 3. Plan Review Gate (new Stage 3.5)
+
+Mandatory checkpoint — critical for the most expensive pipeline:
+- User sees: all scenes with descriptions, script preview, music mood, estimated 20-30 min generation time
+- Cost estimate based on scene count × (image + video) + music + voice
+- Actions: Approve / Reject / Edit individual scene prompts / Edit script
+- On approval → all 5 lanes proceed in parallel
+
+### 4. Revision Loop (new Stage 3.6)
+
+When user rejects the plan:
+- **RevisionAgent** receives: creative direction + elements board analysis + original scenes + script + user comments
+- Generates revised scenes/script incorporating feedback
+- Re-submits to Plan Review Gate
+- Can revise individual scenes without regenerating the entire plan
+
+### 5. SEALCaM Adoption
+
+Convert existing YAML-style scene prompts to SEALCaM 6-field standard:
+
+| Current Field | SEALCaM Field |
+|---------------|---------------|
+| Composition | Subject + Camera |
+| Lighting | Lighting |
+| Environment | Environment |
+| Action | Action |
+| Refinements | Metatokens |
+| Camera | Camera |
+| Aesthetic + Mood + Subject | Metatokens (appended) |
+
+- Enables template reuse across F3, F5, F7, F8
+- Existing prompt quality maintained — format standardization only
+
+### 6. Hook Library Injection
+
+- Query `hooks` table for top-performing hooks in brand's industry
+- Inject hooks into script generation and caption creation
+- Ensures the ad's narrative hook is grounded in proven engagement patterns
+- See `HOOK_LIBRARY_ENGINE_DESIGN.md` for schema and query patterns
+
+### 7. Assembly Engine (Stage 8 — now automated)
+
+See **Stage 8: Automated Assembly Pipeline** above for full details:
+- Step 1: Concat scene videos (Fal AI FFmpeg)
+- Step 2: Mix music (25% vol) + voiceover (100% vol)
+- Step 3: Optional crossfade transitions (0.5s)
+- Step 4: Export with aspect ratio enforcement → Supabase Storage
+
+### 8. Re-entry Controller
+
+Each of the 5 lanes gets independent resume capability:
+- **PROMPTS lane**: `analysis` → `scene_planning` → `plan_review`
+- **IMAGES lane**: `start_frame_gen` → `end_frame_gen` (per scene)
+- **VIDEOS lane**: `video_gen` → `video_poll` (per scene)
+- **MUSIC lane**: `music_gen` → `music_poll`
+- **VOICE lane**: `voice_gen` → `voice_poll`
+- **ASSEMBLY**: `concat` → `audio_mix` → `transitions` → `export`
+- If one lane fails, retry only that lane without affecting others
+
+### 9. Tier Router
+
+| Tier | Image Model | Video Model | Voice Model | Use Case |
+|------|-------------|-------------|-------------|----------|
+| **Draft** | nano-banana-pro (standard) | `veo3_fast` | ElevenLabs Turbo v2.5 | Fast iteration |
+| **Production** | nano-banana-pro (2k) | `veo3` | ElevenLabs Turbo v2.5 | Approved finals |
+
+- Auto-selects Draft before Plan Review Gate
+- Switches to Production after approval
+- Voice model stays the same (ElevenLabs quality is consistent across tiers)
+
+### 10. Core Elements Board
+
+- Already a prerequisite for this pipeline (F6 → F5 dependency)
+- Standardize: auto-pull from brand assets during brief intake
+- If brand has no Core Elements Board → prompt user to generate one first

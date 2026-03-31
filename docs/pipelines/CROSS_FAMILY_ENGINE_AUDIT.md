@@ -158,21 +158,25 @@ Cinematic Ad and Creative Cloner generate background music via Suno. UGC and AI 
 
 ## 9. Assembly / Post-Production
 
-**Automated in**: F1B UGC Variant B (Fal AI FFmpeg)  
-**Planned for**: F5 Cinematic Ad, F8 Creative Cloner  
-**Missing from**: F1A UGC Variant A, F2 AI Spokesperson, F3 Product Videography, F7 Ad Creator
+**Automated in**: F1B UGC Variant B (Fal AI FFmpeg), **F5 Cinematic Ad (Fal AI FFmpeg — 4-step pipeline)**  
+**Adopted by**: F8 Creative Cloner (shared Assembly Engine)  
+**Available for**: F1A UGC Variant A (music overlay), F2 AI Spokesperson (clip concat + music), F3 Product Videography (music overlay), F7 Ad Creator (music overlay)
 
-Only UGC Variant B has automated FFmpeg merging via Fal AI. Cinematic Ad explicitly notes assembly is "not automated — currently requires manual assembly."
+F5 Cinematic Ad assembly is now **fully automated** via a 4-step pipeline:
+1. **Concat**: `fal-ai/ffmpeg-api/merge-videos` — merge scene videos in order
+2. **Audio Mix**: Custom FFmpeg command — background music (25% vol) + voiceover (100% vol)
+3. **Transitions**: Optional 0.5s crossfade via FFmpeg `xfade` filter
+4. **Export**: Aspect ratio enforcement + Supabase Storage upload
 
-### Proposed Standard
+### Shared AssemblyEngine Standard
 
-A shared `AssemblyEngine` that handles:
-- Video concatenation (multi-scene families)
-- Music overlay with volume control
-- Voiceover overlay with timing sync
-- Fade transitions between scenes
-- Caption/subtitle burn-in (optional)
-- Final export with aspect ratio enforcement
+A shared `AssemblyEngine` module handles:
+- Video concatenation (multi-scene families: F1B, F2, F5, F8)
+- Music overlay with volume control (all video families when music toggle enabled)
+- Voiceover overlay with timing sync (F5 only — has voice lane)
+- Fade transitions between scenes (configurable: crossfade, fade-to-black, dissolve)
+- Caption/subtitle burn-in (optional, future)
+- Final export with aspect ratio enforcement (16:9 or 9:16)
 
 ---
 
@@ -252,3 +256,45 @@ Phase C — Media (heavy compute)
 | `SEALCAM_FRAMEWORK.md` | Shared — Prompting standard |
 | `CREATIVE_CLONER_ENGINE_DESIGN.md` | Engine — Zero-effort cloner |
 | `IMAGE_TEMPLATE_ENGINE_DESIGN.md` | Engine — Template image recreation |
+| `HOOK_LIBRARY_ENGINE_DESIGN.md` | Engine — Performance-driven content intelligence |
+
+---
+
+## 11. Hook Library Engine
+
+**Exists as**: Standalone engine design (`HOOK_LIBRARY_ENGINE_DESIGN.md`)  
+**Integrated into**: F4 Social Content, F5 Cinematic Ad, F7 Ad Creator, F8 Creative Cloner  
+**Not applicable**: F1 UGC (no text content), F2 AI Spokesperson (prompt-driven, no captions), F3 Product Videography (visual-only), F6 Core Elements Board (no content generation)
+
+A curated database of proven social media hooks, captions, and CTAs — scraped from real platforms, annotated by industry, platform, and performance signals. Every content generation call queries this library FIRST to ground output in real-world performance data.
+
+### Integration Points
+
+| Family | Hook Injection Point | Purpose |
+|--------|---------------------|---------|
+| F4 Social Content | Pre-generation (Stage 2) | Few-shot examples for platform-optimized captions |
+| F5 Cinematic Ad | Script generation (Stage 3) | Narrative hooks for ad scripts |
+| F7 Ad Creator | Caption generation (Stage 3) | Engagement-optimized captions |
+| F8 Creative Cloner | Script generation (Stage 2) | Proven hooks for recreated ad narratives |
+
+---
+
+## Enterprise Engine Adoption Status
+
+All 8 families have been updated with Enterprise Engine Integration sections. Status:
+
+| Module | F1 | F2 | F3 | F4 | F5 | F6 | F7 | F8 |
+|--------|----|----|----|----|----|----|----|----|
+| Creative Director Agent | ✅ | ✅ | ✅ | ✅ | ✅ | — | ✅★ | ✅ |
+| Plan Review Gate | ✅ | ✅ | ✅ | ✅ | ✅ | — | ✅★ | ✅ |
+| Revision Agent | ✅ | ✅ | ✅ | ✅ | ✅ | — | ✅★ | ✅ |
+| Asset Analyzer | ✅ | ✅ | ✅ | — | ✅ | ✅ | ✅ | ✅★ |
+| SEALCaM | opt | opt | ✅ | — | ✅ | — | ✅ | ✅★ |
+| Core Elements Board | ✅ | ✅ | ✅ | ✅ | ✅ | ★ | ✅ | ✅ |
+| Music Engine | ✅ | ✅ | ✅ | — | ✅ | — | ✅ | ✅ |
+| Assembly Engine | ✅ | ✅ | ✅ | — | ✅ | — | ✅ | ✅ |
+| Tier Router | ✅ | ✅ | ✅ | — | ✅ | — | ✅ | ✅ |
+| Re-entry Controller | ✅ | ✅ | ✅★ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Hook Library | — | — | — | ✅ | ✅ | — | ✅ | ✅ |
+
+**Legend**: ✅ = adopted, ✅★ = reference pattern (other families should follow this implementation), opt = optional/opt-in, — = not applicable, ★ = is the module itself
