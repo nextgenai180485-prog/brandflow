@@ -2,7 +2,7 @@
 
 > **Status**: Design reference — master index of all shared engine modules  
 > **Last updated**: 2026-03-31  
-> **Module count**: 18 modules  
+> **Module count**: 20 modules + 1 workflow  
 > **Consolidation note**: Merged Prompt Schema Normalizer into SEALCaM (#5) and Tier Router + Provider Routing into a unified Provider & Tier Routing Engine (#9). Added Module #17 for post-production finishing and Module #18 for localization & cultural adaptation.
 
 ---
