@@ -85,6 +85,14 @@ Manage a library of reusable voice configurations.
     "default_style": "conversational",
     "default_speed": 1.0,
     "language_support": ["en-US", "es-ES", "ar-SA"],
+    "quality_score": "number (0-100)",
+    "approved_for_use": true,
+    "persona_match": {
+      "archetype": "professional | friendly | authoritative | playful | calm | energetic",
+      "tone_profile": "string (ref: Brand Voice DNA #12 voice_signature)",
+      "gender": "male | female | neutral",
+      "age_range": "young | mid | mature"
+    },
     "created_at": "ISO 8601"
   }
 }
