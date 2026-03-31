@@ -2,7 +2,7 @@
 
 > **Status**: Design reference — master contract for all 8 pipeline families  
 > **Last updated**: 2026-03-31  
-> **Engine count**: 17 modules (consolidated from 18, extended with Delivery & Post-Production — see ENGINE_MODULE_REGISTRY.md)
+> **Engine count**: 18 modules — see ENGINE_MODULE_REGISTRY.md
 
 ---
 
@@ -102,7 +102,7 @@ Each pipeline family has a standardized contract defining its inputs, outputs, a
 
 Every family follows this abstract stage flow:
 ```
-brief_intake → asset_analysis → planning → plan_review → [revision_loop] → generation → assembly → post_production → delivery
+brief_intake → asset_analysis → planning → plan_review → [revision_loop] → generation → assembly → post_production → [localization] → delivery
 ```
 
 Specific stage names vary per family but map to this pattern.
