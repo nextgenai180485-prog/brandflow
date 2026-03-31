@@ -78,6 +78,7 @@ The enterprise engine layer consists of 17 shared modules that sit between famil
 | 14. Template Image Composer | — | — | — | ✅ | — | — | — | — |
 | 15. Motion Variant Selector | — | ✅ | — | — | — | — | — | — |
 | 16. UGC Voiceover | ✅ | — | — | — | — | — | — | — |
+| 17. Delivery & Post-Production | ✅ | ✅ | ✅ | ✅ | ✅ | — | ✅ | ✅ |
 
 **Legend**: ✅ = adopted, ✅★ = reference pattern, opt = optional/opt-in, — = not applicable, ★ = is the module itself
 
