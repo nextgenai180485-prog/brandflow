@@ -784,39 +784,33 @@ Desired qualities:
 - minimal
 - creative-professional
 
-### Recommended color direction
-Instead of loud neon AI colors, use a palette that feels sophisticated and product-led.
+### Recommended color direction (ElevenLabs-inspired)
+Warm, minimal, premium editorial aesthetic — not loud or startup-feeling.
 
 #### Primary palette
-- **Graphite / near-black** — `#171717`
-- **Warm white / soft canvas** — `#F5F2EB`
-- **Deep charcoal** — `#232323`
-- **Muted crimson accent** — `#E53935`
-- **Soft burgundy shadow accent** — `#8E2430`
-
-#### Optional supporting neutrals
-- **Stone gray** — `#C8C1B8`
-- **Cool gray text** — `#6B6B6B`
+- **Warm cream background** — `#F8F5F1`
+- **Near-black foreground** — `#1A1A1A`
+- **Warm light surface** — `#F0EDE8`
+- **Warm border** — `#E8E4DF`
+- **Muted text** — `#6B6560`
+- **Subtle muted accent** — `#E0DCD6`
 
 ### Why this palette works
-- feels premium and mature
-- creative without looking childish
-- gives Adobe-like seriousness and taste
-- works well for medspa and e-commerce buyers
-- allows strong contrast for UI, dashboards, and approvals
+- warm, editorial, premium — inspired by ElevenLabs' minimal aesthetic
+- high readability with warm contrast
+- suits medspa and e-commerce buyers
+- lets content (images, videos) be the visual focus
+- avoids loud AI/startup color clichés
 
 ### Color usage guidance
-- use graphite/charcoal as the base UI color
-- use warm white/canvas for breathing room and premium feel
-- use crimson sparingly as a signature accent, not everywhere
-- keep gradients subtle, not flashy
-- approvals and success states can still use green, but only as system feedback colors
+- warm cream as primary background
+- near-black for text and primary buttons
+- warm grays for borders, cards, secondary surfaces
+- muted tones for supporting text
+- system feedback colors (green/red) only for status indicators
 
-### Typography direction
-- clean sans-serif
-- strong editorial hierarchy
-- modern and restrained
-- avoid bubbly startup fonts
+### Typography
+**Inter** — clean, modern, enterprise-grade sans-serif with strong hierarchy.
 
 ### Brand vibe summary
 Brandflow should look like:
