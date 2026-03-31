@@ -119,13 +119,15 @@ Naturalness weighted highest as it's the primary quality signal.
 
 ```text
 Stage 5B: Base Video Generation
-  1. Generate 3 Kling 2.6 variants (parallel API calls)
+  1. Generate 3 Kling 2.6 / Seedance 2.0 variants (parallel API calls, routed by #9)
   2. Score all 3 variants (parallel vision model calls)
   3. Auto-select highest composite score
   4. Store selected variant + scores in job_stages
   5. (Optional) Show top 2 variants in Plan Review Gate for user choice
   6. Proceed to Stage 5D (Lip-Sync) with selected base video
 ```
+
+> **Voice Operations**: Any TTS audio required for F2 Spokesperson (e.g., script narration for lip-sync input) is generated via the **Voice Management Engine (#20)**. This module does NOT call ElevenLabs or any TTS provider directly. See `engines/VOICE_MANAGEMENT_ENGINE.md` for the provider abstraction.
 
 ### Cost Impact
 
