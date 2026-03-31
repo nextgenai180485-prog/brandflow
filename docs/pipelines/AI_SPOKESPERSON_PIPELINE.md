@@ -1,247 +1,402 @@
-# AI Spokesperson Video Pipeline — Technical Reference
+# AI Spokesperson — Lip-Sync Talking Head Pipeline
 
-> Reverse-engineered from production n8n workflow: `n24 | Autopilot Cameos with Sora2 Pro`
+> Redesigned from Sora2-based text-to-video to audio-driven lip-sync architecture for realistic talking-head videos.
 
 ---
 
 ## Overview
 
-Generates batch AI spokesperson/cameo videos using Sora2 or Sora2-Pro models via Kie AI. The system takes a master prompt, optional image reference, and optional cameo character — then generates N video scenes as standalone clips.
+Generates realistic talking-head videos where the user (or an AI avatar) speaks directly to camera with perfectly synchronized lip movements. The system takes a user photo + script, generates or clones voice audio, creates a base video with idle motion, then applies audio-driven lip-sync for natural mouth movement.
 
-**Core principle**: Batch-produce talking-head or character-driven video content at scale using AI avatars, with optional image-to-video capability.
+**Core principle**: Audio-driven face animation produces far superior results (8-9/10) compared to text-to-video spokesperson generation (5-6/10). The lip-sync model animates an existing face to match audio, rather than trying to generate speech from text prompts.
 
 ---
 
 ## Pipeline Stages
 
 ```text
-Master Prompt (Google Sheets) → Analyze Image (GPT-4o Vision, optional)
-  → AI Agent (GPT-4.1, N scenes) → Split Scenes
-  → [per scene] Create Sora2 (Kie AI) → Poll → Log Video
-  → [optional] Social Distribution (Blotato)
+Brief Intake → Script Enhancement → Voice Resolution → Base Video Generation
+  → Lip-Sync → Assembly → Delivery
+
+User Photo + Script
+  ├─ Voice Lane: ElevenLabs TTS/Clone/Upload → Audio file
+  ├─ Base Video Lane: Kling 2.6 (idle motion from photo) → ~5s loop
+  └─ Lip-Sync: LatentSync (draft) or Sync Labs Lipsync 2.0 (production)
+      → Assembly Engine (music overlay, captions, brand watermark)
+      → Final MP4
 ```
 
 ---
 
-## Stage 1: Brief Intake (Master Prompt)
+## Stage 1: Brief Intake
 
-**Source**: Google Sheets row (Brandflow: web UI form)
+**Source**: Brandflow web UI form
 
 **Inputs**:
 | Field | Type | Required | Example |
 |-------|------|----------|---------|
-| `your_prompt` | string | Yes | "Create 5 videos about skincare tips" |
-| `video_count` | integer | Yes | 5 |
-| `cameo` | string | No | "@username" (Sora2 character reference) |
-| `model` | enum: `sora2` \| `sora2-pro` | Yes (default: `sora2`) | `sora2-pro` |
-| `aspect_ratio` | enum: `9:16` \| `16:9` | Yes (default: `9:16`) | `16:9` |
-| `master_prompt_reference` | string | No | Full reference prompt to mimic style |
-| `image_reference` | URL | No | Image URL for image-to-video mode |
+| `script` | string | Yes | "Hey everyone! Today I want to share 3 tips for..." |
+| `spokesperson_photo` | URL | Yes | User's photo or AI avatar image |
+| `voice_mode` | enum: `upload` \| `tts` \| `clone` | Yes | `clone` |
+| `voice_audio` | URL | If mode=upload | User's recorded audio file |
+| `voice_id` | string | If mode=clone | ElevenLabs voice ID from brand assets |
+| `tts_voice` | string | If mode=tts | Default ElevenLabs voice selection |
+| `background_music` | boolean | No (default: false) | true |
+| `music_mood` | string | If background_music=true | "upbeat corporate" |
+| `aspect_ratio` | enum: `9:16` \| `16:9` | Yes (default: `9:16`) | `9:16` |
+| `caption_style` | enum: `none` \| `minimal` \| `animated` | No (default: `none`) | `animated` |
+| `industry` | string | No | "skincare" |
 
 ---
 
-## Stage 2: Analyze Reference Image (Optional)
+## Stage 2: Analyze Spokesperson Image
 
-**Purpose**: If an image reference is provided, analyze it to extract product/character visual details.
+**Purpose**: Validate the photo is suitable for lip-sync (frontal face, good lighting, sufficient resolution) and extract visual context.
 
-**Provider**: OpenAI GPT-4o (vision)
+**Provider**: Unified `AnalyzeAsset` Edge Function (mode: `character`)
 
-**Prompt**:
-```
-Analyze the given image and determine if it primarily depicts a product or a character, or BOTH.
+**Validation checks**:
+- Face detected and frontal-facing (not profile/side)
+- Minimum resolution: 512x512
+- Good lighting (not heavily shadowed)
+- Single face preferred (multi-face may produce artifacts)
 
-- If product:
-  brand_name, color_scheme (hex + name), font_style, visual_description
+**Output**: YAML with character details + suitability score.
 
-- If character:
-  character_name, color_scheme (hex + name), outfit_style, visual_description
-
-- If BOTH: return both descriptions
-
-Only return YAML. No explanations.
-```
-
-**Output**: YAML string with visual details for the AI agent.
+**If validation fails**: Return actionable feedback ("Please upload a front-facing photo with even lighting").
 
 ---
 
-## Stage 3: Scene Planning (AI Agent)
+## Stage 3: Script Enhancement (Creative Director Agent)
 
-**Purpose**: Generate N video scene prompts based on the master prompt, matching its style, tone, and structure.
+**Purpose**: Enhance the user's raw script into a polished, engaging spokesperson script — incorporating proven hooks and brand voice.
 
-**Provider**: OpenAI GPT-4.1 + Think Tool + Structured Output Parser + Google Sheets Tool (deduplication)
+**Provider**: Gemini via Lovable AI Gateway (AGENT framework + Think Tool)
+
+**Process**:
+1. **Hook Library query**: Pull top-performing hooks for the user's industry
+2. **Brand Voice check**: Load brand tone/vocabulary if available
+3. **Think Tool**: Reason about script structure, hook placement, CTA positioning
+4. **Enhancement**: Polish script while preserving the user's core message
 
 **System Prompt** (AGENT framework):
 ```
-## SYSTEM PROMPT: Video Scene Prompt Expander 🎬
+## SYSTEM PROMPT: Spokesperson Script Director 🎤
 
 A – Ask:
-  Suggest detailed video prompts based on the user's input – always mimicking
-  the format, tone, and structure of a provided master prompt.
+  Enhance the user's script for a talking-head video. Make it engaging,
+  natural-sounding when spoken aloud, and optimized for social media attention.
 
 G – Guidance:
-  role: Visual director or prompt artist
-  output_count: As specified by the user
+  role: Script director for social media spokesperson videos
   constraints:
-    - Match the style, length, formatting, and cadence of the master prompt
-    - Never use copyrighted or trademarked characters, brands, or IP
-    - aspect_ratio must be "9:16" or "16:9"
-    - If image_reference URL provided, copy it exactly into output
-    - Use Sheet tool to AVOID repeated titles, captions, or prompts
-    - If cameo provided, include as @mention near top of each prompt
-    - model must be "sora2" or "sora2-pro" (default: "sora2")
-    - If user says "Use the master prompt directly", output master prompt
-      as-is without changes (still generate Title and Caption)
+    - Preserve the user's core message and intent
+    - Open with a strong hook (reference Hook Library results)
+    - Keep sentences short and punchy (spoken, not written)
+    - Include natural pauses (marked with "...")
+    - End with a clear CTA
+    - Match brand voice if available
+    - Script length should produce 15-60 second audio
+    - If user says "use my script exactly", skip enhancement
 
 E – Examples:
-  Match the sample's sentence rhythm, length, and visual vocabulary.
-  Mirror the tone, cinematic intensity, and phrase structure exactly.
+  Weak: "I want to talk about our new product launch."
+  Strong: "Stop scrolling. This changes everything about [topic]..."
 
 T – Tools:
-  - Think Tool: Reflect and reason before responding
-  - Sheet: Memory sheet to check for duplicate ideas
+  - Think Tool: Reason about hook selection and script flow
+  - Hook Library: Query for industry-relevant opening hooks
 ```
 
-**Output Schema**:
+**Output**:
 ```json
 {
-  "scenes": [
-    {
-      "task_id": 1,
-      "Title": "Title here",
-      "Caption": "Short caption with emoji 😀 #topic1 #topic2",
-      "Prompt": "Detailed video prompt with @cameo if applicable",
-      "aspect_ratio": "16:9",
-      "image_reference": "https://example.com/image.jpg",
-      "model": "sora2 or sora2-pro"
-    }
-  ]
+  "enhanced_script": "Stop scrolling. Here's what nobody tells you about...",
+  "estimated_duration_seconds": 32,
+  "hook_used": "Stop scrolling pattern",
+  "caption": "3 skincare tips that actually work 🧴✨ #skincare #tips",
+  "title": "Skincare Tips Nobody Talks About"
 }
 ```
 
 ---
 
-## Stage 4: Split Scenes
+## Stage 3.5: Plan Review Gate
 
-**Purpose**: Fan out the scenes array for parallel processing.
+**Purpose**: User approves the enhanced script, voice preview, and cost estimate before generation.
 
-**Input**: `output.scenes` array from Stage 3
-**Output**: Individual scene objects, each flowing through Stage 5 independently.
+**User sees**:
+- Enhanced script (editable)
+- Estimated audio duration
+- Voice preview (if TTS/clone: generate 5-second sample)
+- Photo that will be used
+- Estimated cost breakdown
+- Estimated generation time (~3-5 minutes)
+
+**Actions**: Approve / Edit Script / Change Voice / Reject
 
 ---
 
-## Stage 5: Video Generation (per scene)
+## Stage 3.6: Revision Loop
 
-**Purpose**: Generate video using Kie AI's Sora2/Sora2-Pro models.
+When user edits or rejects:
+- **RevisionAgent** receives: original script + enhanced version + user edits/comments
+- Re-generates enhanced script incorporating feedback
+- Re-submits to Plan Review Gate
+- Max 3 revision cycles before forcing manual script entry
 
-**Provider**: Kie AI (`/api/v1/jobs/createTask`)
+---
 
-**Model Selection Logic**:
+## Stage 4: Split into Parallel Lanes
+
+After approval, three lanes run in parallel:
+
+```text
+Lane A: Voice Resolution (Stage 5A)
+Lane B: Base Video Generation (Stage 5B)
+Lane C: Music Generation (Stage 5C, if enabled)
+
+All three complete → Lip-Sync (Stage 5D) → Assembly (Stage 5E)
 ```
-if model === "sora2-pro":
-  if image_reference exists → "sora-2-pro-image-to-video"
-  else → "sora-2-pro-text-to-video"
-else:
-  if image_reference exists → "sora-2-image-to-video"
-  else → "sora-2-text-to-video"
-```
+
+---
+
+## Stage 5A: Voice Resolution
+
+**Purpose**: Produce the final audio file of the spokesperson speaking the script.
+
+### Mode 1: User Upload
+- User provides pre-recorded audio file
+- Validate: audio format (MP3/WAV/M4A), duration (5-120 seconds)
+- Store in Supabase Storage
+- **Cost**: Free
+
+### Mode 2: ElevenLabs TTS
+- Generate speech from enhanced script using a selected ElevenLabs voice
+- **Provider**: ElevenLabs Text-to-Speech API
+- **Model**: `eleven_multilingual_v2` (highest quality, 29 languages)
+- **Voice Settings**: stability 0.4, similarity_boost 0.75, style 0.3 (conversational)
+- **Output format**: `mp3_44100_128`
+- **Cost**: ~$0.02-0.06 per script (based on character count)
+
+### Mode 3: ElevenLabs Voice Clone
+- User records 30-second voice sample during brand onboarding (stored as brand asset)
+- Clone registered via ElevenLabs Instant Voice Clone API
+- TTS generation uses the cloned voice ID
+- **Provider**: ElevenLabs Voice Clone + TTS
+- **Cost**: Clone creation (one-time) + ~$0.02-0.06 per generation
+
+**Output**: Audio file URL + duration in seconds.
+
+---
+
+## Stage 5B: Base Video Generation
+
+**Purpose**: Generate a short video clip with subtle idle motion from the user's photo — blinking, breathing, slight head movement. This gives the lip-sync model a natural-looking base to animate.
+
+**Provider**: Kie AI (Kling 2.6 image-to-video)
 
 **Request**:
 ```json
 POST https://api.kie.ai/api/v1/jobs/createTask
 {
-  "model": "<computed model string>",
+  "model": "kling-2.6-image-to-video",
   "input": {
-    "prompt": "<scene.Prompt>",
-    "aspect_ratio": "portrait | landscape",
-    "image_urls": ["<image_reference>"],  // only if image-to-video
-    "remove_watermark": true,
-    "n_frames": "10",     // sora2-pro only
-    "size": "standard"    // sora2-pro only
+    "prompt": "A person looking directly at the camera with subtle natural idle motion — gentle blinking, slight breathing movement, minimal head sway. Maintain exact facial features and appearance. Neutral expression, ready to speak. No dramatic movement.",
+    "image_urls": ["<spokesperson_photo>"],
+    "aspect_ratio": "<portrait|landscape>",
+    "remove_watermark": true
   }
 }
 ```
 
-**Authentication**: API key via HTTP header
+**Polling**: GET `https://api.kie.ai/api/v1/jobs/recordInfo?taskId=<taskId>`
 
-**Response**: Returns `data.taskId` for polling.
+**Output**: ~5 second video clip of the person with natural idle motion.
 
-**Polling**:
-- GET `https://api.kie.ai/api/v1/jobs/recordInfo?taskId=<taskId>`
-- Check `data.successFlag === 1`
-- If not ready → wait and re-poll
-- If ready → extract video URL from response
+**Loop logic**: If audio is longer than base video, loop the base video to match audio duration (handled in Assembly stage).
 
-**Key differences from UGC pipeline**:
-- Uses `/api/v1/jobs/createTask` (not `/api/v1/veo/generate`)
-- Uses `/api/v1/jobs/recordInfo` (not `/api/v1/veo/record-info`)
-- Model is `sora-2-*` variants (not `veo3`)
-- Aspect ratio uses `portrait`/`landscape` strings (not `9:16`/`16:9`)
+**Cost**: ~$0.10-0.15 per generation
 
 ---
 
-## Stage 6: Logging & Distribution
+## Stage 5C: Music Generation (Optional, Parallel)
 
-**Logging**: Each completed video is logged back to Google Sheets with URL, status, and metadata.
+**Condition**: Only runs if `background_music: true` in brief.
 
-**Social Distribution** (optional): Via Blotato API to multiple platforms:
-- Instagram, TikTok, Facebook, LinkedIn, Threads, Twitter/X, BlueSky, YouTube
+**Provider**: Kie AI (Suno V4)
 
-**Brandflow replacement**: Store artifacts in Supabase Storage, log to `job_stages` table, distribute via Brandflow's social publishing module (future).
+**Request**:
+```json
+POST https://api.kie.ai/api/v1/generate
+{
+  "model": "suno-v4",
+  "input": {
+    "prompt": "<music_mood> background music for a spokesperson video, subtle and non-intrusive, instrumental only",
+    "duration": "<match audio duration>"
+  }
+}
+```
+
+**Cost**: ~$0.05-0.10
+
+---
+
+## Stage 5D: Lip-Sync Generation
+
+**Purpose**: Apply audio-driven face animation to the base video, synchronizing lip movements to the voice audio.
+
+### Draft Tier: ByteDance LatentSync
+
+**Provider**: Fal.ai (`fal-ai/latentsync`)
+
+**How it works**: LatentSync uses a latent diffusion-based approach to animate facial movements from audio. It modifies only the mouth/jaw region while preserving the rest of the face.
+
+**Request**:
+```json
+POST https://queue.fal.run/fal-ai/latentsync
+{
+  "video_url": "<base_video_url>",
+  "audio_url": "<voice_audio_url>"
+}
+```
+
+**Polling**: Check `request_id` via Fal.ai queue status endpoint.
+
+**Quality**: 7/10 — Good for previews and drafts. Occasional artifacts around jaw line.
+**Speed**: ~30-60 seconds for a 30s video.
+**Cost**: ~$0.20 per 40 seconds of video.
+
+### Production Tier: Sync Labs Lipsync 2.0
+
+**Provider**: Fal.ai (`fal-ai/sync-lipsync`)
+
+**How it works**: Sync Labs uses a proprietary model trained on millions of talking-head videos. Higher fidelity lip movements, better teeth rendering, and more natural jaw movement.
+
+**Request**:
+```json
+POST https://queue.fal.run/fal-ai/sync-lipsync
+{
+  "video_url": "<base_video_url>",
+  "audio_url": "<voice_audio_url>"
+}
+```
+
+**Quality**: 9/10 — Production-ready. Natural lip movements, proper teeth visibility, minimal artifacts.
+**Speed**: ~60-120 seconds for a 30s video.
+**Cost**: ~$0.70 per minute of video.
+
+### Tier Selection Logic
+```
+if tier === "draft":
+  model = "fal-ai/latentsync"        // Fast, cheap, good for previews
+else if tier === "production":
+  model = "fal-ai/sync-lipsync"      // High quality, production-ready
+```
+
+- Auto-selects **Draft** before Plan Review Gate (for preview generation)
+- Switches to **Production** after final approval
+
+---
+
+## Stage 5E: Assembly
+
+**Purpose**: Combine lip-synced video with audio layers, captions, and brand elements.
+
+**Provider**: Fal AI FFmpeg API (`fal-ai/ffmpeg-api`)
+
+**Assembly sequence**:
+
+1. **Loop base video** (if needed): Extend lip-synced video to match audio duration
+2. **Mix audio layers**:
+   - Voice audio at full volume (100%)
+   - Background music at reduced volume (25%) — if enabled
+3. **Add captions** (if enabled): Burn-in subtitles from script text
+4. **Brand watermark**: Optional brand logo overlay (bottom-right, 10% opacity)
+5. **Aspect ratio enforcement**: Ensure final output matches requested ratio (9:16 or 16:9)
+
+**FFmpeg command equivalent**:
+```bash
+ffmpeg -i lipsync_video.mp4 -i voice.mp3 -i music.mp3 \
+  -filter_complex "[1:a]volume=1.0[vo];[2:a]volume=0.25[bg];[vo][bg]amix=inputs=2[a]" \
+  -map 0:v -map "[a]" -c:v libx264 -c:a aac -shortest output.mp4
+```
+
+**Output**: Final MP4 stored in Supabase Storage.
+
+---
+
+## Stage 6: Delivery
+
+**Artifacts stored**:
+- Final assembled MP4 (primary deliverable)
+- Voice audio file (reusable for re-generation)
+- Base video clip (reusable for different scripts)
+- Caption text
+- Thumbnail (extracted from first frame)
+
+**Metadata logged** to `job_stages` table:
+- Voice mode used, voice duration
+- Lip-sync model used, quality tier
+- Music enabled/disabled
+- Total generation time, total cost
+
+**Social Distribution**: Via Brandflow's social publishing module with platform-optimized versions:
+- Instagram Reels: 9:16, captions on
+- TikTok: 9:16, captions on
+- LinkedIn: 16:9 or 9:16, captions optional
+- YouTube Shorts: 9:16
 
 ---
 
 ## Provider Summary
 
-| Stage | Provider | API Endpoint | Auth |
-|-------|----------|-------------|------|
-| Analyze Image | OpenAI GPT-4o | OpenAI API (vision) | API key |
-| Scene Planning | OpenAI GPT-4.1 | OpenAI API (chat) | API key |
-| Video Generation | Kie AI (Sora2) | `api.kie.ai/api/v1/jobs/createTask` | HTTP header |
-| Video Polling | Kie AI | `api.kie.ai/api/v1/jobs/recordInfo` | HTTP header |
-| Social Publish | Blotato (→ Brandflow) | Blotato API | API key |
+| Stage | Provider | Model/Endpoint |
+|-------|----------|----------------|
+| Image Analysis | Unified AnalyzeAsset | Gemini via Lovable AI Gateway (mode: `character`) |
+| Script Enhancement | Lovable AI Gateway | Gemini (AGENT framework + Think Tool) |
+| Voice (TTS) | ElevenLabs | `eleven_multilingual_v2` |
+| Voice (Clone) | ElevenLabs | Instant Voice Clone + `eleven_multilingual_v2` |
+| Base Video | Kie AI | Kling 2.6 image-to-video |
+| Lip-Sync (Draft) | Fal.ai | ByteDance LatentSync (`fal-ai/latentsync`) |
+| Lip-Sync (Production) | Fal.ai | Sync Labs Lipsync 2.0 (`fal-ai/sync-lipsync`) |
+| Music (optional) | Kie AI | Suno V4 |
+| Assembly | Fal AI | FFmpeg API |
 
 ---
 
-## Two-Part Batch Architecture
+## Cost Breakdown (per 30-second video)
 
-The n8n workflow uses a two-part scheduled system:
-
-**Part 1** (Prompt Generation):
-- Triggered on schedule
-- Reads master prompt from Google Sheets
-- Runs AI Agent to generate N scene prompts
-- Logs prompts back to Sheets
-
-**Part 2** (Video Generation):
-- Triggered on separate schedule
-- Reads pending prompts from Sheets
-- Submits each to Kie AI Sora2
-- Polls for completion
-- Logs finished videos
-
-**Brandflow adaptation**: Both parts run as a single pipeline job with `job_stages` tracking each step. No schedule triggers needed — the job orchestrator handles sequencing.
+| Component | Draft Tier | Production Tier |
+|-----------|-----------|-----------------|
+| Voice (TTS) | ~$0.03 | ~$0.03 |
+| Base Video (Kling 2.6) | ~$0.12 | ~$0.12 |
+| Lip-Sync | ~$0.15 (LatentSync) | ~$0.35 (Sync Labs) |
+| Music (optional) | ~$0.07 | ~$0.07 |
+| Assembly (FFmpeg) | ~$0.02 | ~$0.02 |
+| **Total (no music)** | **~$0.30** | **~$0.50** |
+| **Total (with music)** | **~$0.37** | **~$0.57** |
 
 ---
 
 ## Key Design Notes
 
-1. **Master prompt mimicry** is the core feature — the AI agent copies the style/tone of a reference prompt
-2. **Cameo system**: Sora2 supports character references via @mentions in prompts
-3. **Image-to-video mode**: When an image reference is provided, switches to image-to-video model variant
-4. **Sora2-Pro extras**: Adds `n_frames: "10"` and `size: "standard"` parameters
-5. **Deduplication**: The Sheet tool prevents the agent from generating duplicate ideas across runs
-6. **Aspect ratio mapping**: `9:16` → `portrait`, `16:9` → `landscape` (different from Veo3 which uses raw ratios)
+1. **Audio-driven, not text-driven**: The lip-sync model animates from audio, not from text prompts — this is why quality jumps from 5-6/10 to 8-9/10
+2. **Kling 2.6 for idle motion only**: We don't ask Kling to generate speech — just natural idle movement. This is a much simpler task it handles well.
+3. **Voice as brand asset**: Cloned voices are stored as permanent brand assets, reusable across all pipelines that need voiceover
+4. **Sora2 demoted to B-roll**: Sora2/Sora2-Pro can still be used for creative B-roll clips that don't require lip-sync (e.g., product shots, scene transitions)
+5. **Base video reusability**: The idle motion base video can be reused with different scripts/audio, reducing cost for repeat content
+6. **ElevenLabs handles multilingual**: `eleven_multilingual_v2` supports 29 languages — spokesperson videos work globally
 
 ---
 
 ## Brandflow Implementation Notes
 
-1. **Replace Google Sheets** with Supabase tables for input/output tracking
-2. **Replace Blotato** with Brandflow's social publishing module
-3. **The two-part batch pattern** maps naturally to `job_stages`: Stage 1 = prompt generation, Stage 2 = video generation
-4. **Sora2 API uses different endpoints** than Veo3 — the provider adapter must handle both `/api/v1/jobs/*` and `/api/v1/veo/*` patterns
-5. **Cameo/character references** should be stored as brand assets that users can select in the brief form
+1. **Voice clone onboarding**: Add "Record your voice" step to brand onboarding flow — 30-second sample → ElevenLabs clone → stored as `brand_assets.voice_clone_id`
+2. **Photo validation**: Pre-check uploaded photos before entering the pipeline — reject side profiles, group shots, low-res images early
+3. **Preview mode**: Generate a 5-second draft lip-sync preview before committing to full production generation
+4. **Script templates**: Offer industry-specific script templates from the Hook Library to reduce blank-page friction
+5. **Batch mode**: Allow users to generate multiple videos with the same photo but different scripts (reuse base video)
 
 ---
 
@@ -249,76 +404,64 @@ The n8n workflow uses a two-part scheduled system:
 
 > Applied from Cross-Family Engine Audit — standardizes this pipeline with enterprise-grade shared modules.
 
-### 1. Asset Analyzer (replaces Stage 2)
+### 1. Asset Analyzer (Stage 2)
+- Unified `AnalyzeAsset` Edge Function (mode: `character`)
+- Validates photo suitability for lip-sync (frontal face, resolution, lighting)
+- Extracts character visual details for brand context
 
-Switch from GPT-4o to the unified `AnalyzeAsset` Edge Function:
-- **Mode**: `character` (primary — spokesperson images) or `product` (if product image provided)
-- **Provider**: Gemini via Lovable AI Gateway
-- **Output**: Structured YAML with character/product details
-- Standardizes vision analysis across all families
+### 2. Creative Director Agent (Stage 3)
+- AGENT framework with Think Tool for script enhancement
+- Incorporates Hook Library data for industry-relevant openings
+- Generates caption and title alongside enhanced script
 
-### 2. Creative Director Agent (upgrades Stage 3)
+### 3. Plan Review Gate (Stage 3.5)
+- User previews enhanced script, voice sample, photo, and cost estimate
+- Editable script with real-time duration estimation
+- Prevents expensive generation on unapproved content
 
-Stage 3 already uses the AGENT framework — enhancements:
-- **Think Tool**: Add mandatory reasoning pass (reflect before generating prompts)
-- **Structured creative summary**: Include mood, style, cameo usage, estimated cost
-- **Deduplication**: Retain Sheet tool pattern but migrate to Supabase query
-
-### 3. Plan Review Gate (new Stage 3.5)
-
-Mandatory checkpoint between planning and generation:
-- User sees: planned scenes, cameo character, visual style, estimated cost
-- Actions: Approve / Reject / Edit individual scene prompts
-- Prevents expensive Sora2 calls on bad concepts
-
-### 4. Revision Loop (new Stage 3.6)
-
-When user rejects the plan:
-- **RevisionAgent** receives: original master prompt + original scenes + user comments
-- Generates revised scene prompts incorporating feedback
-- Re-submits to Plan Review Gate
-- Preserves master prompt style fidelity across revisions
+### 4. Revision Loop (Stage 3.6)
+- RevisionAgent incorporates user feedback into script revisions
+- Preserves brand voice and hook effectiveness across iterations
+- Max 3 cycles before manual entry
 
 ### 5. Core Elements Board Injection
+- Brand's Core Elements Board image provides visual context for script enhancement
+- Helps Creative Director understand product/brand setting
+- Optional — skipped if brand has no Board
 
-- Core Elements Board image (from F6) injected as visual context for avatar settings
-- Helps the AI agent understand the brand's setting and product context
-- If brand has no Core Elements Board → skip (optional)
+### 6. Hook Library Integration
+- Queries `hooks` table for top-performing hooks in user's industry BEFORE script enhancement
+- Injects proven opening patterns into the Creative Director's context
+- Tracks which hooks are used for performance feedback loop
 
-### 6. Music Engine (optional, parallel lane)
+### 7. Music Engine (Optional, Parallel Lane)
+- Suno V4 via Kie AI generates background music matching script mood
+- Runs in parallel with voice + base video generation
+- Music overlay at 25% volume in Assembly stage
 
-- Toggle: "Add background music?" in the brief
-- If enabled: Suno V5 via Kie AI runs in parallel with video generation
-- Mood auto-detected from master prompt tone or user-specified
-- Music overlay applied via Assembly Engine after videos complete
+### 8. Assembly Engine (Stage 5E)
+- Fal AI FFmpeg API for audio mixing + video assembly
+- Handles: voice + music mixing, caption burn-in, aspect ratio enforcement
+- Automated — no manual post-production needed
 
-### 7. Assembly Engine
+### 9. Re-entry Controller
+- Resume from any stage via `job_stages` status:
+  - `brief_intake` → `script_enhancement` → `plan_review` → `voice_generation` → `base_video` → `lip_sync` → `assembly` → `delivery`
+- If lip-sync fails: retry with same audio + base video
+- If user re-records voice: re-run from voice generation onward
+- Base video cached for script-only changes
 
-- Multi-clip concatenation for spokesperson videos (currently produces standalone clips)
-- If music enabled: overlay music at reduced volume (25%)
-- Provider: Fal AI FFmpeg API
-- Assembly sequence: Concat clips → Mix music → Export
+### 10. Tier Router
 
-### 8. Re-entry Controller
+| Tier | Lip-Sync Model | Cost | Quality |
+|------|----------------|------|---------|
+| **Draft** | ByteDance LatentSync (`fal-ai/latentsync`) | ~$0.20/40s | 7/10 |
+| **Production** | Sync Labs Lipsync 2.0 (`fal-ai/sync-lipsync`) | ~$0.70/min | 9/10 |
 
-Resume from any stage via `job_stages` status check:
-- `brief_intake` → `asset_analysis` → `scene_planning` → `plan_review` → `video_generation` → `assembly` → `delivery`
-- If Sora2 generation fails on one scene, retry only that scene
-- If user edits prompts, re-run only video generation + assembly
+- Draft auto-selected for preview generation
+- Production used after final approval
+- Kling 2.6 stays constant across tiers (idle motion quality is sufficient)
 
-### 9. Tier Router
-
-| Tier | Video Model | Use Case |
-|------|-------------|----------|
-| **Draft** | `sora2` | Fast iteration, first drafts |
-| **Production** | `sora2-pro` | Approved finals, high quality |
-
-- Auto-selects Draft before Plan Review Gate
-- Switches to Production after approval
-- `sora2-pro` adds `n_frames: "10"` and `size: "standard"` parameters
-
-### 10. SEALCaM Prompting
-
-- Not mandatory for spokesperson videos (dialogue-driven, not cinematic)
-- Available as opt-in for users who want structured cinematic spokesperson content
-- When enabled, structures prompts with Subject, Environment, Action, Lighting, Camera, Metatokens
+### 11. SEALCaM Prompting
+- Not applicable for lip-sync pipeline (audio-driven, not prompt-driven)
+- Available for optional Sora2 B-roll generation if user wants supplementary creative clips
