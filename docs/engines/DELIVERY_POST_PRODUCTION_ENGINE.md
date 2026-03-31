@@ -101,12 +101,15 @@ User Reviews REVIEW version
 
 | Field | Value |
 |-------|-------|
-| **Primary** | ElevenLabs Dubbing API |
-| **Fallback** | BytePlus VOD subtitle + TTS |
-| **Languages** | 29+ (ElevenLabs), extensible |
+| **Requested by** | Localization & Cultural Adaptation Engine (#18) — selects target languages, cultural tone, pronunciation guides |
+| **Executed by** | Voice Management Engine (#20) — owns all provider calls (ElevenLabs Dubbing API primary, Azure Speech Translation fallback) |
+| **Integrated by** | This module (#17) — mixes dubbed audio tracks into final video exports |
+| **Languages** | 29+ (via #20 provider abstraction), extensible |
 | **Output** | New audio track + translated subtitle file per language |
 | **Trigger** | User selects target languages at Brief Intake or post-approval |
-| **Voice preservation** | ElevenLabs preserves speaker voice characteristics across languages |
+| **Voice preservation** | #20 preserves speaker voice characteristics across languages via voice cloning presets |
+
+> **Ownership boundary**: Module #17 does NOT call ElevenLabs or any voice/dubbing provider directly. It receives finalized dubbed audio tracks from #20 and integrates them into the delivery package.
 
 ### 3. Audio Polish
 
