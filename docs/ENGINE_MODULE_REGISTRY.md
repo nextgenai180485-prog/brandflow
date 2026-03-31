@@ -66,6 +66,7 @@ The enterprise engine layer consists of 22 shared modules that sit between famil
 |-----|---------|
 | `engines/TEMPLATE_LIBRARY_OPERATIONS.md` | Template curation, scoring, retirement for F8 + Image Template Engine |
 | `engines/CORE_ELEMENTS_BOARD_V2.md` | Named slots, preview overlays, partial regeneration for F6 |
+| `PLAN_OBJECT_SCHEMA.md` | Unified plan object contract consumed by Strategy Engine, Review Packets, and all orchestrators |
 
 ---
 
