@@ -320,12 +320,12 @@ F3 already has a re-entrant state machine (Switch node) — **document as refere
 
 | Tier | Image Model | Video Model | Use Case |
 |------|-------------|-------------|----------|
-| **Draft** | nano-banana-pro (standard) | BytePlus Seedance 1.0 Lite | Fast iteration, first drafts |
-| **Production** | nano-banana-pro (2k) / SeedEdit 3.0 | BytePlus Seedance 1.0 | Approved finals, high quality |
+| **Draft** | nano-banana-pro (standard) | `veo3_fast` | Fast iteration, first drafts |
+| **Production** | nano-banana-pro (2k) | `veo3` | Approved finals, high quality |
 
-**Video provider chain (F3-specific)**:
-1. BytePlus Seedance 1.0 (primary — keyframe-driven, ideal for start→end frame transitions)
-2. Kie AI Veo3 `FIRST_AND_LAST_FRAMES_2_VIDEO` (fallback — current provider)
+**Video provider chain**:
+1. Kie AI Veo3 `FIRST_AND_LAST_FRAMES_2_VIDEO` (primary — current provider)
+2. BytePlus Seedance 1.0 (fallback — keyframe-driven, strong for product transitions)
 3. Runway Gen-4 (emergency)
 
 **Image provider chain**:
