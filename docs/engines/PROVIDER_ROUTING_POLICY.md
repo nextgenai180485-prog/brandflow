@@ -86,8 +86,17 @@ function resolveTier(job):
 | Priority | Provider | Model | Families |
 |----------|----------|-------|----------|
 | Primary | Kie AI | Veo3 / Veo3_fast | F1, F5, F7 |
-| Fallback 1 | Runway | Gen-4 | F1, F5, F7 |
-| Fallback 2 | Pika | Pika 2.2 | F1, F5, F7 |
+| Fallback 1 | BytePlus | Seedance 1.0 | F3, F5 |
+| Fallback 2 | Runway | Gen-4 | F1, F5, F7 |
+| Fallback 3 | Pika | Pika 2.2 | F1, F5, F7 |
+
+### Product Videography Video (F3-specific)
+
+| Priority | Provider | Model | Families |
+|----------|----------|-------|----------|
+| Primary | BytePlus | Seedance 1.0 (keyframe-driven) | F3 |
+| Fallback 1 | Kie AI | Veo3 (FIRST_AND_LAST_FRAMES) | F3 |
+| Fallback 2 | Runway | Gen-4 | F3 |
 
 ### Image Generation
 
