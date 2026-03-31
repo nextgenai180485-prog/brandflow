@@ -92,8 +92,10 @@ The enterprise engine layer consists of 22 shared modules that sit between famil
 | 16. UGC Voiceover | ✅ | — | — | — | — | — | — | — |
 | 17. Delivery & Post-Production | ✅ | ✅ | ✅ | ✅ | ✅ | — | ✅ | ✅ |
 | 18. Localization & Cultural Adapt. | ✅ | ✅ | ✅ | ✅ | ✅ | — | ✅ | ✅ |
-
-**Legend**: ✅ = adopted, ✅★ = reference pattern, opt = optional/opt-in, — = not applicable, ★ = is the module itself
+| 19. Review Packet | ✅ | ✅ | ✅ | ✅ | ✅ | — | ✅ | ✅ |
+| 20. Voice Management | ✅ | ✅ | opt | — | ✅ | — | opt | ✅ |
+| 21. Strategy Engine | ✅ | ✅ | ✅ | ✅ | ✅ | — | ✅ | ✅ |
+| 22. Performance Feedback | ✅ | ✅ | ✅ | ✅ | ✅ | — | ✅ | ✅ |
 
 ---
 
