@@ -364,3 +364,4 @@ These boundaries were established during the engine overlap audit to eliminate d
 | `engines/STRATEGY_ENGINE.md` | Business intent → creative plans |
 | `engines/PERFORMANCE_FEEDBACK_ENGINE.md` | Learning loop + optimization signals |
 | `pipelines/SEALCAM_FRAMEWORK.md` | Structured prompting (includes F7 normalization) |
+| `OBSERVABILITY_CONTRACTS.md` | Enterprise observability: Event Bus, Metrics Aggregation, Audit Trail |
