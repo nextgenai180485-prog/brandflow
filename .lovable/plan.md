@@ -1,141 +1,163 @@
 
 
-## Analysis: Template-Based Image Recreation Using Seedream 5.0 Lite + SeedEdit 3.0
+## Cross-Family Engine Audit: Enterprise-Grade Pattern Gaps
 
-### The Idea
+After analyzing all 8 pipeline families plus 2 engine designs, here are the patterns that exist in one family but are missing where they would add significant value.
 
-Store pre-designed marketing templates (social posts, ad creatives, product posters) in the database with their prompts and metadata. Users select a template, supply their product image + text, and the system generates a new image that follows the template's layout and style but with the user's brand assets swapped in.
+---
 
-### Is It Possible? Yes -- Two Complementary Approaches
+### 1. Creative Director AI Agent (exists in F7 Ad Creator, partially in F5 Cinematic Ad — missing everywhere else)
 
-**Approach A -- Seedream 5.0 Lite (Multi-Image Fusion)**
+The Ad Creator has a dedicated **Creative Director Agent** using the AGENT framework (Ask, Guidance, Examples, Notation, Tools) with a Think Tool for structured reasoning before generating prompts. The Cinematic Ad has a similar "Multimedia Ad Director" agent. But UGC, AI Spokesperson, Product Videography, and Creative Cloner all use simpler prompt-in/structured-out AI calls with no explicit reasoning step.
 
-Best for: generating new images from template references + user assets.
+**Should adopt**: All families. Every scene planning stage should use:
+- The AGENT framework for system prompts (standardized structure)
+- A Think Tool / reasoning pass before output
+- Structured creative summary output (not just raw prompts)
 
-- Accepts up to 14 reference images via `image_urls`
-- You provide: template reference image + user's product photo + user's logo
-- Prompt instructs the model to follow the template layout but use the user's product/branding
-- $0.035/image via BytePlus ModelArk
-- Available via BytePlus ModelArk direct API, Replicate, AIML API, WaveSpeed
+---
 
-```text
-INPUTS:
-  image_urls: [template_image, product_photo, logo]
-  prompt: "Create a social media ad following the layout of image 1.
-           Feature the product from image 2 as the hero element.
-           Use the brand logo from image 3 in the top-left corner.
-           Headline: 'Summer Collection 2026'. Clean, modern aesthetic."
+### 2. Pre-Generation Approval Gate (exists in F7 Ad Creator, F4 Social Content — missing from F1, F2, F3, F5, F8)
 
-OUTPUT: New image matching template layout with user's assets
-```
+Ad Creator shows the creative concept (caption + creative summary) to the user BEFORE spending money on generation. Social Content has an approval gate before publishing. But UGC, AI Spokesperson, Product Videography, Cinematic Ad, and Creative Cloner all go straight from planning to generation with no checkpoint.
 
-**Approach B -- SeedEdit 3.0 (Targeted Edit)**
+**Should adopt**: All video families. At minimum, show users the planned scenes, mood, and estimated output before burning GPU credits. This is the core of the "approval-first" principle from PROJECT.md.
 
-Best for: precise edits to an existing template image (swap product, change text).
+**Proposed standard**: Every family gets a mandatory **Plan Review Gate** between prompt generation and media generation. The user sees:
+- Scene count and descriptions
+- Mood/style summary
+- Estimated generation time and cost tier
+- Approve / Reject / Edit prompts
 
-- Takes one input image + text instruction
-- "Replace the product in this image with [description]" or "Change the headline to X"
-- Better for templates where the layout is fixed and you only need to swap specific elements
-- Available via BytePlus ModelArk (`seededit-3-0-i2i-250628`), WaveSpeed, AIML API
+---
 
-```text
-INPUT:
-  image: template_image_url
-  prompt: "Replace the product with a sleek black perfume bottle.
-           Change the headline text to 'Noir Collection'.
-           Keep the same layout, lighting, and color scheme."
+### 3. Revision Loop with Feedback Injection (exists in F7 Ad Creator — missing from all others)
 
-OUTPUT: Edited template with swapped content
-```
+When a user rejects the Ad Creator concept, a **Revised Prompt Agent** takes the original brief + rejection comments + original analysis and generates new prompts incorporating feedback. No other family has this — rejection means full restart.
 
-### Recommended Strategy: Use Both
+**Should adopt**: All families. Every rejection should feed the user's comments back into the planning agent as revision context, not force a cold restart.
 
-| Use Case | Model | Why |
-|----------|-------|-----|
-| Social media posts (product + text + layout) | Seedream 5.0 Lite | Multi-image fusion handles product + logo + template reference |
-| Ad creatives with specific product placement | Seedream 5.0 Lite | Can composite product photo into template scene |
-| Quick text/color/mood changes on existing ads | SeedEdit 3.0 | Precise targeted edits without regenerating everything |
-| Template variations (same template, different style) | SeedEdit 3.0 | "Make this warmer" / "Change to night scene" |
+**Proposed standard**: A shared `RevisionAgent` Edge Function that takes:
+- Original brief
+- Original AI output
+- User rejection comments
+- Family-specific system prompt
+And returns revised prompts for the specific stage that needs rework.
 
-### How It Fits Into Brandflow
+---
 
-This becomes a new pipeline family or an enhancement to the Social Content pipeline:
+### 4. SEALCaM Structured Prompting (exists in F8 Creative Cloner — recommended but not adopted in F5 Cinematic Ad, F7 Ad Creator)
 
-```text
-USER SELECTS TEMPLATE → SYSTEM INJECTS BRAND ASSETS
-        │
-        ▼
-┌──────────────────────────────┐
-│ STAGE 0 — TEMPLATE SELECT    │
-│ User picks from categorized  │
-│ template gallery (or AI      │
-│ auto-selects based on brief) │
-└──────────┬───────────────────┘
-           │
-           ▼
-┌──────────────────────────────┐
-│ STAGE 1 — PROMPT ASSEMBLY    │  Edge Function
-│ Merge template.prompt with   │  Template prompt + brand assets
-│ user's product images, logo, │  + user text = final prompt
-│ headline text, brand colors  │
-└──────────┬───────────────────┘
-           │
-     ┌─────┴──────┐
-     ▼            ▼
-  SEEDREAM      SEEDEDIT         ← Router picks model
-  5.0 Lite      3.0              based on template type
-  (new image)   (edit image)
-     │            │
-     └─────┬──────┘
-           ▼
-┌──────────────────────────────┐
-│ STAGE 2 — REVIEW + VARIANTS  │
-│ Show result, offer 2-3       │
-│ variants, approve/reject     │
-└──────────────────────────────┘
-```
+The Creative Cloner uses SEALCaM (Subject, Environment, Action, Lighting, Camera, Metatokens) as a mandatory 6-field prompting standard. The framework doc says it is "recommended" for Cinematic Ad and Ad Creator but neither actually uses it. Product Videography uses a similar but different YAML structure (Composition, Lighting, Environment, Action, Refinements, Camera, Aesthetic, Mood).
 
-### Database Schema: `image_templates`
+**Should adopt**: F5 Cinematic Ad and F3 Product Videography should standardize on SEALCaM. The PV YAML fields map cleanly:
+- Composition → Subject + Camera
+- Lighting → Lighting
+- Environment → Environment
+- Action → Action
+- Refinements → Metatokens
+- Camera → Camera
+- Aesthetic + Mood → Metatokens
 
-| Column | Type | Purpose |
-|--------|------|---------|
-| `id` | uuid | Primary key |
-| `title` | text | "Minimal Product Poster", "Instagram Story Sale" |
-| `template_image_url` | text | Supabase Storage path to the template reference image |
-| `base_prompt` | text | The generation prompt with `{{product}}`, `{{headline}}`, `{{brand_color}}` placeholders |
-| `model_type` | enum | `seedream` or `seededit` -- which model to use |
-| `category` | text | `social_post`, `ad_creative`, `product_poster`, `story`, `banner` |
-| `industry_tags` | text[] | `{fashion, food, tech, beauty}` |
-| `style_tags` | text[] | `{minimal, bold, luxury, playful}` |
-| `platform_fit` | text[] | `{instagram_feed, instagram_story, facebook, linkedin, tiktok}` |
-| `aspect_ratio` | text | `1:1`, `9:16`, `16:9`, `4:5` |
-| `input_slots` | jsonb | What the user needs to provide: `{product_image: true, logo: true, headline: true, subtext: false}` |
-| `quality_score` | float | Internal rating |
-| `is_active` | boolean | Enable/disable |
+This gives consistent prompts across families, making the template library work cross-family.
 
-### Key Technical Considerations
+---
 
-1. **Provider routing**: BytePlus ModelArk is the cheapest direct source ($0.035/image for Seedream). WaveSpeed also hosts both models. We should add BytePlus as a provider option alongside Kie AI.
+### 5. Re-entrant State Machine (exists in F3 Product Videography — missing from all others)
 
-2. **Text rendering**: Seedream 5.0 Lite has improved text rendering but it is not pixel-perfect for exact typography. For templates with critical text (prices, phone numbers), consider a two-pass approach: generate the image without text via AI, then overlay text programmatically using a canvas/image processing step.
+Product Videography has a Switch node that checks what data already exists and resumes from the appropriate stage. If prompts exist but images don't, it skips straight to image generation. No other family has this — they all run linearly from the start.
 
-3. **Brand consistency**: Seedream's multi-image fusion with `image_urls` is ideal -- pass the user's product photo + logo + brand style guide image as references, and the model maintains visual consistency.
+**Should adopt**: All families. The `job_stages` table already supports this conceptually, but the pipelines need explicit resume-from-stage logic. This enables:
+- Editing prompts after generation and re-running only downstream stages
+- Retrying a failed stage without restarting
+- Manual intervention at any checkpoint
 
-4. **Speed**: Seedream 5.0 Lite generates in ~10-30 seconds. SeedEdit 3.0 is similarly fast. This is much faster than video pipelines -- users could get near-instant results.
+---
 
-5. **Volume play**: At $0.035/image, generating 3 variants per template costs ~$0.10. This is extremely cost-effective for a "generate 10 social posts" batch operation.
+### 6. Core Elements Board as Universal Prerequisite (exists as standalone F6 — only connected to F3 and F5)
 
-### What This Unlocks
+The Core Elements Board generates a structured character + setting + product composite image. Currently only Cinematic Ad and Product Videography use it. But every family that generates images needs consistent brand visual context.
 
-This is essentially a **Canva-killer feature** but zero-effort: instead of dragging and dropping elements onto a template, users just pick a template and hit generate. The AI handles all the compositing, style matching, and brand alignment automatically.
+**Should adopt**: Make Core Elements Board a **brand onboarding step** that auto-generates during brand setup. Store as a permanent brand asset. Then inject it into:
+- F1 UGC: as reference for product placement scenes
+- F2 AI Spokesperson: as visual context for avatar settings
+- F7 Ad Creator: as reference for the Creative Director
+- F8 Creative Cloner: as brand context for prompt generation
+- Image Template Engine: as brand style reference for Seedream fusion
 
-Combined with the Social Content pipeline (which already generates captions), you get a full content package: AI-generated image + platform-optimized caption, ready to post.
+---
 
-### Next Steps (When Ready to Build)
+### 7. Vision Analysis Standardization (different approaches in every family)
 
-1. Design the `image_templates` table and seed it with initial templates
-2. Add BytePlus ModelArk as a provider in the provider abstraction layer
-3. Build the template gallery UI (categorized, filterable, with previews)
-4. Create the Edge Function that assembles prompts from template + brand assets
-5. Integrate with the Social Content pipeline for image + caption bundles
+| Family | Analysis Provider | Analysis Prompt | Output Format |
+|--------|------------------|-----------------|---------------|
+| F1 UGC | GPT-4o | Product-focused YAML | YAML |
+| F2 AI Spokesperson | GPT-4o | Product + Character YAML | YAML |
+| F3 Product Videography | Gemini 3 Pro | Describe character/setting/product | Free text |
+| F5 Cinematic Ad | Gemini 3 Pro | Describe character/setting/product | Free text |
+| F7 Ad Creator | GPT-4o | Describe product, ignore background | Free text |
+| F8 Creative Cloner | Gemini 3 Pro | SEALCaM cinematic breakdown | Structured JSON |
+
+Six families, three different providers, three different output formats. This should be ONE shared analysis engine.
+
+**Proposed standard**: A single `AnalyzeAsset` Edge Function with modes:
+- `product` → returns structured product YAML (brand, colors, materials, description)
+- `character` → returns structured character YAML (appearance, outfit, expression)
+- `scene` → returns SEALCaM-structured scene breakdown
+- `composite` → returns all three (for Core Elements Board)
+
+Standardize on Gemini via Lovable AI Gateway as the vision provider.
+
+---
+
+### 8. Music Generation (exists in F5 Cinematic Ad and F8 Creative Cloner — missing from F1 UGC, F2 AI Spokesperson, F7 Ad Creator)
+
+Cinematic Ad and Creative Cloner generate background music via Suno. UGC and AI Spokesperson produce silent videos. Ad Creator produces videos with no audio layer.
+
+**Should adopt**: Offer music as an optional enhancement for ALL video families. The music generation stage is independent (runs in parallel) and adds ~3 minutes. Make it a toggle: "Add background music?" with mood auto-detected from the brand profile.
+
+---
+
+### 9. Assembly / Post-Production (automated in F1B UGC Variant B, planned for F5 and F8 — missing from F1A, F2, F3, F7)
+
+Only UGC Variant B has automated FFmpeg merging via Fal AI. Cinematic Ad explicitly notes assembly is "not automated — currently requires manual assembly." Product Videography and Ad Creator produce single scenes with no merge needed, but have no audio overlay capability.
+
+**Should adopt**: A shared `AssemblyEngine` that handles:
+- Video concatenation (multi-scene families)
+- Music overlay with volume control
+- Voiceover overlay with timing sync
+- Fade transitions between scenes
+- Caption/subtitle burn-in (optional)
+- Final export with aspect ratio enforcement
+
+---
+
+### 10. Cost/Quality Tier Routing (not in any family)
+
+No family currently has explicit cost-vs-quality routing. Users get whatever model is hardcoded. But PROJECT.md specifies `cost_tier` and `latency_tier` as Plan Object fields.
+
+**Should adopt**: Every family should support at least two tiers:
+- **Draft/Preview**: Fastest, cheapest models (veo3_fast, sora2, seedream lite)
+- **Final/Production**: Highest quality (veo3, sora2-pro, seedream pro)
+
+The planner should auto-select based on whether this is a first draft or a final render after approval.
+
+---
+
+### Summary: Shared Engine Modules to Build Before Any Family
+
+| Engine Module | Used By | Purpose |
+|---------------|---------|---------|
+| **Creative Director Agent** (AGENT framework) | All families | Standardized reasoning + prompt generation |
+| **Plan Review Gate** | All families | Pre-generation approval checkpoint |
+| **Revision Agent** | All families | Feedback-aware prompt regeneration |
+| **Asset Analyzer** | All families | Unified vision analysis (product/character/scene) |
+| **SEALCaM Prompt Builder** | F3, F5, F7, F8 | Structured prompt assembly |
+| **Core Elements Generator** | Brand onboarding | Auto-generate brand board during setup |
+| **Music Engine** | All video families | Optional background music generation |
+| **Assembly Engine** | All video families | FFmpeg merge + audio overlay + export |
+| **Tier Router** | All families | Draft vs production quality routing |
+| **Re-entry Controller** | All families | Resume-from-stage + retry logic |
+
+These 10 modules form the **enterprise engine layer** that sits between the family-specific logic and the provider adapters. Build these first, then each family becomes a thin orchestration config on top.
 
