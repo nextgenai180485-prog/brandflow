@@ -1,0 +1,337 @@
+# Cinematic Ad Pipeline — Technical Reference
+
+> Reverse-engineered from production n8n workflow: `R50 | Cinematic Adverts System`
+
+---
+
+## Overview
+
+The most complex generation pipeline. Produces a full cinematic advertisement with synchronized video scenes, background music, and voiceover narration. Uses a **5-lane parallel architecture** where visual prompts, scene images, scene videos, music, and voice are generated independently and assembled.
+
+**Core principle**: Generate all components of a professional advertisement in parallel — visuals, audio, and script — then combine them into a polished final product.
+
+---
+
+## Pipeline Architecture
+
+```text
+                                    ┌─── PROMPTS lane ───┐
+                                    │  Get Project        │
+                                    │  → Analyze Image    │
+                                    │  → AI Agent         │
+                                    │  → Split Scenes     │
+                                    │  → Log Prompts      │
+                                    └─────────────────────┘
+                                    
+                                    ┌─── IMAGES lane ────┐
+                                    │  Get Scenes         │
+                                    │  → Start Frame 🍌   │
+                                    │  → End Frame 🍌     │
+                                    │  → Log Images       │
+                                    └─────────────────────┘
+                                    
+                                    ┌─── VIDEOS lane ────┐
+                                    │  Get Scenes         │
+                                    │  → Create Video 🔻  │
+                                    │  → Poll → Log       │
+                                    └─────────────────────┘
+                                    
+                                    ┌─── MUSIC lane ─────┐
+                                    │  Get Project        │
+                                    │  → Create Songs     │
+                                    │  → Poll → Log       │
+                                    └─────────────────────┘
+                                    
+                                    ┌─── VOICE lane ─────┐
+                                    │  Get Project        │
+                                    │  → Create Voice     │
+                                    │  → Poll → Log       │
+                                    └─────────────────────┘
+```
+
+Each lane runs on its own **schedule trigger** in n8n, allowing independent execution and retry.
+
+---
+
+## Stage 1: Brief Intake
+
+**Source**: Airtable project record (Brandflow: web UI form)
+
+**Inputs**:
+| Field | Type | Required | Example |
+|-------|------|----------|---------|
+| `Project Name` | string | Yes | "Luxury Perfume Ad" |
+| `Creative Direction` | string | Yes | "40-second cinematic spot, moody noir, 5 scenes" |
+| `Core Image` | URL (attachment) | Yes | Primary product/character reference |
+| `Core Elements` | URL (attachment) | Yes | Elements board (from Family 6) |
+| `Status` | enum | Yes | Set to "Create" to trigger |
+| `aspect_ratio` | enum: `9:16` \| `16:9` | Yes | `16:9` |
+| `voice id` | string | Yes | ElevenLabs voice ID |
+
+---
+
+## Stage 2: Analyze Elements Board
+
+**Purpose**: Convert the visual elements board into a detailed text description.
+
+**Provider**: Google Gemini 3 Pro (vision)
+
+**Prompt**:
+```
+Please look at this image and describe it in detail. What is shown in the
+character section, the setting section, and the product section? Explain what
+you see in each part so the image can be fully translated into text.
+```
+
+**Output**: Detailed text description of character, setting, and product from the elements board.
+
+---
+
+## Stage 3: Scene Planning (AI Agent)
+
+**Purpose**: Generate a complete ad package: script, music prompt, and N visually-driven scenes.
+
+**Provider**: OpenRouter (configurable model) + Think Tool + Structured Output Parser
+
+**System Prompt** (AGENT framework, condensed):
+```
+## 🎬 SYSTEM PROMPT: 40-Second Ad Generator Agent
+
+A – Ask:
+  Generate one JSON package containing ad script, music prompt, and scenes.
+  Scene count based on user's creative direction (default: 5).
+
+G – Guidance:
+  role: Multimedia ad director and storyteller
+  character_limit: Script fits a 40-second read
+
+  🎬 Script guidelines:
+    - If user provides script, USE EXACTLY as given
+    - Continuous text, spoken by the character
+    - Use "..." for pauses, no double quotes, no "—"
+
+  🎵 Music prompt guidelines:
+    - Fewer than 450 characters
+    - Match emotional arc and visual tone
+
+  🧱 Global visual consistency:
+    - Derive base visual language from creative direction + elements board
+    - Keep Lighting, Mood, Aesthetic consistent across all scenes
+
+  🖼️ Starting image prompt (YAML format):
+    Keys: Composition, Lighting, Environment, Action, Refinements,
+          Camera, Aesthetic, Mood, Subject
+    Keep compact (8-10 lines YAML)
+    Refinements use meta-tokens: ultra_fine_skin_texture, subtle_makeup_sheen, etc.
+
+  🎯 Ending image prompt:
+    - Short description of how starting image changes (1-2 sentences)
+
+  🎞️ Transition prompt:
+    - Short description of character/camera action between frames
+    - Default to SLOW movement
+```
+
+**Output Schema**:
+```json
+{
+  "script": "Full 40-second voiceover script with ... pauses",
+  "music_prompt": "Concise generative prompt (<450 chars)",
+  "scenes": [
+    {
+      "scene": "Scene X - Title of Scene",
+      "starting_image_prompt": "Composition: ...\nLighting: ...\nEnvironment: ...\nAction: ...\nRefinements: ...\nCamera: ...\nAesthetic: ...\nMood: ...\nSubject: ...",
+      "ending_image_prompt": "Short 1-2 sentence evolution of starting frame",
+      "transition_prompt": "Short 1-2 sentence camera/character action"
+    }
+  ]
+}
+```
+
+---
+
+## Stage 4: Image Generation (per scene)
+
+**Purpose**: Generate start and end frames for each scene using WaveSpeed nano-banana-pro.
+
+**Provider**: WaveSpeed AI (`nano-banana-pro/edit`) — synchronous mode
+
+### Start Frame
+```json
+POST https://api.wavespeed.ai/api/v3/google/nano-banana-pro/edit
+{
+  "aspect_ratio": "16:9",
+  "enable_base64_output": false,
+  "enable_sync_mode": true,
+  "output_format": "png",
+  "prompt": "<scene.starting_image_prompt>",
+  "resolution": "2k",
+  "images": ["<core_image_url>", "<core_elements_url>"]
+}
+```
+
+### End Frame
+```json
+POST https://api.wavespeed.ai/api/v3/google/nano-banana-pro/edit
+{
+  "aspect_ratio": "16:9",
+  "enable_sync_mode": true,
+  "output_format": "png",
+  "prompt": "<scene.ending_image_prompt>",
+  "resolution": "2k",
+  "images": ["<start_frame_output_url>"]
+}
+```
+
+**Key detail**: End frame uses the generated start frame as input (same as Product Videography).
+
+**Batching**: Batch size 1, 2-second intervals between requests.
+
+---
+
+## Stage 5: Video Generation (per scene)
+
+**Purpose**: Generate cinematic transition video for each scene.
+
+**Provider**: Kie AI Veo3 (`/api/v1/veo/generate`)
+
+**Request**:
+```json
+{
+  "prompt": "<scene.transition_prompt>",
+  "model": "veo3_fast",
+  "aspectRatio": "16:9",
+  "enableTranslation": false,
+  "generationType": "FIRST_AND_LAST_FRAMES_2_VIDEO",
+  "imageUrls": ["<start_frame_url>", "<end_frame_url>"]
+}
+```
+
+**Polling**: Wait ~15 seconds between polls. Check `data.successFlag === 1`.
+
+---
+
+## Stage 6: Music Generation
+
+**Purpose**: Generate background music matching the ad's emotional arc.
+
+**Provider**: Kie AI (`/api/v1/generate`) — routes to Suno V5
+
+**Request**:
+```json
+POST https://api.kie.ai/api/v1/generate
+{
+  "model": "V5",
+  "customMode": false,
+  "instrumental": true,
+  "callBackUrl": "https://api.example.com/callback",
+  "prompt": "<music_prompt from AI agent>"
+}
+```
+
+**Authentication**: API key via HTTP header
+
+**Polling**:
+- GET `https://api.kie.ai/api/v1/generate/record-info?taskId=<taskId>`
+- Check `successFlag === 1`
+- Result contains audio URL
+
+---
+
+## Stage 7: Voice Generation
+
+**Purpose**: Generate voiceover narration from the ad script.
+
+**Provider**: WaveSpeed AI → ElevenLabs Turbo v2.5
+
+**Request**:
+```json
+POST https://api.wavespeed.ai/api/v3/elevenlabs/turbo-v2.5
+{
+  "similarity": 1,
+  "stability": 0.5,
+  "text": "<script from AI agent>",
+  "use_speaker_boost": true,
+  "voice_id": "<voice_id from project>"
+}
+```
+
+**Authentication**: API key via HTTP header
+
+**Response**: Returns `data.urls.get` for async polling.
+
+**Polling**:
+- GET `<data.urls.get>` with auth header
+- Wait for completion
+- Result contains audio URL
+
+---
+
+## Stage 8: Assembly (Post-Production)
+
+**Not automated in n8n workflow** — currently requires manual assembly of:
+- Scene videos (in order)
+- Background music track
+- Voiceover audio
+
+**Brandflow opportunity**: Automate assembly using FFmpeg (via Fal AI's `ffmpeg-api/merge-videos` or server-side processing):
+1. Concatenate scene videos in order
+2. Mix background music at reduced volume
+3. Overlay voiceover audio
+4. Export final MP4
+
+---
+
+## Provider Summary
+
+| Stage | Provider | API Endpoint | Auth |
+|-------|----------|-------------|------|
+| Analyze Image | Google Gemini 3 Pro | Gemini API (vision) | API key |
+| Scene Planning | OpenRouter | OpenRouter API (chat) | API key |
+| Start/End Frames | WaveSpeed AI | `api.wavespeed.ai/api/v3/google/nano-banana-pro/edit` | HTTP header |
+| Video Generation | Kie AI (Veo3) | `api.kie.ai/api/v1/veo/generate` | HTTP header |
+| Video Polling | Kie AI | `api.kie.ai/api/v1/veo/record-info` | HTTP header |
+| Music Generation | Kie AI (Suno V5) | `api.kie.ai/api/v1/generate` | HTTP header |
+| Music Polling | Kie AI | `api.kie.ai/api/v1/generate/record-info` | HTTP header |
+| Voice Generation | WaveSpeed (ElevenLabs) | `api.wavespeed.ai/api/v3/elevenlabs/turbo-v2.5` | HTTP header |
+| Voice Polling | WaveSpeed | `<response_url>` | HTTP header |
+
+---
+
+## 5-Lane Parallel Architecture
+
+Each lane runs independently on its own schedule:
+
+| Lane | Trigger | Depends On | Output |
+|------|---------|------------|--------|
+| **PROMPTS** | Schedule | Project record | Scenes JSON + Script + Music prompt |
+| **IMAGES** | Schedule | Completed prompts | Start/end frame URLs per scene |
+| **VIDEOS** | Schedule | Completed images | Video URLs per scene |
+| **MUSIC** | Schedule | Completed prompts (music_prompt) | Music audio URL |
+| **VOICE** | Schedule | Completed prompts (script) | Voice audio URL |
+
+**Brandflow adaptation**: Replace schedule triggers with job orchestrator. IMAGES depends on PROMPTS; VIDEOS depends on IMAGES; MUSIC and VOICE depend on PROMPTS only (can run in parallel with IMAGES).
+
+---
+
+## Key Design Notes
+
+1. **Most complex pipeline** — 5 independent lanes, 4 different API providers, 3 media types (video, music, voice)
+2. **Assembly is manual** in n8n — Brandflow should automate this
+3. **Elements Board (Family 6) is a prerequisite** — the Core Elements attachment feeds visual context
+4. **Voice ID** must be pre-selected from ElevenLabs voice library
+5. **Suno V5 via Kie AI** — music generation uses a different Kie AI endpoint (`/api/v1/generate`) than video
+6. **WaveSpeed proxies ElevenLabs** — voice generation goes through WaveSpeed's API, not directly to ElevenLabs
+7. **Scene count is dynamic** — determined by creative direction (default: 5 scenes)
+
+---
+
+## Brandflow Implementation Notes
+
+1. **Replace Airtable** with Supabase tables and `job_stages` per lane
+2. **The 5-lane pattern** maps to 5 parallel `job_stage` groups, with dependency tracking
+3. **Assembly automation** is a major value-add over the n8n workflow — use FFmpeg to merge all outputs
+4. **Voice ID selection** needs a UI for browsing/previewing ElevenLabs voices (store as brand assets)
+5. **Music generation** could offer genre/mood presets alongside custom prompts
+6. **Total pipeline time**: ~20-30 minutes (prompts: 30s → images: 2min → videos: 15min each + music: 3min + voice: 1min)
+7. **Cost optimization**: This is the most expensive pipeline — consider offering scene count limits on lower tiers
