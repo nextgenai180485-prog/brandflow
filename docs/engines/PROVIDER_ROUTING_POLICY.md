@@ -103,9 +103,10 @@ function resolveTier(job):
 | Priority | Provider | Model | Families |
 |----------|----------|-------|----------|
 | Primary | WaveSpeed AI | nano-banana-pro | F3, F5, F6, F8 |
-| Fallback 1 | Kie AI | GPT-4o Image | F1, F7 |
-| Fallback 2 | OpenAI | DALL-E 3 | All |
-| Fallback 3 | Replicate | SDXL variants | All |
+| Fallback 1 | BytePlus | SeedEdit 3.0 / Seedream 5.0 | F3, F6 |
+| Fallback 2 | Kie AI | GPT-4o Image | F1, F7 |
+| Fallback 3 | OpenAI | DALL-E 3 | All |
+| Fallback 4 | Replicate | SDXL variants | All |
 
 ### Image-to-Video
 
