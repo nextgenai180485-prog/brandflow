@@ -116,4 +116,9 @@ Phase D — Delivery (post-assembly)
 
 Phase E — Localization (post-delivery)
   └── 18. Localization & Cultural Adaptation Engine
+
+Phase F — Approval & Scaling
+  ├── 19. Review Packet Engine
+  ├── 20. Voice Management Engine
+  └── W6. Campaign Multiplication Workflow
 ```
