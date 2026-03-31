@@ -102,7 +102,7 @@ Each pipeline family has a standardized contract defining its inputs, outputs, a
 
 Every family follows this abstract stage flow:
 ```
-brief_intake → asset_analysis → planning → plan_review → [revision_loop] → generation → assembly → post_production → delivery
+brief_intake → asset_analysis → planning → plan_review → [revision_loop] → generation → assembly → post_production → [localization] → delivery
 ```
 
 Specific stage names vary per family but map to this pattern.

@@ -289,7 +289,7 @@ A curated database of proven social media hooks, captions, and CTAs — scraped 
 
 ## Enterprise Engine Adoption Status
 
-All 8 families have been updated with Enterprise Engine Integration sections. Architecture now consists of 17 modules:
+All 8 families have been updated with Enterprise Engine Integration sections. Architecture now consists of 18 modules:
 
 | Module | F1 | F2 | F3 | F4 | F5 | F6 | F7 | F8 |
 |--------|----|----|----|----|----|----|----|----|
@@ -310,5 +310,6 @@ All 8 families have been updated with Enterprise Engine Integration sections. Ar
 | 15. Motion Variant Selector | — | ✅ | — | — | — | — | — | — |
 | 16. UGC Voiceover | ✅ | — | — | — | — | — | — | — |
 | 17. Delivery & Post-Production | ✅ | ✅ | ✅ | ✅ | ✅ | — | ✅ | ✅ |
+| 18. Localization & Cultural Adapt. | ✅ | ✅ | ✅ | ✅ | ✅ | — | ✅ | ✅ |
 
 **Legend**: ✅ = adopted, ✅★ = reference pattern (other families should follow this implementation), opt = optional/opt-in, — = not applicable, ★ = is the module itself
