@@ -153,17 +153,31 @@ Estimated per-unit generation costs based on current provider pricing:
 
 ---
 
-## 5. Overage Pricing
+## 5. Overage & Add-On Pricing
 
-When users exceed their tier limits, they can purchase add-on packs:
+When users exceed their tier limits, they can purchase additional units individually:
 
-| Add-On | Price | Included |
-|--------|-------|----------|
-| Content Pack | $9 | 20 additional content batches |
-| Image Pack | $9 | 20 additional image generations |
-| Video Pack | $19 | 5 additional video generations |
+### Asset Packs
 
-This keeps users on their current tier while allowing burst usage. If they consistently buy add-ons, prompt an upgrade.
+| Add-On | Price | COGS | Margin |
+|--------|-------|------|--------|
+| Content Pack (20 text batches) | $9 | ~$0.20 | ~98% |
+| Image Pack (20 SeedEdit images) | $9 | ~$1.40 | ~84% |
+
+### Individual Video Add-Ons
+
+| Add-On | Price | COGS | Margin |
+|--------|-------|------|--------|
+| UGC Video (F1, single) | $4.99 | $0.50–$0.80 | 84–90% |
+| Spokesperson Video (F2, 30s, single) | $7.99 | $0.80–$1.20 | 85–90% |
+| Product Videography (F3, single) | $4.99 | $0.50–$0.80 | 84–90% |
+| Cinematic Ad (F5, single) | $9.99 | $1.00–$1.50 | 85–90% |
+
+**Pricing rationale**: Videos are priced per individual unit (not packs), reflecting provider cost and production complexity. Spokesperson and Cinematic command premium pricing due to higher compute requirements and multi-scene rendering pipelines.
+
+### Auto-Upgrade Nudge
+
+If a user purchases **5+ individual add-ons in a single billing cycle**, surface an upgrade prompt showing them the cost savings of the next tier. Example: "You spent $34.95 on add-ons this month — upgrading to Growth would save you $X and include Y more videos."
 
 ---
 
