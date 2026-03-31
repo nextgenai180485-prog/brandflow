@@ -39,6 +39,7 @@ The enterprise engine layer consists of 16 shared modules that sit between famil
 | 14 | Template-Driven Image Composer | `engines/SOCIAL_CAROUSEL_SCHEMA.md` | F4, Image Template Engine | Designed |
 | 15 | Motion Variant Selector | `engines/SPOKESPERSON_MOTION_VARIANT_ENGINE.md` | F2 AI Spokesperson | Designed |
 | 16 | UGC Voiceover Extension | `engines/UGC_VOICEOVER_EXTENSION.md` | F1 UGC Video | Designed |
+| 17 | Delivery & Post-Production Engine | `engines/DELIVERY_POST_PRODUCTION_ENGINE.md` | Cross-family | Designed |
 
 ### Merged Modules (no longer standalone)
 
