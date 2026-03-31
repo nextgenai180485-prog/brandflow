@@ -134,4 +134,8 @@ Phase F — Approval & Scaling
   ├── 19. Review Packet Engine
   ├── 20. Voice Management Engine
   └── W6. Campaign Multiplication Workflow
+
+Phase G — Strategy & Learning
+  ├── 21. Strategy Engine
+  └── 22. Performance Feedback Engine
 ```

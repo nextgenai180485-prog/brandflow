@@ -162,11 +162,50 @@ Every video family produces a delivery output via Module #17:
 
 ---
 
+## Strategy Engine Output Contract
+
+The Strategy Engine (#21) produces Plan Objects that feed into family orchestrators:
+
+```json
+{
+  "strategy_output": {
+    "plan_objects": ["ref: PLAN_OBJECT_SCHEMA.md"],
+    "schedule": "weekly_schedule from strategy_plan",
+    "campaign_tracks": ["track objects with family assignments"],
+    "trend_injections": ["accepted trend signals mapped to slots"]
+  }
+}
+```
+
+See `PLAN_OBJECT_SCHEMA.md` for the full plan object contract.
+
+---
+
+## Performance Feedback Signal Contract
+
+The Performance Feedback Engine (#22) emits signals consumed by other engines:
+
+```json
+{
+  "feedback_output": {
+    "hook_weight_updates": "→ Hook Library (#11)",
+    "template_priority_updates": "→ Template Library",
+    "family_routing_adjustments": "→ Provider Routing (#9)",
+    "strategy_rebalancing_signals": "→ Strategy Engine (#21)"
+  }
+}
+```
+
+See `engines/PERFORMANCE_FEEDBACK_ENGINE.md` for signal schemas and confidence thresholds.
+
+---
+
 ## Cross-References
 
 | Document | Purpose |
 |----------|---------|
-| `ENGINE_MODULE_REGISTRY.md` | Master registry of all 17 engine modules |
+| `ENGINE_MODULE_REGISTRY.md` | Master registry of all 22 engine modules |
+| `PLAN_OBJECT_SCHEMA.md` | Unified plan object contract |
 | `pipelines/CROSS_FAMILY_ENGINE_AUDIT.md` | Original audit identifying shared patterns |
 | `BRANDFLOW_FEATURE_GAPS.md` | Feature expansion gaps beyond engine modules |
 | `BRANDFLOW_PRICING_STRATEGY.md` | Tier-based pricing tied to pipeline costs |
@@ -174,4 +213,8 @@ Every video family produces a delivery output via Module #17:
 | `engines/BRAND_VOICE_DNA_ENGINE.md` | Voice signature injection contract |
 | `engines/CHARACTER_CONSISTENCY_ENGINE.md` | Multi-scene character consistency |
 | `engines/DELIVERY_POST_PRODUCTION_ENGINE.md` | Post-production finishing + review-safe delivery |
+| `engines/REVIEW_PACKET_ENGINE.md` | Structured approval objects |
+| `engines/VOICE_MANAGEMENT_ENGINE.md` | Unified voice abstraction |
+| `engines/STRATEGY_ENGINE.md` | Business intent → creative plans |
+| `engines/PERFORMANCE_FEEDBACK_ENGINE.md` | Learning loop + optimization signals |
 | `pipelines/SEALCAM_FRAMEWORK.md` | Structured prompting (includes F7 normalization) |
