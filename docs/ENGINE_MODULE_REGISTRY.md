@@ -44,6 +44,8 @@ The enterprise engine layer consists of 22 shared modules that sit between famil
 | 18 | Localization & Cultural Adaptation Engine | `engines/LOCALIZATION_CULTURAL_ENGINE.md` | Cross-family | Designed |
 | 19 | Review Packet Engine | `engines/REVIEW_PACKET_ENGINE.md` | Cross-family | Designed |
 | 20 | Voice Management Engine | `engines/VOICE_MANAGEMENT_ENGINE.md` | Cross-family | Designed |
+| 21 | Strategy Engine | `engines/STRATEGY_ENGINE.md` | Cross-family | Designed |
+| 22 | Performance Feedback Engine | `engines/PERFORMANCE_FEEDBACK_ENGINE.md` | Cross-family | Designed |
 
 ### Workflows
 
