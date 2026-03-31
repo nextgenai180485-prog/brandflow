@@ -2,7 +2,7 @@
 
 > **Status**: Design reference — master contract for all 8 pipeline families  
 > **Last updated**: 2026-03-31  
-> **Engine count**: 17 modules (consolidated from 18, extended with Delivery & Post-Production — see ENGINE_MODULE_REGISTRY.md)
+> **Engine count**: 18 modules — see ENGINE_MODULE_REGISTRY.md
 
 ---
 
