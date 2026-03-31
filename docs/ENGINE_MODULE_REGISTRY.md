@@ -41,6 +41,7 @@ The enterprise engine layer consists of 18 shared modules that sit between famil
 | 15 | Motion Variant Selector | `engines/SPOKESPERSON_MOTION_VARIANT_ENGINE.md` | F2 AI Spokesperson | Designed |
 | 16 | UGC Voiceover Extension | `engines/UGC_VOICEOVER_EXTENSION.md` | F1 UGC Video | Designed |
 | 17 | Delivery & Post-Production Engine | `engines/DELIVERY_POST_PRODUCTION_ENGINE.md` | Cross-family | Designed |
+| 18 | Localization & Cultural Adaptation Engine | `engines/LOCALIZATION_CULTURAL_ENGINE.md` | Cross-family | Designed |
 
 ### Merged Modules (no longer standalone)
 
