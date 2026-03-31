@@ -52,19 +52,20 @@ If user provides dialogue in the brief, use it directly. Otherwise, auto-generat
 
 ### Step 2: Voice Persona Selection
 
-Map UGC archetype to curated ElevenLabs voice:
+Map UGC archetype to a Voice Management Engine (#20) preset:
 
-| Persona | Description | Voice Style | Use Case |
-|---------|-------------|-------------|----------|
-| Young Creator | Gen-Z casual, enthusiastic | Upbeat, slightly breathy | Product discovery, trending |
-| Expert Friend | Knowledgeable but approachable | Warm, confident | Tips, how-tos, reviews |
-| Honest Reviewer | Authentic, unscripted feel | Natural pace, slight hesitation | Testimonials, before-after |
-| Storyteller | Narrative, engaging | Measured pace, expressive | Founder stories, brand stories |
+| Persona | Description | #20 Archetype | Use Case |
+|---------|-------------|---------------|----------|
+| Young Creator | Gen-Z casual, enthusiastic | `playful` | Product discovery, trending |
+| Expert Friend | Knowledgeable but approachable | `friendly` | Tips, how-tos, reviews |
+| Honest Reviewer | Authentic, unscripted feel | `calm` | Testimonials, before-after |
+| Storyteller | Narrative, engaging | `authoritative` | Founder stories, brand stories |
 
 **Selection logic**:
 - Auto-matched from brief `special_requests` or scene mood
+- Mapped to #20 `persona_match.archetype` for voice preset lookup
 - User can override in brief settings
-- Brand-level default persona stored in `brand_profiles`
+- Brand-level default persona stored in `voice_presets` (managed by #20)
 
 ### Step 3: TTS Generation (via Voice Management Engine #20)
 

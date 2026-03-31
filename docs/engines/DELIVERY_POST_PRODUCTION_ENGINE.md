@@ -111,11 +111,14 @@ User Reviews REVIEW version
 
 > **Ownership boundary**: Module #17 does NOT call ElevenLabs or any voice/dubbing provider directly. It receives finalized dubbed audio tracks from #20 and integrates them into the delivery package.
 
-### 3. Audio Polish
+### 3. Audio Polish (Final Mix Only)
+
+> **Ownership boundary**: Voice Management Engine (#20) normalizes individual voice stems to **-16 LUFS** before assembly. Module #17 normalizes the **final mixed output** to **-14 LUFS** (broadcast/streaming standard). These are complementary, not overlapping.
 
 | Field | Value |
 |-------|-------|
 | **Provider** | FFmpeg filters (already in Assembly Engine infrastructure) |
+| **Scope** | Final mix normalization only — individual voice stems are pre-normalized by #20 |
 | **Loudness** | Normalization to -14 LUFS (streaming standard) |
 | **Ducking** | Background music auto-duck when voiceover is active |
 | **Noise reduction** | Single-pass noise reduction for AI-generated audio artifacts |

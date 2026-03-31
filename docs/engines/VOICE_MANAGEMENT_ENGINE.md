@@ -255,15 +255,26 @@ For **premium** tier: Full pipeline + human QA flag.
 
 ---
 
-## Relationship to Existing Modules
+## Ownership Boundary (Enforced)
 
-| Module | Relationship |
-|--------|-------------|
-| #16 UGC Voiceover Extension | Becomes a **consumer** of Voice Engine — UGC-specific workflow logic stays in #16, but voice generation calls route through #20 |
-| #15 Motion Variant Selector | Uses Voice Engine for F2 TTS instead of direct provider calls |
-| #18 Localization Engine | Calls Voice Engine's dubbing operation for dubbed versions |
-| #17 Post-Production | Calls Voice Engine's normalization for audio polish |
-| #8 Assembly Engine | Receives finalized audio tracks from Voice Engine |
+> **Module #20 is the ONLY module that calls voice/TTS/dubbing providers.** No other module should contain provider-specific voice logic (ElevenLabs API calls, Azure TTS configuration, voice model selection, etc.).
+
+### Consumer Modules
+
+| Module | Relationship | What They Own | What They Delegate to #20 |
+|--------|-------------|---------------|---------------------------|
+| #16 UGC Voiceover Extension | **Workflow consumer** | Script auto-generation from scene descriptions, persona-to-archetype mapping | All TTS generation, provider selection, voice quality scoring |
+| #15 Motion Variant Selector | **Workflow consumer** | Motion prompt generation, variant scoring | Any TTS audio needed for lip-sync input |
+| #18 Localization Engine | **Dubbing requester** | Language selection, cultural tone guidance, pronunciation guides | Dubbed audio generation via `VoiceEngine.dubAudio()` |
+| #17 Post-Production | **Audio integrator** | Final mix normalization (-14 LUFS), music ducking, noise reduction on final output | Receives pre-normalized voice stems (-16 LUFS) from #20 |
+| #8 Assembly Engine | **Track consumer** | FFmpeg composition of video + audio tracks | Receives finalized audio tracks from #20 |
+
+### Audio Normalization Boundary
+
+| Stage | Owner | Target | Scope |
+|-------|-------|--------|-------|
+| Voice stem normalization | #20 Voice Management Engine | -16 LUFS | Individual voice/TTS tracks before assembly |
+| Final mix normalization | #17 Post-Production Engine | -14 LUFS (broadcast) | Mixed output after assembly (voice + music + SFX) |
 
 ---
 

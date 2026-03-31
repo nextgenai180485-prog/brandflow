@@ -200,6 +200,94 @@ See `engines/PERFORMANCE_FEEDBACK_ENGINE.md` for signal schemas and confidence t
 
 ---
 
+## Touchpoint Event Contract (Cross-Cutting)
+
+Every engine module logs touchpoint events for enterprise-grade observability. This is a **shared contract**, not a separate engine.
+
+### Design Principle: Reference IDs, Not Data Copies
+
+Every touchpoint logs a signal row with foreign key references — never duplicating prompts, media payloads, or full schemas.
+
+### Schema
+
+```sql
+CREATE TABLE touchpoint_events (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  job_id UUID NOT NULL,              -- FK → jobs
+  stage TEXT NOT NULL,                -- e.g. "asset_analysis", "generation", "post_production"
+  module_id INTEGER NOT NULL,        -- 1-22, which engine handled this
+  provider_id TEXT,                   -- e.g. "kie_ai", "elevenlabs", "byteplus_vod"
+  action TEXT NOT NULL,               -- e.g. "generate", "score", "route", "approve"
+  tier TEXT,                          -- "draft" | "standard" | "premium"
+  status TEXT NOT NULL DEFAULT 'started', -- "started" | "completed" | "failed" | "skipped"
+  cost_usd NUMERIC,                  -- nullable — only for billable actions
+  latency_ms INTEGER,
+  error_code TEXT,                    -- nullable
+  metadata JSONB DEFAULT '{}',       -- max 1KB — scores, counts, flags ONLY
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE INDEX idx_touchpoints_job ON touchpoint_events(job_id);
+CREATE INDEX idx_touchpoints_module ON touchpoint_events(module_id, status);
+CREATE INDEX idx_touchpoints_provider ON touchpoint_events(provider_id, status);
+CREATE INDEX idx_touchpoints_created ON touchpoint_events(created_at);
+```
+
+### Metadata Rules (Enforced)
+
+**Allowed in `metadata`** (lean signals only):
+```json
+{
+  "variant_count": 3,
+  "selected_variant": 2,
+  "naturalness_score": 8.5,
+  "voice_quality_score": 82,
+  "hook_style": "question",
+  "fallback_used": false
+}
+```
+
+**NOT allowed in `metadata`**:
+- Prompts → live in `job_stages.input_params`
+- Media URLs → live in `artifacts` table
+- Full schemas → live in their source tables
+- User input → lives in `jobs.brief`
+
+### Data Retention Policy
+
+| Age | Action |
+|-----|--------|
+| 0–90 days | Full resolution — all touchpoints queryable |
+| 90–365 days | Aggregate — roll up to daily summaries per module/provider |
+| 365+ days | Archive — move to cold storage, keep monthly summaries |
+
+### Query Patterns
+
+| Question | Query |
+|----------|-------|
+| Every step of job X | `WHERE job_id = X ORDER BY created_at` |
+| Which provider is failing? | `WHERE status = 'failed' GROUP BY provider_id` |
+| P95 latency per module | `GROUP BY module_id, percentile_cont(0.95) WITHIN GROUP (ORDER BY latency_ms)` |
+| Brand spend | `JOIN jobs ON brand_id, SUM(cost_usd)` |
+| Stage bottlenecks | `GROUP BY stage, AVG(latency_ms)` |
+
+---
+
+## Ownership Boundaries (Consolidated)
+
+These boundaries were established during the engine overlap audit to eliminate duplicate provider paths:
+
+| Concern | Owner | Consumers (do NOT call providers directly) |
+|---------|-------|---------------------------------------------|
+| All voice/TTS operations | Voice Management Engine (#20) | UGC Voiceover (#16), Motion Variant (#15), Localization (#18) |
+| Voice stem normalization (-16 LUFS) | Voice Management Engine (#20) | — |
+| Final mix normalization (-14 LUFS) | Post-Production (#17) | — |
+| Dubbing requests | Localization (#18) requests → #20 executes → #17 integrates | — |
+| Template performance scoring | Performance Feedback (#22) | Template Library (consumes `template_priority_updates`) |
+| Brand voice data | Brand Voice DNA (#12) emits | Creative Director (#1) consumes in system prompt |
+
+---
+
 ## Cross-References
 
 | Document | Purpose |

@@ -84,14 +84,16 @@ UPDATE image_templates SET template_usage_frequency = template_usage_frequency +
 WHERE template_id = $1;
 ```
 
-### Template Conversion Rank (Derived)
+### Template Conversion Rank (Populated by Performance Feedback Engine #22)
 
-Calculated from downstream engagement metrics when social publishing data is available:
+> **Do not compute independently.** This field is populated by the Performance Feedback Engine (#22) via `template_priority_updates` signals. The Template Library is a **consumer** of performance data, not a producer.
+
+#22 calculates conversion rank from downstream engagement metrics:
 ```
 conversion_rank = (engagement_rate of posts using this template) / (avg engagement_rate across all templates)
 ```
 
-Values > 1.0 indicate above-average performance.
+Values > 1.0 indicate above-average performance. See `engines/PERFORMANCE_FEEDBACK_ENGINE.md` for signal schemas and confidence thresholds.
 
 ---
 
