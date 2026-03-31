@@ -135,15 +135,43 @@ Every API call logs cost to `job_stages.cost`:
 
 ---
 
+### Delivery Output Contract (All Video Families)
+
+Every video family produces a delivery output via Module #17:
+```json
+{
+  "delivery": {
+    "review": {
+      "review_url": "string (stream-only, watermarked)",
+      "expires_at": "ISO 8601",
+      "watermarked": true,
+      "resolution": "720p",
+      "stream_only": true
+    },
+    "production": {
+      "status": "locked | unlocked",
+      "approved_at": "ISO 8601 | null",
+      "exports": [{ "platform": "string", "format": "string", "aspect_ratio": "string", "resolution": "string", "download_url": "string | null" }],
+      "subtitle_tracks": [{ "language": "string", "format": "srt | vtt", "url": "string" }],
+      "dubbed_versions": [{ "language": "string", "audio_url": "string", "subtitle_url": "string" }],
+      "thumbnails": [{ "url": "string", "timestamp_s": "number" }]
+    }
+  }
+}
+```
+
+---
+
 ## Cross-References
 
 | Document | Purpose |
 |----------|---------|
-| `ENGINE_MODULE_REGISTRY.md` | Master registry of all 16 engine modules |
+| `ENGINE_MODULE_REGISTRY.md` | Master registry of all 17 engine modules |
 | `pipelines/CROSS_FAMILY_ENGINE_AUDIT.md` | Original audit identifying shared patterns |
 | `BRANDFLOW_FEATURE_GAPS.md` | Feature expansion gaps beyond engine modules |
 | `BRANDFLOW_PRICING_STRATEGY.md` | Tier-based pricing tied to pipeline costs |
 | `engines/PROVIDER_ROUTING_POLICY.md` | Unified provider + tier routing engine |
 | `engines/BRAND_VOICE_DNA_ENGINE.md` | Voice signature injection contract |
 | `engines/CHARACTER_CONSISTENCY_ENGINE.md` | Multi-scene character consistency |
+| `engines/DELIVERY_POST_PRODUCTION_ENGINE.md` | Post-production finishing + review-safe delivery |
 | `pipelines/SEALCAM_FRAMEWORK.md` | Structured prompting (includes F7 normalization) |
