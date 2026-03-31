@@ -140,6 +140,44 @@ function resolveTier(job):
 | Primary | Lovable AI Gateway | Gemini | All |
 | Fallback 1 | OpenAI | GPT-4o Vision | All |
 
+### Post-Production: Subtitles
+
+| Priority | Provider | Model | Families |
+|----------|----------|-------|----------|
+| Primary | BytePlus VOD | Smart Captioning | All video families |
+| Fallback 1 | Fal.ai | Whisper | All video families |
+| Fallback 2 | Manual | SRT upload | All video families |
+
+### Post-Production: Watermark
+
+| Priority | Provider | Model | Families |
+|----------|----------|-------|----------|
+| Primary | BytePlus VOD | Watermark Template | All video families |
+| Fallback 1 | FFmpeg | Text/image overlay | All video families |
+
+### Post-Production: Video Enhancement
+
+| Priority | Provider | Model | Families |
+|----------|----------|-------|----------|
+| Primary | BytePlus VOD | vCube (upscale, HDR, denoise) | F2, F3, F5 |
+| Fallback 1 | Topaz | Video AI API | F2, F5 |
+| Fallback 2 | FFmpeg | Scale + denoise filters | All |
+
+### Post-Production: Transcoding / Export
+
+| Priority | Provider | Model | Families |
+|----------|----------|-------|----------|
+| Primary | FFmpeg | H.264 / ProRes / WebM | All video families |
+| Fallback 1 | BytePlus VOD | Transcode workflow | All video families |
+| Fallback 2 | Fal.ai | FFmpeg API | All video families |
+
+### Post-Production: Dubbing
+
+| Priority | Provider | Model | Families |
+|----------|----------|-------|----------|
+| Primary | ElevenLabs | Dubbing API | F2, F5 |
+| Fallback 1 | BytePlus VOD | Subtitle + TTS | F2, F5 |
+
 ---
 
 ## Provider Status Registry

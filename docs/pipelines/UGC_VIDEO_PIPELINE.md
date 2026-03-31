@@ -656,3 +656,16 @@ All provider calls route through the Provider Routing Layer:
 - Video: Kie AI Veo3 → Runway → Pika (fallback chain)
 - Image: Kie AI → Fal AI → OpenAI (fallback chain)
 - See `engines/PROVIDER_ROUTING_POLICY.md` for health-check and failover logic
+
+### 15. Delivery & Post-Production (Module #17)
+
+After Assembly, output passes through Module #17 for enterprise-grade finishing:
+- **Auto-Subtitles**: ✅ (BytePlus VOD Smart Captioning → Whisper fallback)
+- **Dubbing**: opt (user-selected target languages)
+- **Audio Polish**: ✅ (loudness normalization -14 LUFS, noise reduction)
+- **Video Enhancement**: opt (upscale, color grading)
+- **Thumbnails**: ✅ (auto-extracted + brand overlay)
+- **Watermark**: ✅ (review versions watermarked, stream-only, 7-day expiry)
+- **Export**: ✅ (multi-format, multi-platform presets)
+- Review version shown at Plan Review Gate (#2); production version unlocked on approval
+- See `engines/DELIVERY_POST_PRODUCTION_ENGINE.md` for full specification

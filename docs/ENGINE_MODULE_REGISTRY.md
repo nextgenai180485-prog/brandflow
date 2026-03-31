@@ -108,4 +108,7 @@ Phase C — Media (heavy compute)
   ├── 14. Template Image Composer
   ├── 15. Motion Variant Selector
   └── 16. UGC Voiceover Extension
+
+Phase D — Delivery (post-assembly)
+  └── 17. Delivery & Post-Production Engine
 ```

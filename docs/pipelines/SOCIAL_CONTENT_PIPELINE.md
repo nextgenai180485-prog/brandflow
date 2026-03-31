@@ -313,3 +313,13 @@ All provider calls route through the Provider Routing Layer:
 - Image generation: WaveSpeed → OpenAI Images → SDXL (fallback chain)
 - Vision analysis: Gemini → GPT-4o Vision (fallback chain)
 - See `engines/PROVIDER_ROUTING_POLICY.md` for health-check and failover logic
+
+### 14. Delivery & Post-Production (Module #17)
+
+For image-based social content, Module #17 applies a subset of post-production:
+- **Auto-Subtitles**: ✅ (for any video content generated in carousel)
+- **Dubbing**: opt (for video posts only)
+- **Thumbnails**: ✅ (auto-generated preview images per platform)
+- **Watermark**: ✅ (review versions watermarked before client approval)
+- **Export**: ✅ (platform-optimized image/video formats per platform spec)
+- See `engines/DELIVERY_POST_PRODUCTION_ENGINE.md` for full specification

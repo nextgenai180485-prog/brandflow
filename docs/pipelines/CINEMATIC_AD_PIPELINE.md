@@ -494,3 +494,16 @@ All provider calls route through the Provider Routing Layer:
 - Voice: ElevenLabs → WaveSpeed ElevenLabs proxy (fallback chain)
 - See `engines/PROVIDER_ROUTING_POLICY.md` for health-check and failover logic
 - If brand has no Core Elements Board → prompt user to generate one first
+
+### 14. Delivery & Post-Production (Module #17)
+
+After Assembly, output passes through Module #17 for enterprise-grade finishing:
+- **Auto-Subtitles**: ✅ (burned-in or sidecar — critical for cinematic ads)
+- **Dubbing**: ✅ (multi-language cinematic voiceover via ElevenLabs Dubbing API)
+- **Audio Polish**: ✅ (loudness normalization, music ducking during VO, noise reduction)
+- **Video Enhancement**: ✅ (upscale to 4K, cinematic color grading, denoise)
+- **Thumbnails**: ✅ (scene-transition extraction + brand overlay)
+- **Watermark**: ✅ (review versions watermarked, stream-only, 7-day expiry)
+- **Export**: ✅ (multi-format: MP4/MOV/WebM, multi-aspect: 16:9/9:16/1:1/4:5)
+- Review version shown at Plan Review Gate (#2); production version unlocked on approval
+- See `engines/DELIVERY_POST_PRODUCTION_ENGINE.md` for full specification
