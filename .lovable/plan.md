@@ -1,7 +1,9 @@
 
-## Save Brandflow Plan
 
-Save the uploaded `BRANDFLOW_PLAN.md` file into the project root so it's available as a reference document for future development.
+## Save MVP Execution Roadmap
+
+Copy `BRANDFLOW_MVP_EXECUTION_ROADMAP.md` from user uploads to the project root, alongside the existing `BRANDFLOW_PLAN.md`.
 
 **Action:**
-- Copy `BRANDFLOW_PLAN.md` to the project root directory
+- Copy `user-uploads://BRANDFLOW_MVP_EXECUTION_ROADMAP.md` → `BRANDFLOW_MVP_EXECUTION_ROADMAP.md`
+
