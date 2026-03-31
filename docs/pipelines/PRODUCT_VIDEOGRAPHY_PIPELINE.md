@@ -316,12 +316,22 @@ F3 already has a re-entrant state machine (Switch node) — **document as refere
 - This pattern should be adopted by all other families
 - Brandflow: Map to `job_stages` status tracking
 
-### 9. Tier Router
+### 9. Provider & Tier Routing
 
 | Tier | Image Model | Video Model | Use Case |
 |------|-------------|-------------|----------|
-| **Draft** | nano-banana-pro (standard) | `veo3_fast` | Fast iteration, first drafts |
-| **Production** | nano-banana-pro (2k) | `veo3` | Approved finals, high quality |
+| **Draft** | nano-banana-pro (standard) | BytePlus Seedance 1.0 Lite | Fast iteration, first drafts |
+| **Production** | nano-banana-pro (2k) / SeedEdit 3.0 | BytePlus Seedance 1.0 | Approved finals, high quality |
+
+**Video provider chain (F3-specific)**:
+1. BytePlus Seedance 1.0 (primary — keyframe-driven, ideal for start→end frame transitions)
+2. Kie AI Veo3 `FIRST_AND_LAST_FRAMES_2_VIDEO` (fallback — current provider)
+3. Runway Gen-4 (emergency)
+
+**Image provider chain**:
+1. WaveSpeed nano-banana-pro (primary)
+2. BytePlus SeedEdit 3.0 / Seedream 5.0 (fallback — strong for product compositing)
+3. OpenAI DALL-E 3 (emergency)
 
 - Auto-selects Draft before Plan Review Gate
 - Switches to Production after approval

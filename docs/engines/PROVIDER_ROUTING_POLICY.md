@@ -59,7 +59,9 @@ Provider Adapter (Kie AI / Runway / WaveSpeed / etc.)
 | Category | Draft Model | Production Model |
 |----------|-------------|-----------------|
 | Video | veo3_fast | veo3 |
+| Video (PV) | Seedance 1.0 Lite | Seedance 1.0 |
 | Image | Seedream 5.0 Lite | Seedream 5.0 Pro |
+| Image Edit | SeedEdit 3.0 (draft) | SeedEdit 3.0 (full) |
 | Lip-sync | ByteDance LatentSync | Sync Labs Lipsync 2.0 |
 | Music | Suno V5 (30s) | Suno V5 (full) |
 | Voice | ElevenLabs Turbo v2.5 | ElevenLabs Multilingual V2 |
@@ -84,17 +86,27 @@ function resolveTier(job):
 | Priority | Provider | Model | Families |
 |----------|----------|-------|----------|
 | Primary | Kie AI | Veo3 / Veo3_fast | F1, F5, F7 |
-| Fallback 1 | Runway | Gen-4 | F1, F5, F7 |
-| Fallback 2 | Pika | Pika 2.2 | F1, F5, F7 |
+| Fallback 1 | BytePlus | Seedance 1.0 | F3, F5 |
+| Fallback 2 | Runway | Gen-4 | F1, F5, F7 |
+| Fallback 3 | Pika | Pika 2.2 | F1, F5, F7 |
+
+### Product Videography Video (F3-specific)
+
+| Priority | Provider | Model | Families |
+|----------|----------|-------|----------|
+| Primary | BytePlus | Seedance 1.0 (keyframe-driven) | F3 |
+| Fallback 1 | Kie AI | Veo3 (FIRST_AND_LAST_FRAMES) | F3 |
+| Fallback 2 | Runway | Gen-4 | F3 |
 
 ### Image Generation
 
 | Priority | Provider | Model | Families |
 |----------|----------|-------|----------|
 | Primary | WaveSpeed AI | nano-banana-pro | F3, F5, F6, F8 |
-| Fallback 1 | Kie AI | GPT-4o Image | F1, F7 |
-| Fallback 2 | OpenAI | DALL-E 3 | All |
-| Fallback 3 | Replicate | SDXL variants | All |
+| Fallback 1 | BytePlus | SeedEdit 3.0 / Seedream 5.0 | F3, F6 |
+| Fallback 2 | Kie AI | GPT-4o Image | F1, F7 |
+| Fallback 3 | OpenAI | DALL-E 3 | All |
+| Fallback 4 | Replicate | SDXL variants | All |
 
 ### Image-to-Video
 
