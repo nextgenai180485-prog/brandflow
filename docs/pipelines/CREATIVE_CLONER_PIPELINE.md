@@ -284,3 +284,89 @@ Video generation takes 2–5 minutes. The n8n workflow uses:
 - **SEALCaM-driven prompts** ensure structural fidelity to the source
 - **No character/voice asset resolution** — subjects come from reference images, not avatar databases
 - **kling-v2.6-pro** is unique to this family (other families use Sora2 or Veo3)
+
+---
+
+## Enterprise Engine Integration
+
+> Applied from Cross-Family Engine Audit — standardizes this pipeline with enterprise-grade shared modules.
+
+### 1. Asset Analyzer (standardizes Stage 1)
+
+Stage 1 already uses Gemini + SEALCaM — upgrade to unified `AnalyzeAsset` Edge Function:
+- **Mode**: `scene` (SEALCaM-structured scene breakdown from video)
+- **Provider**: Gemini via Lovable AI Gateway (already uses Gemini via OpenRouter — standardize routing)
+- **Output**: Structured JSON with SEALCaM fields per scene
+- **This is the reference pattern** for video analysis that other families should adopt for future video input support
+
+### 2. Creative Director Agent (upgrades Stage 2)
+
+Stage 2 already uses AGENT-style framework — enhancements:
+- **Think Tool**: Add mandatory reasoning pass before generating recreation prompts
+- **Comparison output**: Show side-by-side "original structure" vs "recreated structure" for review
+- **Brand context injection**: Pull brand voice, colors, and product details from Brand Kit
+
+### 3. Plan Review Gate (new Stage 2.5)
+
+Mandatory checkpoint between prompt generation and media generation:
+- User sees: recreated scene plan side-by-side with original video structure
+- Comparison view: original scene count, timing, camera moves vs recreated plan
+- Actions: Approve / Reject / Edit individual scene prompts
+- Critical for Creative Cloner — user needs to verify recreation fidelity before expensive generation
+
+### 4. Revision Loop (new Stage 2.6)
+
+When user rejects the recreation plan:
+- **RevisionAgent** receives: original SEALCaM analysis + recreated prompts + user comments
+- Adjusts scene prompts to better match original structure or incorporate user's creative changes
+- Re-submits to Plan Review Gate
+- Preserves structural fidelity to source video across revisions
+
+### 5. Core Elements Board Injection
+
+- Core Elements Board (from F6) injected as brand context for prompt generation
+- Ensures recreated scenes use the brand's character, setting, and product consistently
+- If brand has Core Elements Board → include as additional image reference for WaveSpeed compositing
+- If no board → use raw brand assets as fallback
+
+### 6. Assembly Engine (Stage 3 — shared module)
+
+Use the shared Assembly Engine for final composition:
+- Video concatenation: Fal AI FFmpeg API (`fal-ai/ffmpeg-api/merge-videos`)
+- Music overlay: Select best variant from Suno's 2 outputs, mix at 25% volume
+- Transition effects: Optional 0.5s crossfade between scenes
+- Export: Aspect ratio enforcement + Supabase Storage upload
+- Currently n8n workflow ends at individual assets — Assembly Engine completes the pipeline
+
+### 7. Re-entry Controller
+
+Resume from any stage via `job_stages` status check:
+- `video_upload` → `video_analysis` → `prompt_generation` → `plan_review` → `image_generation` → `video_generation` → `music_generation` → `assembly` → `delivery`
+- If kling-v2.6-pro fails on one scene, retry only that scene
+- If music generation fails, retry music without affecting video pipeline (parallel lane)
+- If user edits prompts, re-run only from image_generation onward
+
+### 8. Tier Router
+
+| Tier | Image Model | Video Model | Use Case |
+|------|-------------|-------------|----------|
+| **Draft** | nano-banana-pro (standard) | `kling-v2.6` | Fast iteration, concept validation |
+| **Production** | nano-banana-pro (2k) | `kling-v2.6-pro` | Approved finals, high quality |
+
+- Auto-selects Draft before Plan Review Gate
+- Switches to Production after approval
+- kling-v2.6 (non-pro) is faster and cheaper for draft iterations
+
+### 9. SEALCaM Prompting ✅ (reference pattern)
+
+- F8 already uses SEALCaM as the mandatory prompting standard
+- **This is the reference pattern** for SEALCaM adoption across other families
+- Stage 1 outputs SEALCaM-structured analysis, Stage 2 generates SEALCaM-structured prompts
+- Ensures structural fidelity between original video and recreation
+
+### 10. Hook Library Injection
+
+- Query `hooks` table for top-performing hooks in brand's industry
+- Inject hooks into script generation (the `script` field in output)
+- Ensures the recreated ad's narrative uses proven engagement patterns
+- Particularly valuable for Creative Cloner — the original ad's hook may not be optimal for the user's industry

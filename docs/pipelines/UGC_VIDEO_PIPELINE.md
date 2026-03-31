@@ -541,3 +541,86 @@ POST https://queue.fal.run/fal-ai/ffmpeg-api/merge-videos
 3. **The single-image approach (Variant B) is cheaper** — one image generation call regardless of clip count
 4. **Clip merging adds ~60s+ to total pipeline time** — factor into user-facing time estimates
 5. **Narrative coherence** across clips is a key differentiator — the dialogue must flow naturally when clips are stitched together
+
+---
+
+## Enterprise Engine Integration
+
+> Applied from Cross-Family Engine Audit — standardizes this pipeline with enterprise-grade shared modules.
+
+### 1. Asset Analyzer (replaces Stage 2)
+
+Switch from GPT-4o to the unified `AnalyzeAsset` Edge Function:
+- **Mode**: `product` (product-only images) or `character` (if image contains a person)
+- **Provider**: Gemini via Lovable AI Gateway (standardized across all families)
+- **Output**: Structured YAML with brand_name, color_scheme, font_style, visual_description
+- Eliminates provider inconsistency (was GPT-4o, now matches F3/F5/F8 on Gemini)
+
+### 2. Creative Director Agent (upgrades Stage 3)
+
+Upgrade scene planning to full AGENT framework:
+- **Think Tool**: Mandatory reasoning pass before generating prompts
+- **Structured creative summary**: Scene mood, estimated generation time, cost tier
+- **AGENT structure**: Ask → Guidance → Examples → Notation → Tools
+- Variant A and Variant B both adopt this — the system prompt differences remain (per-scene vs continuous narrative)
+
+### 3. Plan Review Gate (new Stage 3.5)
+
+Mandatory checkpoint between planning and generation:
+- User sees: scene count, mood/style per scene, estimated cost, generation time
+- Actions: Approve / Reject / Edit individual prompts
+- On approval → proceed to image generation
+- On rejection → route to Revision Agent
+
+### 4. Revision Loop (new Stage 3.6)
+
+When user rejects the plan:
+- **RevisionAgent** receives: original brief + original AI output + user rejection comments
+- Generates revised prompts incorporating feedback
+- Re-submits to Plan Review Gate (loops until approved or abandoned)
+- Preserves conversation history across revision cycles
+
+### 5. Core Elements Board Injection
+
+- Core Elements Board image (from F6) injected as visual reference during image generation
+- Ensures product placement consistency across scenes
+- If brand has no Core Elements Board → skip (optional enhancement)
+
+### 6. Music Engine (optional, parallel lane)
+
+- Toggle: "Add background music?" in the brief
+- If enabled: Suno V5 via Kie AI runs in parallel with video generation
+- Mood auto-detected from brand profile or user-specified
+- Music added via Assembly Engine after video generation completes
+
+### 7. Assembly Engine
+
+- **Variant A**: Optional — if music is enabled, overlay music on individual clips
+- **Variant B**: Enhanced — clip merge (existing) + music overlay + fade transitions
+- Provider: Fal AI FFmpeg API (`fal-ai/ffmpeg-api/merge-videos` for concat, custom FFmpeg for audio mix)
+- Assembly sequence: Concat clips → Mix music (25% volume) → Export with aspect ratio enforcement
+
+### 8. Re-entry Controller
+
+Resume from any stage via `job_stages` status check:
+- `brief_intake` → `asset_analysis` → `scene_planning` → `plan_review` → `image_generation` → `video_generation` → `assembly` → `delivery`
+- If a stage fails, retry from that stage without restarting
+- If user edits prompts after approval, re-run only downstream stages (image + video)
+
+### 9. Tier Router
+
+| Tier | Image Model | Video Model | Use Case |
+|------|-------------|-------------|----------|
+| **Draft** | nano-banana (standard) | `veo3_fast` | First pass, fast iteration |
+| **Production** | nano-banana (2k) | `veo3` | Approved finals, high quality |
+
+- Auto-selects Draft before Plan Review Gate
+- Switches to Production after user approval
+- User can override in brief settings
+
+### 10. SEALCaM Prompting
+
+- **Recommended but not mandatory** for UGC family
+- UGC aesthetic intentionally conflicts with cinematic structure (amateur vs polished)
+- Available as opt-in for users who want "premium UGC" style
+- When enabled, maps: action→Action, character→Subject, setting→Environment, camera→Camera

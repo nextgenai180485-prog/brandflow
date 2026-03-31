@@ -256,3 +256,45 @@ Phase C — Media (heavy compute)
 | `SEALCAM_FRAMEWORK.md` | Shared — Prompting standard |
 | `CREATIVE_CLONER_ENGINE_DESIGN.md` | Engine — Zero-effort cloner |
 | `IMAGE_TEMPLATE_ENGINE_DESIGN.md` | Engine — Template image recreation |
+| `HOOK_LIBRARY_ENGINE_DESIGN.md` | Engine — Performance-driven content intelligence |
+
+---
+
+## 11. Hook Library Engine
+
+**Exists as**: Standalone engine design (`HOOK_LIBRARY_ENGINE_DESIGN.md`)  
+**Integrated into**: F4 Social Content, F5 Cinematic Ad, F7 Ad Creator, F8 Creative Cloner  
+**Not applicable**: F1 UGC (no text content), F2 AI Spokesperson (prompt-driven, no captions), F3 Product Videography (visual-only), F6 Core Elements Board (no content generation)
+
+A curated database of proven social media hooks, captions, and CTAs — scraped from real platforms, annotated by industry, platform, and performance signals. Every content generation call queries this library FIRST to ground output in real-world performance data.
+
+### Integration Points
+
+| Family | Hook Injection Point | Purpose |
+|--------|---------------------|---------|
+| F4 Social Content | Pre-generation (Stage 2) | Few-shot examples for platform-optimized captions |
+| F5 Cinematic Ad | Script generation (Stage 3) | Narrative hooks for ad scripts |
+| F7 Ad Creator | Caption generation (Stage 3) | Engagement-optimized captions |
+| F8 Creative Cloner | Script generation (Stage 2) | Proven hooks for recreated ad narratives |
+
+---
+
+## Enterprise Engine Adoption Status
+
+All 8 families have been updated with Enterprise Engine Integration sections. Status:
+
+| Module | F1 | F2 | F3 | F4 | F5 | F6 | F7 | F8 |
+|--------|----|----|----|----|----|----|----|----|
+| Creative Director Agent | ✅ | ✅ | ✅ | ✅ | ✅ | — | ✅★ | ✅ |
+| Plan Review Gate | ✅ | ✅ | ✅ | ✅ | ✅ | — | ✅★ | ✅ |
+| Revision Agent | ✅ | ✅ | ✅ | ✅ | ✅ | — | ✅★ | ✅ |
+| Asset Analyzer | ✅ | ✅ | ✅ | — | ✅ | ✅ | ✅ | ✅★ |
+| SEALCaM | opt | opt | ✅ | — | ✅ | — | ✅ | ✅★ |
+| Core Elements Board | ✅ | ✅ | ✅ | ✅ | ✅ | ★ | ✅ | ✅ |
+| Music Engine | ✅ | ✅ | ✅ | — | ✅ | — | ✅ | ✅ |
+| Assembly Engine | ✅ | ✅ | ✅ | — | ✅ | — | ✅ | ✅ |
+| Tier Router | ✅ | ✅ | ✅ | — | ✅ | — | ✅ | ✅ |
+| Re-entry Controller | ✅ | ✅ | ✅★ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Hook Library | — | — | — | ✅ | ✅ | — | ✅ | ✅ |
+
+**Legend**: ✅ = adopted, ✅★ = reference pattern (other families should follow this implementation), opt = optional/opt-in, — = not applicable, ★ = is the module itself

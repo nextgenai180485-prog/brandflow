@@ -183,3 +183,54 @@ The wireframe template defines a 9:16 grid with these sections:
 4. **Preview/regenerate**: Since this is fast (~30-60 seconds), offer instant regeneration if the result is unsatisfactory
 5. **Auto-trigger downstream**: After board generation, offer to automatically create a Cinematic Ad or Product Videography job using the new board
 6. **Brand asset storage**: The generated board should be stored as a brand-level asset, reusable across multiple generation jobs
+
+---
+
+## Enterprise Engine Integration
+
+> Applied from Cross-Family Engine Audit — elevates Core Elements Board from standalone pipeline to brand onboarding prerequisite.
+
+### 1. Brand Onboarding Prerequisite
+
+- **Auto-generate during brand setup**: When a user completes brand onboarding (uploads logo, product photos, selects industry), auto-trigger Core Elements Board generation
+- No manual trigger needed — the system proactively creates the brand board
+- Store as a permanent brand-level asset accessible by ALL families (F1–F8)
+- Regenerate on demand if brand assets change
+
+### 2. Asset Analyzer (optional pre-step)
+
+- Add `AnalyzeAsset` (mode: `composite`) as an optional pre-step
+- Generates a text description of the uploaded assets before board generation
+- Useful for logging and for families that need text-based brand context without the visual board
+
+### 3. Re-entry Controller
+
+- Simple pipeline (single API call) — re-entry is basic retry logic
+- If generation fails → auto-retry up to 3 times with 30s delay
+- If all retries fail → notify user, offer manual retry button
+- No complex stage-based resume needed (single-step pipeline)
+
+### 4. No Approval Gate Needed
+
+- Fast generation (~30-60 seconds)
+- Easy to regenerate if unsatisfactory
+- Offer "Regenerate" button instead of approve/reject flow
+- Show preview immediately after generation — user can regenerate or accept
+
+### 5. Cross-Family Distribution
+
+After generation, the board is automatically available to:
+- **F1 UGC**: Product placement reference
+- **F2 AI Spokesperson**: Avatar setting context
+- **F3 Product Videography**: `Core Elements` input (already connected)
+- **F5 Cinematic Ad**: `Core Elements` input (already connected)
+- **F7 Ad Creator**: Creative Director reference
+- **F8 Creative Cloner**: Brand context for prompt generation
+- **Image Template Engine**: Brand style reference for Seedream fusion
+
+### 6. Template Management
+
+- Store wireframe templates in Supabase Storage as system-level assets
+- Default template: standard 9:16 grid (CHARACTER / SETTING / PRODUCT)
+- Future: Allow custom templates per brand or per industry
+- Template versioning: track which template version was used for each board

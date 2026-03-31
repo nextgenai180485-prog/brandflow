@@ -211,3 +211,79 @@ POST https://api.imgbb.com/1/upload
 5. **Video suggestion fields** can be used to auto-trigger UGC or Spokesperson pipelines for platforms that need video content
 6. **The structured output schema** should be stored as a `generation_output` JSONB field in the artifacts table for per-platform access
 7. **Batch scheduling**: This pipeline is fast (~30s total) — suitable for recurring scheduled runs
+
+---
+
+## Enterprise Engine Integration
+
+> Applied from Cross-Family Engine Audit — standardizes this pipeline with enterprise-grade shared modules.
+
+### 1. Creative Director Agent (upgrades Stage 2)
+
+Upgrade content generation from simple GPT-4o call to full AGENT framework:
+- **Think Tool**: Mandatory reasoning pass — analyze industry, brand voice, platform requirements before generating
+- **AGENT structure**: Ask → Guidance → Examples → Notation → Tools
+- **Structured creative summary**: Include platform strategy rationale, hook type used, estimated engagement
+- Currently a single AI call — upgrade to agent with reasoning for higher quality output
+
+### 2. Hook Library Injection (new, pre-Stage 2)
+
+Query the `hooks` table BEFORE content generation:
+- Filter by: brand's industry tags, target platforms, performance tier (A/B)
+- Retrieve: 3-5 top-performing hooks as few-shot examples
+- Inject into the generation prompt as "Examples of proven hooks in your industry:"
+- This grounds all generated content in real-world performance data
+- See `HOOK_LIBRARY_ENGINE_DESIGN.md` for full schema and query patterns
+
+### 3. Core Elements Board Injection
+
+- Core Elements Board image (from F6) used as visual context for image generation (Stage 3)
+- Helps Seedream/DALL-E maintain brand visual consistency
+- If brand has no Core Elements Board → use raw product images as fallback
+
+### 4. Image Template Engine (replaces Stage 3)
+
+Switch from DALL-E to Seedream 5 Lite via Image Template Engine:
+- Select from pre-designed templates matching the content type and platform
+- Two-pass generation: base scene → product fusion (SeedEdit 3.0)
+- See `IMAGE_TEMPLATE_ENGINE_DESIGN.md` for full pipeline
+- Higher quality, brand-consistent images vs generic DALL-E output
+
+### 5. Plan Review Gate (enhances Stage 4)
+
+Social Content already has an approval gate — enhance it:
+- Show per-platform content preview (not just email dump)
+- Allow per-platform approve/reject (approve LinkedIn but reject TikTok)
+- Show hook type used and confidence score
+- On rejection → route to Revision Agent (currently rejection = stop)
+
+### 6. Revision Loop (new, replaces rejection = stop)
+
+When user rejects content:
+- **RevisionAgent** receives: original topic/keywords + original platform posts + user rejection comments
+- Generates revised content incorporating feedback per-platform
+- Re-submits to approval gate
+- Currently rejection stops the pipeline — this keeps it alive
+
+### 7. Re-entry Controller
+
+Resume from any stage via `job_stages` status check:
+- `brief_intake` → `hook_query` → `content_generation` → `image_generation` → `approval` → `publishing`
+- If image generation fails, retry without regenerating content
+- If user edits content after approval, re-run only publishing stage
+
+### 8. Tier Router
+
+- **Not applicable** for this pipeline (text-first, no heavy compute tiers)
+- Image generation tier: Standard Seedream 5 Lite for all tiers (cost is minimal at ~$0.035/image)
+- Content generation: Gemini for all tiers (cost is ~$0.01/batch)
+
+### 9. Assembly Engine
+
+- **Not applicable** — no video content to assemble
+- Image generation is single-pass, no multi-asset merge needed
+
+### 10. SEALCaM Prompting
+
+- **Not applicable** — text-first pipeline, no cinematic video prompts
+- Image prompts use Image Template Engine's own prompt structure instead
