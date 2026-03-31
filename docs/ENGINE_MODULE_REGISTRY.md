@@ -80,6 +80,7 @@ The enterprise engine layer consists of 18 shared modules that sit between famil
 | 15. Motion Variant Selector | — | ✅ | — | — | — | — | — | — |
 | 16. UGC Voiceover | ✅ | — | — | — | — | — | — | — |
 | 17. Delivery & Post-Production | ✅ | ✅ | ✅ | ✅ | ✅ | — | ✅ | ✅ |
+| 18. Localization & Cultural Adapt. | ✅ | ✅ | ✅ | ✅ | ✅ | — | ✅ | ✅ |
 
 **Legend**: ✅ = adopted, ✅★ = reference pattern, opt = optional/opt-in, — = not applicable, ★ = is the module itself
 
