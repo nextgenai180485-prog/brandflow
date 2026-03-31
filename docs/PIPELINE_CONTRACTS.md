@@ -31,7 +31,7 @@ Each pipeline family has a standardized contract defining its inputs, outputs, a
 | **Input** | Script, spokesperson photo, voice mode (upload/TTS/clone), aspect ratio |
 | **Output** | Lip-synced talking-head video with optional music and captions |
 | **Primary Deliverable** | MP4 video file |
-| **Engine Modules** | Asset Analyzer, Creative Director Agent (script enhancement), Plan Review Gate, Revision Agent, Hook Library, Music Engine (optional), Assembly Engine, Re-entry Controller, Tier Router, Motion Variant Selector, Brand Voice DNA, Provider Routing |
+| **Engine Modules** | Asset Analyzer, Creative Director Agent (script enhancement), Plan Review Gate, Revision Agent, Hook Library, Music Engine (optional), Assembly Engine, Re-entry Controller, Provider & Tier Routing, Motion Variant Selector, Brand Voice DNA |
 | **Doc** | `pipelines/AI_SPOKESPERSON_PIPELINE.md` |
 
 ### F3 — Product Videography
