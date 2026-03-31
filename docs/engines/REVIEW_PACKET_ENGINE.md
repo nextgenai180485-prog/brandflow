@@ -263,7 +263,96 @@ Send notifications via configured channels. Start expiry countdown.
 
 ## Database Schema
 
+### Approval Policies
+
+Approval chains are driven by configurable policies stored per brand. These determine who reviews what, based on cost thresholds, family type, and tier.
+
+```json
+{
+  "policy_id": "uuid",
+  "brand_id": "uuid",
+  "name": "string",
+  "rules": [
+    {
+      "condition": {
+        "family": "F5 | * (any)",
+        "tier": "premium | * (any)",
+        "cost_threshold_usd": 50
+      },
+      "chain": [
+        { "step": 1, "role": "reviewer" },
+        { "step": 2, "role": "creative_director" },
+        { "step": 3, "role": "admin" }
+      ],
+      "require_all": true
+    },
+    {
+      "condition": {
+        "family": "F4",
+        "tier": "standard",
+        "cost_threshold_usd": 5
+      },
+      "chain": [],
+      "auto_approve": true,
+      "auto_approve_reason": "Low-cost standard social content"
+    }
+  ]
+}
+```
+
+### Policy Rules
+
+| Condition | Chain Depth | Behavior |
+|-----------|-------------|----------|
+| F5 Cinematic, any tier | 3-step | Always requires creative director sign-off |
+| Any family, premium tier, cost > $50 | 2-step | Escalates to admin |
+| F4 Social, standard tier, cost < $5 | 0-step | Auto-approved |
+| Any family, first use by brand | 2-step | Requires admin awareness |
+| Budget check = `warning` | +1 step | Adds budget admin to chain |
+
+### Escalation Logic
+
+```
+Step 1: Reviewer has 24h to act
+  │
+  ├── Approved → Step 2 (if chain has more steps)
+  ├── Rejected → Terminal (packet rejected)
+  ├── No action within 24h → Auto-escalate to next step
+  └── Revision requested → Back to generation
+```
+
+---
+
+## Database Schema
+
 ```sql
+CREATE TABLE approval_policies (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  brand_id UUID NOT NULL,
+  name TEXT NOT NULL,
+  rules JSONB NOT NULL DEFAULT '[]',
+  is_default BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE approval_chain_entries (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  packet_id UUID REFERENCES review_packets(id) NOT NULL,
+  step INTEGER NOT NULL,
+  role TEXT NOT NULL,
+  user_id UUID REFERENCES auth.users(id),
+  decision TEXT NOT NULL DEFAULT 'pending',
+  decided_at TIMESTAMPTZ,
+  auto_approved BOOLEAN DEFAULT false,
+  escalated_from_step INTEGER,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE (packet_id, step)
+);
+
+CREATE INDEX idx_approval_policies_brand ON approval_policies(brand_id);
+CREATE INDEX idx_approval_chain_packet ON approval_chain_entries(packet_id);
+
 CREATE TABLE review_packets (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   job_id UUID REFERENCES jobs(id) NOT NULL,
