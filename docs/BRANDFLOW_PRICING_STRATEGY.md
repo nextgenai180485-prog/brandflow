@@ -50,7 +50,7 @@ Estimated per-unit generation costs based on current provider pricing:
 
 ---
 
-### Growth — $79/month
+### Growth — $99/month
 
 **Target**: Growing brands, content creators, small marketing teams
 
@@ -58,20 +58,18 @@ Estimated per-unit generation costs based on current provider pricing:
 |----------|----------|
 | Content batches | 100/month |
 | Image generations | 50/month |
-| Video generations | 5/month |
+| Video generations | 10/month |
 | Brands | 3 |
 
 **Features**:
 - Everything in Starter
-- Video Ad generation (F7 Ad Creator)
-- UGC Video generation (F1)
 - Hook Library with industry filtering
 - Competitor monitoring (3 competitors)
 - Zero-input brand onboarding (Firecrawl)
 - Brand Voice DNA extraction
 
-**Our cost at full usage**: ~$1.00 (text) + ~$1.75 (images) + ~$5.00 (videos) = **~$7.75/month**  
-**Margin**: ~90%
+**Our cost at full usage**: ~$1.00 (text) + ~$3.50 (images) + ~$10.00 (videos) = **~$14.50/month**  
+**Margin**: ~85%
 
 ---
 
