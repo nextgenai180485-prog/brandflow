@@ -26,15 +26,15 @@ Estimated per-unit generation costs based on current provider pricing:
 
 ## 2. Pricing Tiers
 
-### Starter — $29/month
+### Starter — $39/month
 
 **Target**: Solopreneurs, small business owners, side hustlers
 
 | Resource | Included |
 |----------|----------|
 | Content batches | 30/month |
-| Image generations | 10/month |
-| Video generations | 0 |
+| Image generations | 20/month |
+| Video generations | 5/month |
 | Brands | 1 |
 
 **Features**:
@@ -42,9 +42,11 @@ Estimated per-unit generation costs based on current provider pricing:
 - Image Template Engine — select from template gallery
 - Hook Library — AI-powered captions grounded in proven hooks
 - Basic brand profile (manual setup)
+- Video Ad generation (F7 Ad Creator) — 5 videos/month
+- UGC Video generation (F1)
 
-**Our cost at full usage**: ~$0.30 (text) + ~$0.35 (images) = **~$0.65/month**  
-**Margin**: ~97%
+**Our cost at full usage**: ~$0.30 (text) + ~$0.70 (images) + ~$5.00 (videos) = **~$6.00/month**  
+**Margin**: ~85%
 
 ---
 
