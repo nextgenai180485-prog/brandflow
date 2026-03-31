@@ -59,7 +59,9 @@ Provider Adapter (Kie AI / Runway / WaveSpeed / etc.)
 | Category | Draft Model | Production Model |
 |----------|-------------|-----------------|
 | Video | veo3_fast | veo3 |
+| Video (PV) | Seedance 1.0 Lite | Seedance 1.0 |
 | Image | Seedream 5.0 Lite | Seedream 5.0 Pro |
+| Image Edit | SeedEdit 3.0 (draft) | SeedEdit 3.0 (full) |
 | Lip-sync | ByteDance LatentSync | Sync Labs Lipsync 2.0 |
 | Music | Suno V5 (30s) | Suno V5 (full) |
 | Voice | ElevenLabs Turbo v2.5 | ElevenLabs Multilingual V2 |
