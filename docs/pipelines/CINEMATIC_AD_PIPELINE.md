@@ -267,18 +267,54 @@ POST https://api.wavespeed.ai/api/v3/elevenlabs/turbo-v2.5
 
 ---
 
-## Stage 8: Assembly (Post-Production)
+## Stage 8: Automated Assembly Pipeline
 
-**Not automated in n8n workflow** — currently requires manual assembly of:
-- Scene videos (in order)
-- Background music track
-- Voiceover audio
+**Now automated** — replaces the previously manual assembly process.
 
-**Brandflow opportunity**: Automate assembly using FFmpeg (via Fal AI's `ffmpeg-api/merge-videos` or server-side processing):
-1. Concatenate scene videos in order
-2. Mix background music at reduced volume
-3. Overlay voiceover audio
-4. Export final MP4
+### Step 1 — Concatenate Scene Videos
+
+**Provider**: Fal AI (`fal-ai/ffmpeg-api/merge-videos`)
+
+```json
+POST https://queue.fal.run/fal-ai/ffmpeg-api/merge-videos
+{
+  "video_urls": ["<scene1_url>", "<scene2_url>", "<scene3_url>", "<scene4_url>", "<scene5_url>"]
+}
+```
+
+- Input: Array of scene video URLs in chronological order
+- Output: Single concatenated video URL
+- Polling: ~60s, check `video.url` in response
+- Authentication: API key via header (`Authorization: Key <FAL_API_KEY>`)
+
+### Step 2 — Mix Audio Layers
+
+**Provider**: Fal AI FFmpeg API (custom FFmpeg command)
+
+```
+ffmpeg -i concat.mp4 -i music.mp3 -i voice.mp3 \
+  -filter_complex "[1:a]volume=0.25[bg];[2:a]volume=1.0[vo];[bg][vo]amix=inputs=2[a]" \
+  -map 0:v -map "[a]" -c:v copy -c:a aac -shortest output.mp4
+```
+
+- Input: Concatenated video + music URL (from Stage 6) + voice URL (from Stage 7)
+- Background music at 25% volume
+- Voiceover at 100% volume
+- `-shortest` flag ensures output matches video duration
+- Output: Final video with mixed audio
+
+### Step 3 — Add Transitions (optional)
+
+- 0.5s crossfade between scenes using FFmpeg `xfade` filter
+- Applied during the concatenation step if enabled in brief settings
+- Transition types: crossfade (default), fade-to-black, dissolve
+
+### Step 4 — Export
+
+- Aspect ratio enforcement (16:9 or 9:16 based on brief)
+- Store final MP4 in Supabase Storage
+- Create artifact record linked to the generation job
+- Notify user that assembly is complete
 
 ---
 
