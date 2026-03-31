@@ -1,163 +1,149 @@
 
 
-## Cross-Family Engine Audit: Enterprise-Grade Pattern Gaps
+## Hook Library Engine — Performance-Driven Content Intelligence
 
-After analyzing all 8 pipeline families plus 2 engine designs, here are the patterns that exist in one family but are missing where they would add significant value.
+### The Concept
 
----
+A curated database of proven social media hooks, captions, and CTAs — scraped from real platforms, annotated by industry, platform, and performance signals. Every content generation call (Social Content, Ad Creator, Video captions) queries this library FIRST to ground its output in what actually works, rather than generating from scratch.
 
-### 1. Creative Director AI Agent (exists in F7 Ad Creator, partially in F5 Cinematic Ad — missing everywhere else)
+### How It Works
 
-The Ad Creator has a dedicated **Creative Director Agent** using the AGENT framework (Ask, Guidance, Examples, Notation, Tools) with a Think Tool for structured reasoning before generating prompts. The Cinematic Ad has a similar "Multimedia Ad Director" agent. But UGC, AI Spokesperson, Product Videography, and Creative Cloner all use simpler prompt-in/structured-out AI calls with no explicit reasoning step.
+```text
+SCRAPING LAYER (Firecrawl + manual curation)
+  │
+  ▼
+┌─────────────────────────────────┐
+│ HOOK LIBRARY (Supabase)         │
+│ hooks table                     │
+│ - content, platform, industry   │
+│ - hook_type, engagement_tier    │
+│ - performance_signals           │
+└──────────┬──────────────────────┘
+           │
+           ▼  (queried before every generation)
+┌─────────────────────────────────┐
+│ CONTENT GENERATION ENGINE       │
+│ "Here are 5 top-performing      │
+│  hooks in {industry} on         │
+│  {platform}. Generate content   │
+│  that follows these patterns."  │
+└─────────────────────────────────┘
+```
 
-**Should adopt**: All families. Every scene planning stage should use:
-- The AGENT framework for system prompts (standardized structure)
-- A Think Tool / reasoning pass before output
-- Structured creative summary output (not just raw prompts)
+### Database: `hooks` Table
 
----
+| Column | Type | Purpose |
+|--------|------|---------|
+| `id` | uuid | Primary key |
+| `content` | text | The actual hook/caption text |
+| `platform` | text | `instagram`, `tiktok`, `linkedin`, `x`, `facebook`, `threads`, `youtube` |
+| `industry_tags` | text[] | `{beauty, skincare, fashion, food, tech, fitness, saas}` |
+| `hook_type` | text | `question`, `statistic`, `controversy`, `story`, `listicle`, `how_to`, `before_after`, `social_proof`, `urgency`, `curiosity_gap` |
+| `content_format` | text | `caption`, `hook_line`, `cta`, `thread_opener`, `video_script_hook` |
+| `engagement_tier` | text | `viral`, `high`, `medium`, `baseline` — based on performance signals |
+| `performance_signals` | jsonb | `{likes: 12000, comments: 450, shares: 800, saves: 2100, views: 500000}` |
+| `source_url` | text | Where it was scraped from (for attribution/reference) |
+| `language` | text | `en`, `es`, `fr`, etc. |
+| `tone` | text | `professional`, `casual`, `witty`, `inspirational`, `educational` |
+| `word_count` | int | For length-based filtering |
+| `has_emoji` | boolean | Style signal |
+| `has_hashtags` | boolean | Style signal |
+| `scraped_at` | timestamp | When collected |
+| `is_active` | boolean | Enable/disable |
 
-### 2. Pre-Generation Approval Gate (exists in F7 Ad Creator, F4 Social Content — missing from F1, F2, F3, F5, F8)
+### Scraping Pipeline
 
-Ad Creator shows the creative concept (caption + creative summary) to the user BEFORE spending money on generation. Social Content has an approval gate before publishing. But UGC, AI Spokesperson, Product Videography, Cinematic Ad, and Creative Cloner all go straight from planning to generation with no checkpoint.
+Use **Firecrawl** (already available as a connector) to scrape content sources. An Edge Function processes raw scrapes and annotates them:
 
-**Should adopt**: All video families. At minimum, show users the planned scenes, mood, and estimated output before burning GPU credits. This is the core of the "approval-first" principle from PROJECT.md.
+1. **Scrape** — Firecrawl collects posts from industry blogs, social media aggregator sites, viral content databases
+2. **Annotate** — Gemini via Lovable AI Gateway classifies each hook: `hook_type`, `tone`, `industry_tags`, `engagement_tier`
+3. **Store** — Insert annotated hooks into the `hooks` table
+4. **Refresh** — Scheduled scraping (weekly/monthly) to keep the library current
 
-**Proposed standard**: Every family gets a mandatory **Plan Review Gate** between prompt generation and media generation. The user sees:
-- Scene count and descriptions
-- Mood/style summary
-- Estimated generation time and cost tier
-- Approve / Reject / Edit prompts
+### Query Integration — How Generation Uses Hooks
 
----
+Every content generation call gets a new pre-step. Before the AI writes anything, an Edge Function queries the hooks table:
 
-### 3. Revision Loop with Feedback Injection (exists in F7 Ad Creator — missing from all others)
+```sql
+SELECT content, hook_type, engagement_tier, performance_signals
+FROM hooks
+WHERE platform = $1
+  AND industry_tags && $2
+  AND engagement_tier IN ('viral', 'high')
+  AND is_active = true
+ORDER BY
+  CASE engagement_tier
+    WHEN 'viral' THEN 1
+    WHEN 'high' THEN 2
+  END,
+  random()
+LIMIT 5;
+```
 
-When a user rejects the Ad Creator concept, a **Revised Prompt Agent** takes the original brief + rejection comments + original analysis and generates new prompts incorporating feedback. No other family has this — rejection means full restart.
+These 5 hooks are injected into the generation prompt as few-shot examples:
 
-**Should adopt**: All families. Every rejection should feed the user's comments back into the planning agent as revision context, not force a cold restart.
+```text
+"Before writing, study these top-performing hooks in {industry} on {platform}:
 
-**Proposed standard**: A shared `RevisionAgent` Edge Function that takes:
-- Original brief
-- Original AI output
-- User rejection comments
-- Family-specific system prompt
-And returns revised prompts for the specific stage that needs rework.
+1. [viral] "Did you know 90% of skincare routines are missing this one step?"
+2. [viral] "I spent $500 on products before discovering this $12 solution"
+3. [high]  "Your morning routine is sabotaging your skin. Here's why →"
+4. [high]  "3 ingredients dermatologists actually recommend (not what you think)"
+5. [high]  "POV: You finally found a routine that works"
 
----
+Generate content that follows these proven patterns — same energy, similar structure,
+but original content for {brand_name}'s {product}."
+```
 
-### 4. SEALCaM Structured Prompting (exists in F8 Creative Cloner — recommended but not adopted in F5 Cinematic Ad, F7 Ad Creator)
+### Which Pipelines Use This
 
-The Creative Cloner uses SEALCaM (Subject, Environment, Action, Lighting, Camera, Metatokens) as a mandatory 6-field prompting standard. The framework doc says it is "recommended" for Cinematic Ad and Ad Creator but neither actually uses it. Product Videography uses a similar but different YAML structure (Composition, Lighting, Environment, Action, Refinements, Camera, Aesthetic, Mood).
+| Pipeline | How Hooks Are Used |
+|----------|--------------------|
+| **F4 Social Content** | Hook examples injected into the 7-platform generation prompt |
+| **F7 Ad Creator** | Hook patterns inform the Creative Director's caption generation |
+| **F1 UGC** | Video script hooks drawn from `video_script_hook` format |
+| **F2 AI Spokesperson** | Opening lines pulled from high-performing hooks |
+| **F5 Cinematic Ad** | Caption/tagline generation uses hook patterns |
+| **Image Template Engine** | Headline text suggestions based on hooks |
 
-**Should adopt**: F5 Cinematic Ad and F3 Product Videography should standardize on SEALCaM. The PV YAML fields map cleanly:
-- Composition → Subject + Camera
-- Lighting → Lighting
-- Environment → Environment
-- Action → Action
-- Refinements → Metatokens
-- Camera → Camera
-- Aesthetic + Mood → Metatokens
+### User's Content History Layer
 
-This gives consistent prompts across families, making the template library work cross-family.
+Beyond the global hook library, the system also tracks what has worked for THIS specific user/brand:
 
----
+**`brand_content_history` table:**
 
-### 5. Re-entrant State Machine (exists in F3 Product Videography — missing from all others)
+| Column | Type | Purpose |
+|--------|------|---------|
+| `id` | uuid | Primary key |
+| `brand_id` | uuid | FK to brand_profiles |
+| `content` | text | The generated content that was published |
+| `platform` | text | Where it was posted |
+| `hook_type` | text | What pattern was used |
+| `published_at` | timestamp | When posted |
+| `performance` | jsonb | Actual engagement metrics (if connected to social APIs) |
+| `was_approved` | boolean | Did the user approve it on first try |
 
-Product Videography has a Switch node that checks what data already exists and resumes from the appropriate stage. If prompts exist but images don't, it skips straight to image generation. No other family has this — they all run linearly from the start.
+This creates a feedback loop: the system learns which hook types perform best for THIS brand and weights future suggestions accordingly.
 
-**Should adopt**: All families. The `job_stages` table already supports this conceptually, but the pipelines need explicit resume-from-stage logic. This enables:
-- Editing prompts after generation and re-running only downstream stages
-- Retrying a failed stage without restarting
-- Manual intervention at any checkpoint
+### Generation Priority Order
 
----
+When the content engine generates, it queries in this order:
 
-### 6. Core Elements Board as Universal Prerequisite (exists as standalone F6 — only connected to F3 and F5)
+1. **Brand history** — What hooks have worked for this specific brand (highest priority)
+2. **Industry hooks** — Top performers in the brand's industry
+3. **Platform hooks** — General top performers on the target platform
+4. **Fallback** — Generate without examples (only if library is empty for this combination)
 
-The Core Elements Board generates a structured character + setting + product composite image. Currently only Cinematic Ad and Product Videography use it. But every family that generates images needs consistent brand visual context.
+### Files to Create
 
-**Should adopt**: Make Core Elements Board a **brand onboarding step** that auto-generates during brand setup. Store as a permanent brand asset. Then inject it into:
-- F1 UGC: as reference for product placement scenes
-- F2 AI Spokesperson: as visual context for avatar settings
-- F7 Ad Creator: as reference for the Creative Director
-- F8 Creative Cloner: as brand context for prompt generation
-- Image Template Engine: as brand style reference for Seedream fusion
+1. **`docs/pipelines/HOOK_LIBRARY_ENGINE_DESIGN.md`** — Full design doc with all sections above
 
----
+### Technical Details
 
-### 7. Vision Analysis Standardization (different approaches in every family)
-
-| Family | Analysis Provider | Analysis Prompt | Output Format |
-|--------|------------------|-----------------|---------------|
-| F1 UGC | GPT-4o | Product-focused YAML | YAML |
-| F2 AI Spokesperson | GPT-4o | Product + Character YAML | YAML |
-| F3 Product Videography | Gemini 3 Pro | Describe character/setting/product | Free text |
-| F5 Cinematic Ad | Gemini 3 Pro | Describe character/setting/product | Free text |
-| F7 Ad Creator | GPT-4o | Describe product, ignore background | Free text |
-| F8 Creative Cloner | Gemini 3 Pro | SEALCaM cinematic breakdown | Structured JSON |
-
-Six families, three different providers, three different output formats. This should be ONE shared analysis engine.
-
-**Proposed standard**: A single `AnalyzeAsset` Edge Function with modes:
-- `product` → returns structured product YAML (brand, colors, materials, description)
-- `character` → returns structured character YAML (appearance, outfit, expression)
-- `scene` → returns SEALCaM-structured scene breakdown
-- `composite` → returns all three (for Core Elements Board)
-
-Standardize on Gemini via Lovable AI Gateway as the vision provider.
-
----
-
-### 8. Music Generation (exists in F5 Cinematic Ad and F8 Creative Cloner — missing from F1 UGC, F2 AI Spokesperson, F7 Ad Creator)
-
-Cinematic Ad and Creative Cloner generate background music via Suno. UGC and AI Spokesperson produce silent videos. Ad Creator produces videos with no audio layer.
-
-**Should adopt**: Offer music as an optional enhancement for ALL video families. The music generation stage is independent (runs in parallel) and adds ~3 minutes. Make it a toggle: "Add background music?" with mood auto-detected from the brand profile.
-
----
-
-### 9. Assembly / Post-Production (automated in F1B UGC Variant B, planned for F5 and F8 — missing from F1A, F2, F3, F7)
-
-Only UGC Variant B has automated FFmpeg merging via Fal AI. Cinematic Ad explicitly notes assembly is "not automated — currently requires manual assembly." Product Videography and Ad Creator produce single scenes with no merge needed, but have no audio overlay capability.
-
-**Should adopt**: A shared `AssemblyEngine` that handles:
-- Video concatenation (multi-scene families)
-- Music overlay with volume control
-- Voiceover overlay with timing sync
-- Fade transitions between scenes
-- Caption/subtitle burn-in (optional)
-- Final export with aspect ratio enforcement
-
----
-
-### 10. Cost/Quality Tier Routing (not in any family)
-
-No family currently has explicit cost-vs-quality routing. Users get whatever model is hardcoded. But PROJECT.md specifies `cost_tier` and `latency_tier` as Plan Object fields.
-
-**Should adopt**: Every family should support at least two tiers:
-- **Draft/Preview**: Fastest, cheapest models (veo3_fast, sora2, seedream lite)
-- **Final/Production**: Highest quality (veo3, sora2-pro, seedream pro)
-
-The planner should auto-select based on whether this is a first draft or a final render after approval.
-
----
-
-### Summary: Shared Engine Modules to Build Before Any Family
-
-| Engine Module | Used By | Purpose |
-|---------------|---------|---------|
-| **Creative Director Agent** (AGENT framework) | All families | Standardized reasoning + prompt generation |
-| **Plan Review Gate** | All families | Pre-generation approval checkpoint |
-| **Revision Agent** | All families | Feedback-aware prompt regeneration |
-| **Asset Analyzer** | All families | Unified vision analysis (product/character/scene) |
-| **SEALCaM Prompt Builder** | F3, F5, F7, F8 | Structured prompt assembly |
-| **Core Elements Generator** | Brand onboarding | Auto-generate brand board during setup |
-| **Music Engine** | All video families | Optional background music generation |
-| **Assembly Engine** | All video families | FFmpeg merge + audio overlay + export |
-| **Tier Router** | All families | Draft vs production quality routing |
-| **Re-entry Controller** | All families | Resume-from-stage + retry logic |
-
-These 10 modules form the **enterprise engine layer** that sits between the family-specific logic and the provider adapters. Build these first, then each family becomes a thin orchestration config on top.
+- Firecrawl connector handles scraping (already available)
+- Gemini via Lovable AI Gateway handles annotation/classification
+- PostgreSQL array operators (`&&`, `@>`) handle multi-tag filtering efficiently
+- GIN indexes on `industry_tags` and `platform` for fast queries
+- The hook injection adds ~200 tokens to each generation prompt — negligible cost
+- Scheduled Supabase cron or Edge Function for periodic scraping refresh
 
