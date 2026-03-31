@@ -1,219 +1,141 @@
 
 
-## Creative Cloner Zero-Effort Engine — Design Document
+## Analysis: Template-Based Image Recreation Using Seedream 5.0 Lite + SeedEdit 3.0
 
-This will be saved as `docs/pipelines/CREATIVE_CLONER_ENGINE_DESIGN.md` — a comprehensive design doc covering the template library, AI selector agent, and user journey for the zero-effort Creative Cloner.
+### The Idea
 
-### File to Create
+Store pre-designed marketing templates (social posts, ad creatives, product posters) in the database with their prompts and metadata. Users select a template, supply their product image + text, and the system generates a new image that follows the template's layout and style but with the user's brand assets swapped in.
 
-**`docs/pipelines/CREATIVE_CLONER_ENGINE_DESIGN.md`**
+### Is It Possible? Yes -- Two Complementary Approaches
 
-Contents:
+**Approach A -- Seedream 5.0 Lite (Multi-Image Fusion)**
 
----
+Best for: generating new images from template references + user assets.
 
-**1. Vision Statement**
+- Accepts up to 14 reference images via `image_urls`
+- You provide: template reference image + user's product photo + user's logo
+- Prompt instructs the model to follow the template layout but use the user's product/branding
+- $0.035/image via BytePlus ModelArk
+- Available via BytePlus ModelArk direct API, Replicate, AIML API, WaveSpeed
 
-Users never source or upload reference videos. They onboarded with their brand assets already. When they click "Create Video Ad", the system does everything: selects the best template video from a curated library, analyzes it via SEALCaM, injects their brand/product, generates all assets, assembles the final video. User's only action: click generate, then approve or reject.
+```text
+INPUTS:
+  image_urls: [template_image, product_photo, logo]
+  prompt: "Create a social media ad following the layout of image 1.
+           Feature the product from image 2 as the hero element.
+           Use the brand logo from image 3 in the top-left corner.
+           Headline: 'Summer Collection 2026'. Clean, modern aesthetic."
 
----
+OUTPUT: New image matching template layout with user's assets
+```
 
-**2. Video Template Library**
+**Approach B -- SeedEdit 3.0 (Targeted Edit)**
 
-Database table: `video_templates`
+Best for: precise edits to an existing template image (swap product, change text).
+
+- Takes one input image + text instruction
+- "Replace the product in this image with [description]" or "Change the headline to X"
+- Better for templates where the layout is fixed and you only need to swap specific elements
+- Available via BytePlus ModelArk (`seededit-3-0-i2i-250628`), WaveSpeed, AIML API
+
+```text
+INPUT:
+  image: template_image_url
+  prompt: "Replace the product with a sleek black perfume bottle.
+           Change the headline text to 'Noir Collection'.
+           Keep the same layout, lighting, and color scheme."
+
+OUTPUT: Edited template with swapped content
+```
+
+### Recommended Strategy: Use Both
+
+| Use Case | Model | Why |
+|----------|-------|-----|
+| Social media posts (product + text + layout) | Seedream 5.0 Lite | Multi-image fusion handles product + logo + template reference |
+| Ad creatives with specific product placement | Seedream 5.0 Lite | Can composite product photo into template scene |
+| Quick text/color/mood changes on existing ads | SeedEdit 3.0 | Precise targeted edits without regenerating everything |
+| Template variations (same template, different style) | SeedEdit 3.0 | "Make this warmer" / "Change to night scene" |
+
+### How It Fits Into Brandflow
+
+This becomes a new pipeline family or an enhancement to the Social Content pipeline:
+
+```text
+USER SELECTS TEMPLATE → SYSTEM INJECTS BRAND ASSETS
+        │
+        ▼
+┌──────────────────────────────┐
+│ STAGE 0 — TEMPLATE SELECT    │
+│ User picks from categorized  │
+│ template gallery (or AI      │
+│ auto-selects based on brief) │
+└──────────┬───────────────────┘
+           │
+           ▼
+┌──────────────────────────────┐
+│ STAGE 1 — PROMPT ASSEMBLY    │  Edge Function
+│ Merge template.prompt with   │  Template prompt + brand assets
+│ user's product images, logo, │  + user text = final prompt
+│ headline text, brand colors  │
+└──────────┬───────────────────┘
+           │
+     ┌─────┴──────┐
+     ▼            ▼
+  SEEDREAM      SEEDEDIT         ← Router picks model
+  5.0 Lite      3.0              based on template type
+  (new image)   (edit image)
+     │            │
+     └─────┬──────┘
+           ▼
+┌──────────────────────────────┐
+│ STAGE 2 — REVIEW + VARIANTS  │
+│ Show result, offer 2-3       │
+│ variants, approve/reject     │
+└──────────────────────────────┘
+```
+
+### Database Schema: `image_templates`
 
 | Column | Type | Purpose |
 |--------|------|---------|
-| id | uuid | Primary key |
-| title | text | Internal name ("Luxury Watch Reveal", "Food Product Hero") |
-| video_url | text | Supabase Storage path to the curated reference video |
-| industry_tags | text[] | e.g. `{fashion, beauty, luxury}` |
-| mood_tags | text[] | e.g. `{energetic, minimal, warm}` |
-| pacing | enum | `slow`, `medium`, `fast` |
-| scene_count | int | Number of scenes in the video |
-| duration_seconds | int | Total video length |
-| sealcam_analysis | jsonb | Pre-computed SEALCaM breakdown (cached from Stage 1) |
-| product_type | text[] | What kind of product fits: `{physical, digital, service, food, wearable}` |
-| aspect_ratio | text | `16:9`, `9:16`, `1:1` |
-| platform_fit | text[] | `{instagram_reels, tiktok, youtube_shorts, youtube_ads, facebook}` |
-| quality_score | float | Internal quality rating (1-10) |
-| usage_count | int | How many times selected (for analytics) |
-| is_active | boolean | Enable/disable without deleting |
-| created_at | timestamp | When added to library |
+| `id` | uuid | Primary key |
+| `title` | text | "Minimal Product Poster", "Instagram Story Sale" |
+| `template_image_url` | text | Supabase Storage path to the template reference image |
+| `base_prompt` | text | The generation prompt with `{{product}}`, `{{headline}}`, `{{brand_color}}` placeholders |
+| `model_type` | enum | `seedream` or `seededit` -- which model to use |
+| `category` | text | `social_post`, `ad_creative`, `product_poster`, `story`, `banner` |
+| `industry_tags` | text[] | `{fashion, food, tech, beauty}` |
+| `style_tags` | text[] | `{minimal, bold, luxury, playful}` |
+| `platform_fit` | text[] | `{instagram_feed, instagram_story, facebook, linkedin, tiktok}` |
+| `aspect_ratio` | text | `1:1`, `9:16`, `16:9`, `4:5` |
+| `input_slots` | jsonb | What the user needs to provide: `{product_image: true, logo: true, headline: true, subtext: false}` |
+| `quality_score` | float | Internal rating |
+| `is_active` | boolean | Enable/disable |
 
-Key design decisions:
-- **Pre-computed SEALCaM analysis**: Every template gets analyzed once when added to the library. This eliminates Stage 1 wait time for users — the system already knows the cinematic structure.
-- **Multi-tag arrays**: A single template can match multiple industries and moods, increasing match flexibility.
-- **Platform-aware**: Templates tagged by output platform so the system picks the right aspect ratio automatically.
+### Key Technical Considerations
 
-Initial library target: 50-100 templates across 10-15 industries, 3 aspect ratios each.
+1. **Provider routing**: BytePlus ModelArk is the cheapest direct source ($0.035/image for Seedream). WaveSpeed also hosts both models. We should add BytePlus as a provider option alongside Kie AI.
 
----
+2. **Text rendering**: Seedream 5.0 Lite has improved text rendering but it is not pixel-perfect for exact typography. For templates with critical text (prices, phone numbers), consider a two-pass approach: generate the image without text via AI, then overlay text programmatically using a canvas/image processing step.
 
-**3. AI Template Selector Agent**
+3. **Brand consistency**: Seedream's multi-image fusion with `image_urls` is ideal -- pass the user's product photo + logo + brand style guide image as references, and the model maintains visual consistency.
 
-An Edge Function (`select-template`) that scores templates against the user's brand profile.
+4. **Speed**: Seedream 5.0 Lite generates in ~10-30 seconds. SeedEdit 3.0 is similarly fast. This is much faster than video pipelines -- users could get near-instant results.
 
-**Inputs to the agent:**
-- `brand_profile`: industry, target_audience, brand_voice, color_palette
-- `brand_assets`: product images (from Brand Kit)
-- `content_request`: what platform they're creating for, any mood preference
-- `video_templates[]`: candidate templates from database (filtered by industry + platform)
+5. **Volume play**: At $0.035/image, generating 3 variants per template costs ~$0.10. This is extremely cost-effective for a "generate 10 social posts" batch operation.
 
-**Scoring logic (two-pass):**
+### What This Unlocks
 
-*Pass 1 — Database filter (fast):*
-```sql
-SELECT * FROM video_templates
-WHERE industry_tags && ARRAY[brand.industry]
-  AND platform_fit @> ARRAY[requested_platform]
-  AND is_active = true
-ORDER BY quality_score DESC
-LIMIT 10;
-```
+This is essentially a **Canva-killer feature** but zero-effort: instead of dragging and dropping elements onto a template, users just pick a template and hit generate. The AI handles all the compositing, style matching, and brand alignment automatically.
 
-*Pass 2 — AI scoring (Gemini via Lovable AI Gateway):*
-The agent receives the top 10 candidates with their `sealcam_analysis` and scores each on:
-- **Industry fit** (0-25): How well the visual style matches the brand's industry
-- **Mood alignment** (0-25): Does the template's energy match the brand voice
-- **Product compatibility** (0-25): Can the brand's product type be composited into these scenes
-- **Audience match** (0-25): Does the template's style resonate with the target demographic
+Combined with the Social Content pipeline (which already generates captions), you get a full content package: AI-generated image + platform-optimized caption, ready to post.
 
-Returns the top-scoring template ID. If no template scores above 60/100, the system falls back to a "universal" template category.
+### Next Steps (When Ready to Build)
 
-**Output:**
-```json
-{
-  "selected_template_id": "uuid",
-  "confidence_score": 82,
-  "reasoning": "Clean product reveal structure matches physical product; minimal aesthetic aligns with luxury brand voice"
-}
-```
-
----
-
-**4. Modified Pipeline Flow**
-
-The Creative Cloner pipeline changes from 4 stages to 5, but Stage 1 is now instant:
-
-```text
-USER CLICKS "GENERATE"
-        │
-        ▼
-┌──────────────────────────┐
-│ STAGE 0 — TEMPLATE SELECT│  Edge Function
-│ AI scores templates vs   │  Gemini via Lovable AI
-│ brand profile            │  ~5-10 seconds
-└──────────┬───────────────┘
-           │
-           ▼
-┌──────────────────────────┐
-│ STAGE 1 — CACHED ANALYSIS│  Instant (pre-computed)
-│ Load SEALCaM from        │  Read from video_templates
-│ template record          │  .sealcam_analysis
-└──────────┬───────────────┘
-           │
-           ▼
-┌──────────────────────────┐
-│ STAGE 2 — PROMPT GEN     │  Edge Function
-│ Inject brand assets into │  Gemini via Lovable AI
-│ SEALCaM scene prompts    │  ~10 seconds
-└──────────┬───────────────┘
-           │
-     ┌─────┼──────────┐
-     ▼     ▼          ▼
-  IMAGES  VIDEOS    MUSIC       ← 3 parallel lanes
-  (Kie)  (Kie)     (Kie)       ← All via Kie AI
-     │     │          │
-     └─────┼──────────┘
-           ▼
-┌──────────────────────────┐
-│ STAGE 4 — ASSEMBLY       │  Python worker
-│ FFmpeg concat + music    │  ~30 seconds
-│ overlay + fade           │
-└──────────────────────────┘
-           │
-           ▼
-     USER REVIEW
-```
-
-Total estimated time: ~8-12 minutes (down from ~15+ with manual video upload and analysis).
-
----
-
-**5. User Journey (What They See)**
-
-**Step 1 — Dashboard** (already onboarded with brand assets)
-- User sees content type cards. Clicks "Video Ad" or "Recreate Ad Style".
-
-**Step 2 — Configuration (minimal)**
-- Select platform: Instagram Reels / TikTok / YouTube Shorts / YouTube Ads
-- Optional: mood preference (energetic / calm / luxurious / playful) — defaults to brand voice if skipped
-- Optional: select specific product from Brand Kit — defaults to primary product
-- That's it. One click "Generate".
-
-**Step 3 — Generation (progress screen)**
-- Live progress indicator showing:
-  - "Selecting the perfect ad style for your brand..." (Stage 0)
-  - "Crafting your scenes..." (Stage 2)
-  - "Generating visuals..." (Stage 3A/3B, shows scene thumbnails as they complete)
-  - "Creating soundtrack..." (Stage 3C)
-  - "Assembling your video..." (Stage 4)
-- Estimated time remaining displayed.
-
-**Step 4 — Review**
-- Video player with the finished ad
-- Two music variants to choose from
-- Approve → moves to content calendar / download
-- Reject → regenerate with different template or tweaked prompts
-- Request changes → minor prompt adjustments, re-run specific stages
-
----
-
-**6. Template Curation Strategy**
-
-Templates are added by Brandflow team (not users). Process:
-1. Source high-quality reference ads from stock libraries or create original template videos
-2. Run each through SEALCaM analysis (one-time, stored in `sealcam_analysis`)
-3. Tag with industry, mood, pacing, product type, platform
-4. Quality review and scoring
-5. Insert into `video_templates` table
-
-Over time: track `usage_count` and user approval rates per template to identify top performers and retire low-performers.
-
----
-
-**7. State Machine Updates**
-
-The `generation_jobs` table status enum adds one new state:
-
-```
-selecting_template → prompting → generating_images →
-generating_video → generating_music → assembling → review → approved/rejected
-```
-
-New metadata fields in `generation_jobs.metadata`:
-- `selected_template_id`: which template was chosen
-- `selector_confidence`: AI confidence score
-- `selector_reasoning`: why this template was picked
-
----
-
-**8. Provider Corrections from Python Scripts**
-
-Based on the actual R54 Python tools (not the n8n workflow):
-
-| Stage | Correct Provider | Correct Model |
-|-------|-----------------|---------------|
-| Video Analysis | Google AI SDK (direct) | `gemini-2.0-flash` |
-| Prompt Generation | Lovable AI Gateway | `gemini-3-flash-preview` (Brandflow) |
-| Images | Kie AI | `nano-banana-pro` via `/api/v1/jobs/createTask` |
-| Video | Kie AI | `kling-2.6` via `/api/v1/jobs/createTask` |
-| Music | Kie AI | Suno V4 via `/api/v1/generate` |
-| Assembly | Local FFmpeg | Python worker |
-
-### Steps
-
-1. Create `docs/pipelines/CREATIVE_CLONER_ENGINE_DESIGN.md` with all sections above
-2. No code changes — design doc only
+1. Design the `image_templates` table and seed it with initial templates
+2. Add BytePlus ModelArk as a provider in the provider abstraction layer
+3. Build the template gallery UI (categorized, filterable, with previews)
+4. Create the Edge Function that assembles prompts from template + brand assets
+5. Integrate with the Social Content pipeline for image + caption bundles
 
