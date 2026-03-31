@@ -26,15 +26,15 @@ Estimated per-unit generation costs based on current provider pricing:
 
 ## 2. Pricing Tiers
 
-### Starter — $29/month
+### Starter — $39/month
 
 **Target**: Solopreneurs, small business owners, side hustlers
 
 | Resource | Included |
 |----------|----------|
 | Content batches | 30/month |
-| Image generations | 10/month |
-| Video generations | 0 |
+| Image generations | 20/month |
+| Video generations | 5/month |
 | Brands | 1 |
 
 **Features**:
@@ -42,13 +42,15 @@ Estimated per-unit generation costs based on current provider pricing:
 - Image Template Engine — select from template gallery
 - Hook Library — AI-powered captions grounded in proven hooks
 - Basic brand profile (manual setup)
+- Video Ad generation (F7 Ad Creator) — 5 videos/month
+- UGC Video generation (F1)
 
-**Our cost at full usage**: ~$0.30 (text) + ~$0.35 (images) = **~$0.65/month**  
-**Margin**: ~97%
+**Our cost at full usage**: ~$0.30 (text) + ~$0.70 (images) + ~$5.00 (videos) = **~$6.00/month**  
+**Margin**: ~85%
 
 ---
 
-### Growth — $79/month
+### Growth — $99/month
 
 **Target**: Growing brands, content creators, small marketing teams
 
@@ -56,24 +58,22 @@ Estimated per-unit generation costs based on current provider pricing:
 |----------|----------|
 | Content batches | 100/month |
 | Image generations | 50/month |
-| Video generations | 5/month |
+| Video generations | 10/month |
 | Brands | 3 |
 
 **Features**:
 - Everything in Starter
-- Video Ad generation (F7 Ad Creator)
-- UGC Video generation (F1)
 - Hook Library with industry filtering
 - Competitor monitoring (3 competitors)
 - Zero-input brand onboarding (Firecrawl)
 - Brand Voice DNA extraction
 
-**Our cost at full usage**: ~$1.00 (text) + ~$1.75 (images) + ~$5.00 (videos) = **~$7.75/month**  
-**Margin**: ~90%
+**Our cost at full usage**: ~$1.00 (text) + ~$3.50 (images) + ~$10.00 (videos) = **~$14.50/month**  
+**Margin**: ~85%
 
 ---
 
-### Pro — $199/month
+### Pro — $249/month
 
 **Target**: Professional marketers, agencies (small), e-commerce brands
 
@@ -81,7 +81,7 @@ Estimated per-unit generation costs based on current provider pricing:
 |----------|----------|
 | Content batches | 300/month |
 | Image generations | 150/month |
-| Video generations | 20/month |
+| Video generations | 25/month |
 | Brands | 10 |
 
 **Features**:
@@ -95,8 +95,8 @@ Estimated per-unit generation costs based on current provider pricing:
 - Performance feedback loop
 - Priority generation queue
 
-**Our cost at full usage**: ~$3.00 (text) + ~$5.25 (images) + ~$30.00 (videos) = **~$38.25/month**  
-**Margin**: ~80%
+**Our cost at full usage**: ~$3.00 (text) + ~$5.25 (images) + ~$37.50 (videos) = **~$45.75/month**  
+**Margin**: ~82%
 
 ---
 
@@ -131,9 +131,9 @@ Estimated per-unit generation costs based on current provider pricing:
 
 | Tier | Price | Max Cost | Min Margin | Target Margin |
 |------|-------|----------|------------|---------------|
-| Starter | $29 | $0.65 | 97% | 95%+ |
-| Growth | $79 | $7.75 | 90% | 85%+ |
-| Pro | $199 | $38.25 | 80% | 75%+ |
+| Starter | $39 | $6.00 | 85% | 80%+ |
+| Growth | $99 | $14.50 | 85% | 80%+ |
+| Pro | $249 | $45.75 | 82% | 75%+ |
 | Agency | $499 | $102.50 | 79% | 75%+ |
 
 **Note**: "Max cost" assumes users consume 100% of their allocation. Typical SaaS usage is 30-60% of allocation, so real margins will be higher.
@@ -198,15 +198,15 @@ Assuming 1,000 paying users after 12 months:
 
 | Tier | % of Users | Users | MRR |
 |------|-----------|-------|-----|
-| Starter | 40% | 400 | $11,600 |
-| Growth | 35% | 350 | $27,650 |
-| Pro | 18% | 180 | $35,820 |
+| Starter | 40% | 400 | $15,600 |
+| Growth | 35% | 350 | $34,650 |
+| Pro | 18% | 180 | $44,820 |
 | Agency | 7% | 70 | $34,930 |
-| **Total** | | **1,000** | **$110,000** |
+| **Total** | | **1,000** | **$130,000** |
 
-**Annual run rate**: ~$1.32M  
-**Estimated COGS** (at 50% usage): ~$15,000/month  
-**Gross margin**: ~86%
+**Annual run rate**: ~$1.56M  
+**Estimated COGS** (at 50% usage): ~$20,000/month  
+**Gross margin**: ~85%
 
 ---
 
