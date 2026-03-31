@@ -21,7 +21,7 @@ Each pipeline family has a standardized contract defining its inputs, outputs, a
 | **Input** | Reference image URL, video count, dialogue (optional), model, aspect ratio, special requests |
 | **Output** | Individual video clips (Variant A) or single merged video (Variant B) |
 | **Primary Deliverable** | MP4 video file(s) |
-| **Engine Modules** | Asset Analyzer, Creative Director Agent, Plan Review Gate, Revision Agent, Core Elements Board, Music Engine (optional), Assembly Engine, Re-entry Controller, Tier Router, UGC Voiceover (optional), Character Consistency (multi-scene), Brand Voice DNA (dialogue), Provider Routing |
+| **Engine Modules** | Asset Analyzer, Creative Director Agent, Plan Review Gate, Revision Agent, Core Elements Board, Music Engine (optional), Assembly Engine, Re-entry Controller, Provider & Tier Routing, UGC Voiceover (optional), Character Consistency (multi-scene), Brand Voice DNA (dialogue) |
 | **Doc** | `pipelines/UGC_VIDEO_PIPELINE.md` |
 
 ### F2 — AI Spokesperson (Lip-Sync Talking Head)
