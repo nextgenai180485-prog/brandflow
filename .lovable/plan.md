@@ -1,9 +1,9 @@
 
 
-## Save MVP Execution Roadmap
+## Save Steering Loop Document
 
-Copy `BRANDFLOW_MVP_EXECUTION_ROADMAP.md` from user uploads to the project root, alongside the existing `BRANDFLOW_PLAN.md`.
+Copy `BRANDFLOW_STEERING_LOOP.md` from user uploads to the project root, alongside the existing plan documents.
 
 **Action:**
-- Copy `user-uploads://BRANDFLOW_MVP_EXECUTION_ROADMAP.md` → `BRANDFLOW_MVP_EXECUTION_ROADMAP.md`
+- Copy `user-uploads://BRANDFLOW_STEERING_LOOP.md` → `BRANDFLOW_STEERING_LOOP.md`
 
