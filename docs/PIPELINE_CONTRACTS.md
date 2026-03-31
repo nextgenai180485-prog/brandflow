@@ -71,7 +71,7 @@ Each pipeline family has a standardized contract defining its inputs, outputs, a
 | **Input** | Wireframe template, character photo, setting photo, product photo |
 | **Output** | Composite brand board image (9:16) |
 | **Primary Deliverable** | PNG image file |
-| **Engine Modules** | Asset Analyzer (optional), Re-entry Controller, Provider Routing |
+| **Engine Modules** | Asset Analyzer (optional), Re-entry Controller, Provider & Tier Routing |
 | **Doc** | `pipelines/CORE_ELEMENTS_BOARD.md` |
 
 ### F7 — Ad Creator
