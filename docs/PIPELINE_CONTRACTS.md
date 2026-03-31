@@ -91,7 +91,7 @@ Each pipeline family has a standardized contract defining its inputs, outputs, a
 | **Input** | Source video URL, reference images, brand brief |
 | **Output** | Recreated video preserving original cinematic structure |
 | **Primary Deliverable** | MP4 video file |
-| **Engine Modules** | Asset Analyzer (reference pattern), Creative Director Agent, Plan Review Gate, Revision Agent, SEALCaM (reference pattern), Core Elements Board, Hook Library, Music Engine, Assembly Engine, Re-entry Controller, Tier Router, Character Consistency, Brand Voice DNA, Provider Routing |
+| **Engine Modules** | Asset Analyzer (reference pattern), Creative Director Agent, Plan Review Gate, Revision Agent, SEALCaM (reference pattern), Core Elements Board, Hook Library, Music Engine, Assembly Engine, Re-entry Controller, Provider & Tier Routing, Character Consistency, Brand Voice DNA |
 | **Doc** | `pipelines/CREATIVE_CLONER_PIPELINE.md` |
 
 ---
