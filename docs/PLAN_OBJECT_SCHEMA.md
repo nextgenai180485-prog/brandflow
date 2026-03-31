@@ -14,6 +14,7 @@ Every content initiative in Brandflow is represented by a **Plan Object**. This 
 2. **Family orchestrators** consume (to execute generation)
 3. **Review Packet Engine (#19)** references (for approval context)
 4. **Performance Feedback Engine (#22)** links back to (for learning)
+5. **Budget Governance** enforces spend limits against (pre-flight check)
 
 ---
 
@@ -25,15 +26,20 @@ Every content initiative in Brandflow is represented by a **Plan Object**. This 
     "plan_id": "uuid",
     "initiative_id": "uuid",
     "brand_id": "uuid",
+    "version": 1,
     "created_at": "ISO 8601",
-    "status": "queued | planning | generating | review | approved | delivered | published",
+    "status": "queued | planning | generating | review | approved | delivered | published | blocked_budget | blocked_dependency",
 
     "intent": {
       "objective": "awareness | engagement | conversion | retention",
       "brief": "string (user-provided or strategy-generated)",
       "campaign_track_id": "uuid | null",
       "pillar_id": "uuid | null",
-      "priority": "high | medium | low"
+      "priority": "high | medium | low",
+      "deadline": {
+        "due_at": "ISO 8601 | null",
+        "sla_tier": "urgent | standard | flexible"
+      }
     },
 
     "routing": {
@@ -83,12 +89,36 @@ Every content initiative in Brandflow is represented by a **Plan Object**. This 
       "tier": "draft | standard | premium"
     },
 
+    "budget_check": {
+      "status": "passed | warning | blocked",
+      "remaining_usd": "number",
+      "period_cap_usd": "number",
+      "consumed_usd": "number",
+      "burn_rate_daily_usd": "number",
+      "projected_exhaustion_date": "ISO 8601 | null"
+    },
+
+    "capacity_check": {
+      "provider_available": true,
+      "queue_position": "number | null",
+      "estimated_start": "ISO 8601 | null",
+      "backpressure_active": false
+    },
+
     "risk_assessment": {
       "risk_level": "low | medium | high",
       "flags": ["string"],
       "requires_human_review": true,
       "cultural_sensitivity": "none | low | medium | high"
     },
+
+    "dependencies": [
+      {
+        "plan_id": "uuid",
+        "type": "blocks | informs",
+        "status": "pending | satisfied"
+      }
+    ],
 
     "latency_tier": {
       "target": "fast | standard | quality",
@@ -107,6 +137,9 @@ Every content initiative in Brandflow is represented by a **Plan Object**. This 
 queued → planning → generating → review → approved → delivered → published
                         ↑                     │
                         └─── revision ────────┘
+
+blocked_budget ──(budget increased)──→ queued
+blocked_dependency ──(dependency satisfied)──→ queued
 ```
 
 | Status | Owner | Description |
@@ -118,6 +151,102 @@ queued → planning → generating → review → approved → delivered → pub
 | `approved` | Human reviewer | Approved for delivery |
 | `delivered` | Delivery Engine (#17) | Production exports generated |
 | `published` | Distribution Engine | Published to target platform |
+| `blocked_budget` | Budget Governance | Cost exceeds remaining brand budget |
+| `blocked_dependency` | Re-entry Controller (#10) | Waiting on upstream plan completion |
+
+---
+
+## Plan Versioning
+
+Every mutation to a plan object creates an immutable version snapshot.
+
+### Version Schema
+
+```json
+{
+  "version_id": "uuid",
+  "plan_id": "uuid",
+  "version": 2,
+  "changed_fields": ["intent.priority", "generation_config.tier"],
+  "previous_values": {
+    "intent.priority": "medium",
+    "generation_config.tier": "premium"
+  },
+  "changed_by": "user_id | system:strategy_engine",
+  "reason": "Budget downgrade — remaining budget insufficient for premium tier",
+  "created_at": "ISO 8601"
+}
+```
+
+### Version Rules
+
+| Rule | Detail |
+|------|--------|
+| Immutable snapshots | Each version is a frozen record, never overwritten |
+| Auto-increment | `version` field on `plan_objects` increments on every mutation |
+| Diff tracking | `changed_fields` captures which fields changed (lightweight, no full snapshot) |
+| Rollback support | Re-entry Controller (#10) can restore any prior version |
+| Audit integration | Every version change emits an `audit_log` entry (Layer 3) |
+
+---
+
+## Deadline & SLA Enforcement
+
+The `intent.deadline` field enables SLA tracking:
+
+### SLA Tiers
+
+| Tier | Target | Escalation Trigger |
+|------|--------|-------------------|
+| `urgent` | 2 hours | At 50% of time with < 50% stages complete |
+| `standard` | 24 hours | At 75% of time with < 50% stages complete |
+| `flexible` | 72 hours | At 90% of time with < 50% stages complete |
+
+### Critical Path Calculation
+
+```
+critical_path_s = SUM(estimated_duration_s for all remaining stages)
+time_remaining_s = deadline.due_at - now()
+sla_risk = critical_path_s / time_remaining_s
+```
+
+| SLA Risk Score | Status | Action |
+|----------------|--------|--------|
+| < 0.5 | Green | No action |
+| 0.5 – 0.8 | Amber | `sla.warning` event emitted |
+| > 0.8 | Red | `sla.breach` event, escalation to admin |
+
+### Event Bus Integration
+
+| Event Type | Trigger |
+|------------|---------|
+| `sla.warning` | Risk score enters amber zone |
+| `sla.breach` | Risk score enters red zone or deadline passed |
+
+---
+
+## Dependency Tracking (DAG)
+
+The `dependencies` array enables blocking and informing relationships between plans:
+
+### Dependency Types
+
+| Type | Behavior | Example |
+|------|----------|---------|
+| `blocks` | Dependent plan cannot start until dependency is `approved` or `delivered` | F5 Cinematic blocked until F6 Core Elements Board approved |
+| `informs` | Dependent plan can proceed but reads outputs from dependency | F7 Ad Creator reads product shots from F3 Product Videography |
+
+### Resolution Flow
+
+```
+Plan A (F6 Core Elements) ──blocks──→ Plan B (F5 Cinematic Ad)
+  │                                      │
+  │ status: approved                     │ status: blocked_dependency
+  │                                      │
+  └──── dependency satisfied ───────────→│ status: queued (auto-resumed)
+```
+
+Re-entry Controller (#10) checks dependency status before resuming any `blocked_dependency` plan.
 
 ---
 
@@ -128,11 +257,12 @@ queued → planning → generating → review → approved → delivered → pub
 | Strategy Engine (#21) | Produces full object | Creates initiatives from strategy plans |
 | Creative Director Agent (#1) | `intent`, `routing`, `generation_config` | Generates creative direction |
 | Provider & Tier Routing (#9) | `generation_config.provider_route`, `cost_estimate.tier` | Routes to correct provider/model |
-| Plan Review Gate (#2) | `intent`, `cost_estimate`, `risk_assessment` | Displays approval context |
+| Plan Review Gate (#2) | `intent`, `cost_estimate`, `risk_assessment`, `budget_check` | Displays approval context |
 | Review Packet Engine (#19) | `plan_id`, `variant_config`, `cost_estimate`, `risk_assessment` | Attaches plan context to review packets |
-| Re-entry Controller (#10) | `status`, `plan_id` | Determines resume point |
+| Re-entry Controller (#10) | `status`, `plan_id`, `dependencies` | Determines resume point and checks dependency status |
 | Campaign Multiplication (W6) | `variant_config` | Determines multiplication scope |
 | Performance Feedback (#22) | `plan_id`, `initiative_id`, `routing` | Links performance back to planning decisions |
+| Budget Governance | `cost_estimate`, `brand_id` | Pre-flight spend check |
 
 ---
 
@@ -159,6 +289,7 @@ The `variant_config` section drives Campaign Multiplication (W6):
 | Premium tier with cost > $50 | medium | `high_cost_initiative` |
 | First use of a family by this brand | medium | `new_family_usage` |
 | Trend injection content | medium | `trend_driven_content` |
+| Budget check returned `warning` | medium | `budget_pressure` |
 | Standard content within brand guidelines | low | — |
 
 ---
@@ -170,19 +301,49 @@ CREATE TABLE plan_objects (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   initiative_id UUID NOT NULL,
   brand_id UUID NOT NULL,
+  version INTEGER NOT NULL DEFAULT 1,
   status TEXT NOT NULL DEFAULT 'queued',
   intent JSONB NOT NULL,
   routing JSONB NOT NULL,
   generation_config JSONB NOT NULL DEFAULT '{}',
   variant_config JSONB NOT NULL DEFAULT '{}',
   cost_estimate JSONB DEFAULT '{}',
+  budget_check JSONB DEFAULT '{}',
+  capacity_check JSONB DEFAULT '{}',
   risk_assessment JSONB DEFAULT '{}',
+  dependencies JSONB DEFAULT '[]',
   latency_tier JSONB DEFAULT '{}',
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );
 
+CREATE TABLE plan_versions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  plan_id UUID REFERENCES plan_objects(id) NOT NULL,
+  version INTEGER NOT NULL,
+  changed_fields JSONB NOT NULL DEFAULT '[]',
+  previous_values JSONB NOT NULL DEFAULT '{}',
+  changed_by TEXT NOT NULL, -- user_id or 'system:engine_name'
+  reason TEXT,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE (plan_id, version)
+);
+
+CREATE TABLE plan_dependencies (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  plan_id UUID REFERENCES plan_objects(id) NOT NULL,
+  depends_on_plan_id UUID REFERENCES plan_objects(id) NOT NULL,
+  dependency_type TEXT NOT NULL, -- 'blocks' or 'informs'
+  status TEXT NOT NULL DEFAULT 'pending', -- 'pending' or 'satisfied'
+  created_at TIMESTAMPTZ DEFAULT now(),
+  satisfied_at TIMESTAMPTZ,
+  UNIQUE (plan_id, depends_on_plan_id)
+);
+
 CREATE INDEX idx_plan_objects_brand ON plan_objects(brand_id);
 CREATE INDEX idx_plan_objects_status ON plan_objects(status);
 CREATE INDEX idx_plan_objects_initiative ON plan_objects(initiative_id);
+CREATE INDEX idx_plan_versions_plan ON plan_versions(plan_id);
+CREATE INDEX idx_plan_dependencies_plan ON plan_dependencies(plan_id);
+CREATE INDEX idx_plan_dependencies_upstream ON plan_dependencies(depends_on_plan_id);
 ```
