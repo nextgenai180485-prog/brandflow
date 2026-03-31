@@ -139,10 +139,11 @@ Every API call logs cost to `job_stages.cost`:
 
 | Document | Purpose |
 |----------|---------|
-| `ENGINE_MODULE_REGISTRY.md` | Master registry of all 18 engine modules |
+| `ENGINE_MODULE_REGISTRY.md` | Master registry of all 16 engine modules |
 | `pipelines/CROSS_FAMILY_ENGINE_AUDIT.md` | Original audit identifying shared patterns |
 | `BRANDFLOW_FEATURE_GAPS.md` | Feature expansion gaps beyond engine modules |
 | `BRANDFLOW_PRICING_STRATEGY.md` | Tier-based pricing tied to pipeline costs |
-| `engines/PROVIDER_ROUTING_POLICY.md` | Provider fallback chains |
+| `engines/PROVIDER_ROUTING_POLICY.md` | Unified provider + tier routing engine |
 | `engines/BRAND_VOICE_DNA_ENGINE.md` | Voice signature injection contract |
 | `engines/CHARACTER_CONSISTENCY_ENGINE.md` | Multi-scene character consistency |
+| `pipelines/SEALCAM_FRAMEWORK.md` | Structured prompting (includes F7 normalization) |
