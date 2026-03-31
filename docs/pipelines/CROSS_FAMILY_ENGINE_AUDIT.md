@@ -289,7 +289,7 @@ A curated database of proven social media hooks, captions, and CTAs — scraped 
 
 ## Enterprise Engine Adoption Status
 
-All 8 families have been updated with Enterprise Engine Integration sections. Status:
+All 8 families have been updated with Enterprise Engine Integration sections. Consolidated to 16 modules:
 
 | Module | F1 | F2 | F3 | F4 | F5 | F6 | F7 | F8 |
 |--------|----|----|----|----|----|----|----|----|
@@ -297,19 +297,17 @@ All 8 families have been updated with Enterprise Engine Integration sections. St
 | 2. Plan Review Gate | ✅ | ✅ | ✅ | ✅ | ✅ | — | ✅★ | ✅ |
 | 3. Revision Agent | ✅ | ✅ | ✅ | ✅ | ✅ | — | ✅★ | ✅ |
 | 4. Asset Analyzer | ✅ | ✅ | ✅ | — | ✅ | ✅ | ✅ | ✅★ |
-| 5. SEALCaM | opt | opt | ✅ | — | ✅ | — | ✅ | ✅★ |
+| 5. SEALCaM (+ F7 normalization) | opt | opt | ✅ | — | ✅ | — | ✅ | ✅★ |
 | 6. Core Elements Board | ✅ | ✅ | ✅ | ✅ | ✅ | ★ | ✅ | ✅ |
 | 7. Music Engine | ✅ | ✅ | ✅ | — | ✅ | — | ✅ | ✅ |
 | 8. Assembly Engine | ✅ | ✅ | ✅ | — | ✅ | — | ✅ | ✅ |
-| 9. Tier Router | ✅ | ✅ | ✅ | — | ✅ | — | ✅ | ✅ |
+| 9. Provider & Tier Routing | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | 10. Re-entry Controller | ✅ | ✅ | ✅★ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | 11. Hook Library | — | ✅ | — | ✅ | ✅ | — | ✅ | ✅ |
 | 12. Brand Voice DNA | ✅ | ✅ | — | ✅ | ✅ | — | ✅ | ✅ |
 | 13. Character Consistency | ✅ | — | — | — | ✅ | — | — | ✅ |
-| 14. Provider Routing | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| 15. Template Image Composer | — | — | — | ✅ | — | — | — | — |
-| 16. Motion Variant Selector | — | ✅ | — | — | — | — | — | — |
-| 17. UGC Voiceover | ✅ | — | — | — | — | — | — | — |
-| 18. Prompt Schema Normalizer | — | — | — | — | — | — | ✅ | — |
+| 14. Template Image Composer | — | — | — | ✅ | — | — | — | — |
+| 15. Motion Variant Selector | — | ✅ | — | — | — | — | — | — |
+| 16. UGC Voiceover | ✅ | — | — | — | — | — | — | — |
 
 **Legend**: ✅ = adopted, ✅★ = reference pattern (other families should follow this implementation), opt = optional/opt-in, — = not applicable, ★ = is the module itself
