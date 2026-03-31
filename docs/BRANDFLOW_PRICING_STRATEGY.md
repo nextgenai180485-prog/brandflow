@@ -131,9 +131,9 @@ Estimated per-unit generation costs based on current provider pricing:
 
 | Tier | Price | Max Cost | Min Margin | Target Margin |
 |------|-------|----------|------------|---------------|
-| Starter | $29 | $0.65 | 97% | 95%+ |
-| Growth | $79 | $7.75 | 90% | 85%+ |
-| Pro | $199 | $38.25 | 80% | 75%+ |
+| Starter | $39 | $6.00 | 85% | 80%+ |
+| Growth | $99 | $14.50 | 85% | 80%+ |
+| Pro | $249 | $45.75 | 82% | 75%+ |
 | Agency | $499 | $102.50 | 79% | 75%+ |
 
 **Note**: "Max cost" assumes users consume 100% of their allocation. Typical SaaS usage is 30-60% of allocation, so real margins will be higher.
