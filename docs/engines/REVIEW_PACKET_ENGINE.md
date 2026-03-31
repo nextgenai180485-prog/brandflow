@@ -21,8 +21,11 @@ Without this engine, approvals are ad-hoc: reviewers get raw links, no context, 
 {
   "packet_id": "uuid",
   "job_id": "uuid",
+  "initiative_id": "uuid",
+  "plan_id": "uuid (ref: PLAN_OBJECT_SCHEMA.md)",
   "family": "F1|F2|F3|F4|F5|F6|F7|F8|F9",
   "version": 1,
+  "revision_round": 1,
   "status": "pending_review | approved | rejected | revision_requested",
   "created_at": "ISO 8601",
   "expires_at": "ISO 8601",
@@ -60,12 +63,41 @@ Without this engine, approvals are ad-hoc: reviewers get raw links, no context, 
     }
   ],
 
+  "aspect_ratio_versions": [
+    {
+      "aspect_ratio": "9:16 | 1:1 | 4:5 | 16:9",
+      "preview_url": "string (watermarked)",
+      "platform_target": "string"
+    }
+  ],
+
+  "thumbnail_set": [
+    {
+      "thumbnail_url": "string",
+      "timestamp_s": "number",
+      "selected": false
+    }
+  ],
+
   "metadata": {
     "brand_voice_score": "number (0-100)",
     "character_consistency_score": "number (0-100) | null",
-    "estimated_cost_usd": "number",
+    "generation_cost_estimate": {
+      "generation_usd": "number",
+      "post_production_usd": "number",
+      "total_usd": "number"
+    },
     "generation_tier": "draft | standard | premium",
-    "provider_used": "string",
+    "provider_route": {
+      "primary": "string (provider_id)",
+      "model": "string"
+    },
+    "fallback_route": {
+      "provider": "string (provider_id)",
+      "model": "string"
+    },
+    "risk_level": "low | medium | high",
+    "latency_tier": "fast | standard | quality",
     "total_generation_time_s": "number"
   },
 

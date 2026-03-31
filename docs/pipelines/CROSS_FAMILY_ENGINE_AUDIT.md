@@ -289,7 +289,7 @@ A curated database of proven social media hooks, captions, and CTAs — scraped 
 
 ## Enterprise Engine Adoption Status
 
-All 8 families have been updated with Enterprise Engine Integration sections. Architecture now consists of 18 modules:
+All 8 families have been updated with Enterprise Engine Integration sections. Architecture now consists of 22 modules + 1 workflow:
 
 | Module | F1 | F2 | F3 | F4 | F5 | F6 | F7 | F8 |
 |--------|----|----|----|----|----|----|----|----|
@@ -311,5 +311,27 @@ All 8 families have been updated with Enterprise Engine Integration sections. Ar
 | 16. UGC Voiceover | ✅ | — | — | — | — | — | — | — |
 | 17. Delivery & Post-Production | ✅ | ✅ | ✅ | ✅ | ✅ | — | ✅ | ✅ |
 | 18. Localization & Cultural Adapt. | ✅ | ✅ | ✅ | ✅ | ✅ | — | ✅ | ✅ |
+| 19. Review Packet | ✅ | ✅ | ✅ | ✅ | ✅ | — | ✅ | ✅ |
+| 20. Voice Management | ✅ | ✅ | opt | — | ✅ | — | opt | ✅ |
+| 21. Strategy Engine | ✅ | ✅ | ✅ | ✅ | ✅ | — | ✅ | ✅ |
+| 22. Performance Feedback | ✅ | ✅ | ✅ | ✅ | ✅ | — | ✅ | ✅ |
 
 **Legend**: ✅ = adopted, ✅★ = reference pattern (other families should follow this implementation), opt = optional/opt-in, — = not applicable, ★ = is the module itself
+
+---
+
+## §21 — Strategy Engine
+
+**Spec**: `engines/STRATEGY_ENGINE.md`  
+**Used by**: All families (upstream planning)
+
+Translates business intent into executable creative plans. Produces Plan Objects (see `PLAN_OBJECT_SCHEMA.md`) that determine which family, platform, format, and tier to use for each content initiative. Integrates with Brand Voice DNA (#12) for tone alignment and Hook Library (#11) for hook style weighting.
+
+---
+
+## §22 — Performance Feedback Engine
+
+**Spec**: `engines/PERFORMANCE_FEEDBACK_ENGINE.md`  
+**Used by**: All families (downstream learning)
+
+Ingests post-publish engagement metrics and emits optimization signals: hook weight updates to Hook Library (#11), template priority updates, family routing adjustments to Provider Routing (#9), and strategy rebalancing signals to Strategy Engine (#21). Operates on confidence thresholds to prevent premature optimization.

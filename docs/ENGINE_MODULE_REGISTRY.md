@@ -2,14 +2,14 @@
 
 > **Status**: Design reference — master index of all shared engine modules  
 > **Last updated**: 2026-03-31  
-> **Module count**: 20 modules + 1 workflow  
-> **Consolidation note**: Merged Prompt Schema Normalizer into SEALCaM (#5) and Tier Router + Provider Routing into a unified Provider & Tier Routing Engine (#9). Added Module #17 for post-production finishing and Module #18 for localization & cultural adaptation.
+> **Module count**: 22 modules + 1 workflow  
+> **Consolidation note**: Merged Prompt Schema Normalizer into SEALCaM (#5) and Tier Router + Provider Routing into a unified Provider & Tier Routing Engine (#9). Added Module #17 for post-production finishing, Module #18 for localization & cultural adaptation, Module #19 for review packets, Module #20 for voice management, Module #21 for strategy planning, and Module #22 for performance feedback.
 
 ---
 
 ## Overview
 
-The enterprise engine layer consists of 18 shared modules that sit between family-specific orchestration logic and provider adapters. Each module is documented in its own design doc and adopted across multiple pipeline families.
+The enterprise engine layer consists of 22 shared modules that sit between family-specific orchestration logic and provider adapters. Each module is documented in its own design doc and adopted across multiple pipeline families.
 
 ---
 
@@ -44,6 +44,8 @@ The enterprise engine layer consists of 18 shared modules that sit between famil
 | 18 | Localization & Cultural Adaptation Engine | `engines/LOCALIZATION_CULTURAL_ENGINE.md` | Cross-family | Designed |
 | 19 | Review Packet Engine | `engines/REVIEW_PACKET_ENGINE.md` | Cross-family | Designed |
 | 20 | Voice Management Engine | `engines/VOICE_MANAGEMENT_ENGINE.md` | Cross-family | Designed |
+| 21 | Strategy Engine | `engines/STRATEGY_ENGINE.md` | Cross-family | Designed |
+| 22 | Performance Feedback Engine | `engines/PERFORMANCE_FEEDBACK_ENGINE.md` | Cross-family | Designed |
 
 ### Workflows
 
@@ -64,6 +66,7 @@ The enterprise engine layer consists of 18 shared modules that sit between famil
 |-----|---------|
 | `engines/TEMPLATE_LIBRARY_OPERATIONS.md` | Template curation, scoring, retirement for F8 + Image Template Engine |
 | `engines/CORE_ELEMENTS_BOARD_V2.md` | Named slots, preview overlays, partial regeneration for F6 |
+| `PLAN_OBJECT_SCHEMA.md` | Unified plan object contract consumed by Strategy Engine, Review Packets, and all orchestrators |
 
 ---
 
@@ -89,8 +92,10 @@ The enterprise engine layer consists of 18 shared modules that sit between famil
 | 16. UGC Voiceover | ✅ | — | — | — | — | — | — | — |
 | 17. Delivery & Post-Production | ✅ | ✅ | ✅ | ✅ | ✅ | — | ✅ | ✅ |
 | 18. Localization & Cultural Adapt. | ✅ | ✅ | ✅ | ✅ | ✅ | — | ✅ | ✅ |
-
-**Legend**: ✅ = adopted, ✅★ = reference pattern, opt = optional/opt-in, — = not applicable, ★ = is the module itself
+| 19. Review Packet | ✅ | ✅ | ✅ | ✅ | ✅ | — | ✅ | ✅ |
+| 20. Voice Management | ✅ | ✅ | opt | — | ✅ | — | opt | ✅ |
+| 21. Strategy Engine | ✅ | ✅ | ✅ | ✅ | ✅ | — | ✅ | ✅ |
+| 22. Performance Feedback | ✅ | ✅ | ✅ | ✅ | ✅ | — | ✅ | ✅ |
 
 ---
 
@@ -129,4 +134,8 @@ Phase F — Approval & Scaling
   ├── 19. Review Packet Engine
   ├── 20. Voice Management Engine
   └── W6. Campaign Multiplication Workflow
+
+Phase G — Strategy & Learning
+  ├── 21. Strategy Engine
+  └── 22. Performance Feedback Engine
 ```
