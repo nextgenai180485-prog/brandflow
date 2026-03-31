@@ -465,3 +465,28 @@ ffmpeg -i lipsync_video.mp4 -i voice.mp3 -i music.mp3 \
 ### 11. SEALCaM Prompting
 - Not applicable for lip-sync pipeline (audio-driven, not prompt-driven)
 - Available for optional Sora2 B-roll generation if user wants supplementary creative clips
+
+### 12. Brand Voice DNA Integration
+
+Inject `voice_signature.json` into Stage 3 script enhancement:
+- Prepend `## Brand Voice Context` block to the Script Director agent's system prompt
+- Ensures spokesperson scripts match brand tone, vocabulary, and CTA patterns
+- Platform variations applied based on target distribution platform
+- See `engines/BRAND_VOICE_DNA_ENGINE.md` for full schema and injection contract
+
+### 13. Motion Variant Selector (upgrades Stage 5B)
+
+Generate 3 Kling 2.6 idle-motion candidates instead of 1:
+- 3 different motion prompts (breathing, head micro-movements, expression evolution)
+- Score each: `naturalness_score`, `gesture_density_score`, `lip_sync_alignment_score`
+- Auto-select highest composite score; user can override via Plan Review Gate
+- 3x base video cost (~$0.36 vs ~$0.12) but dramatically reduces stiffness risk
+- See `engines/SPOKESPERSON_MOTION_VARIANT_ENGINE.md` for scoring system and prompt variants
+
+### 14. Provider Routing
+
+All provider calls route through the Provider Routing Layer:
+- Video: Kie AI Kling → Fal.ai Kling (fallback chain)
+- Lip-sync: Sync Labs → LatentSync → Wav2Lip (fallback chain)
+- Voice: ElevenLabs direct (no fallback — unique capability)
+- See `engines/PROVIDER_ROUTING_POLICY.md` for health-check and failover logic

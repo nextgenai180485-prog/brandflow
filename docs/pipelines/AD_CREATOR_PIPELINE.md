@@ -375,3 +375,26 @@ Resume from any stage via `job_stages` status check:
 - Inject hooks into caption generation (the `caption` field in output)
 - Ensures captions use proven engagement patterns
 - See `HOOK_LIBRARY_ENGINE_DESIGN.md` for schema and query patterns
+
+### 12. Brand Voice DNA Integration
+
+Inject `voice_signature.json` into Stage 3 Creative Director Agent:
+- Prepend `## Brand Voice Context` block to the AGENT framework system prompt
+- Caption tone, CTA patterns, and vocabulary match brand voice profile
+- Creative summary reflects brand personality
+- See `engines/BRAND_VOICE_DNA_ENGINE.md` for full schema and injection contract
+
+### 13. Prompt Schema Normalizer
+
+Replace stringified JSON video prompt with nested object schema:
+- `video_prompt` becomes a structured object with SEALCaM fields (subject, environment, action, lighting, camera, metatokens)
+- `image_prompt` also structured for consistency
+- Eliminates double-serialization handling and escaping issues
+- See `engines/AD_CREATOR_SCHEMA.md` for the migration spec
+
+### 14. Provider Routing
+
+All provider calls route through the Provider Routing Layer:
+- Video: Kie AI → Runway → Pika (fallback chain)
+- Image: Kie AI → OpenAI Images → SDXL (fallback chain)
+- See `engines/PROVIDER_ROUTING_POLICY.md` for health-check and failover logic

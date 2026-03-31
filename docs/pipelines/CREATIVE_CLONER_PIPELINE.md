@@ -370,3 +370,28 @@ Resume from any stage via `job_stages` status check:
 - Inject hooks into script generation (the `script` field in output)
 - Ensures the recreated ad's narrative uses proven engagement patterns
 - Particularly valuable for Creative Cloner — the original ad's hook may not be optimal for the user's industry
+
+### 11. Brand Voice DNA Integration
+
+Inject `voice_signature.json` into Stage 2 prompt generation:
+- Prepend `## Brand Voice Context` block to the Creative Director agent's system prompt
+- Ensures recreated ad scripts match the brand's tone, not the original ad's tone
+- Vocabulary and CTA patterns reflect the user's brand identity
+- See `engines/BRAND_VOICE_DNA_ENGINE.md` for full schema and injection contract
+
+### 12. Character Consistency Integration
+
+For multi-scene recreations with recurring characters:
+- Extract canonical character descriptor from reference image analysis
+- Inject `## Character Consistency — MANDATORY` block into every scene's image prompt
+- Pass Scene N end-frame as visual reference to Scene N+1 start-frame (WaveSpeed `images[]` parameter)
+- Critical for Creative Cloner — character must be consistent while differing from the original ad's character
+- See `engines/CHARACTER_CONSISTENCY_ENGINE.md` for descriptor schema and passthrough logic
+
+### 13. Provider Routing
+
+All provider calls route through the Provider Routing Layer:
+- Image: WaveSpeed → OpenAI Images → SDXL (fallback chain)
+- Video: WaveSpeed Kling → Kie AI Kling → Fal.ai Kling (fallback chain)
+- Music: Kie AI Suno → Suno Direct → Udio (fallback chain)
+- See `engines/PROVIDER_ROUTING_POLICY.md` for health-check and failover logic

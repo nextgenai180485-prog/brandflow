@@ -287,3 +287,29 @@ Resume from any stage via `job_stages` status check:
 
 - **Not applicable** — text-first pipeline, no cinematic video prompts
 - Image prompts use Image Template Engine's own prompt structure instead
+
+### 11. Brand Voice DNA Integration
+
+Inject `voice_signature.json` from `brand_profiles.voice_profile` into Stage 2 system prompt:
+- Prepend `## Brand Voice Context` block before the content generation instructions
+- Platform variations auto-applied based on which platform content is being generated for
+- Ensures each brand's social content sounds distinctively different
+- Tone, vocabulary, emoji policy, and CTA patterns all derived from brand voice profile
+- If no voice profile exists → generation proceeds with generic AI tone (graceful degradation)
+- See `engines/BRAND_VOICE_DNA_ENGINE.md` for full schema and injection contract
+
+### 12. Template-Driven Image Composer (upgrades Stage 3)
+
+Replace generic DALL-E/Seedream image generation with the `TemplateDrivenImageComposer`:
+- Select composition templates matching content type and platform from template library
+- Two-pass generation: base scene (Seedream 5.0 Lite) → product fusion (SeedEdit 3.0)
+- Support carousel output format for Instagram and LinkedIn (multi-slide)
+- See `engines/SOCIAL_CAROUSEL_SCHEMA.md` for carousel slide schema and platform specs
+- See `IMAGE_TEMPLATE_ENGINE_DESIGN.md` for Seedream fusion pipeline details
+
+### 13. Provider Routing
+
+All provider calls route through the Provider Routing Layer:
+- Image generation: WaveSpeed → OpenAI Images → SDXL (fallback chain)
+- Vision analysis: Gemini → GPT-4o Vision (fallback chain)
+- See `engines/PROVIDER_ROUTING_POLICY.md` for health-check and failover logic

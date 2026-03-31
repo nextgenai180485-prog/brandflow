@@ -214,8 +214,18 @@ The planner should auto-select based on whether this is a first draft or a final
 | 8 | **Assembly Engine** | All video families | FFmpeg merge + audio overlay + export |
 | 9 | **Tier Router** | All families | Draft vs production quality routing |
 | 10 | **Re-entry Controller** | All families | Resume-from-stage + retry logic |
+| 11 | **Hook Library** | F4, F5, F7, F8 | Performance-driven content intelligence |
+| 12 | **Brand Voice DNA Engine** | F1, F2, F4, F5, F7, F8 | Brand-specific voice signature injection |
+| 13 | **Character Consistency Engine** | F1, F5, F8 | Multi-scene character identity persistence |
+| 14 | **Provider Routing Layer** | All families | Fallback chains + health-check monitoring |
+| 15 | **Template-Driven Image Composer** | F4 | Template + brand palette → platform-optimized images |
+| 16 | **Motion Variant Selector** | F2 | 3-candidate idle motion generation + scoring |
+| 17 | **UGC Voiceover Extension** | F1 | Optional ElevenLabs voice overlay for UGC |
+| 18 | **Prompt Schema Normalizer** | F7 | Nested object prompts replacing stringified JSON |
 
-These 10 modules form the **enterprise engine layer** that sits between the family-specific logic and the provider adapters. Build these first, then each family becomes a thin orchestration config on top.
+These 18 modules form the **enterprise engine layer** that sits between the family-specific logic and the provider adapters. Build these first, then each family becomes a thin orchestration config on top.
+
+See `ENGINE_MODULE_REGISTRY.md` for full adoption matrix and build order.
 
 ---
 
@@ -285,16 +295,23 @@ All 8 families have been updated with Enterprise Engine Integration sections. St
 
 | Module | F1 | F2 | F3 | F4 | F5 | F6 | F7 | F8 |
 |--------|----|----|----|----|----|----|----|----|
-| Creative Director Agent | ✅ | ✅ | ✅ | ✅ | ✅ | — | ✅★ | ✅ |
-| Plan Review Gate | ✅ | ✅ | ✅ | ✅ | ✅ | — | ✅★ | ✅ |
-| Revision Agent | ✅ | ✅ | ✅ | ✅ | ✅ | — | ✅★ | ✅ |
-| Asset Analyzer | ✅ | ✅ | ✅ | — | ✅ | ✅ | ✅ | ✅★ |
-| SEALCaM | opt | opt | ✅ | — | ✅ | — | ✅ | ✅★ |
-| Core Elements Board | ✅ | ✅ | ✅ | ✅ | ✅ | ★ | ✅ | ✅ |
-| Music Engine | ✅ | ✅ | ✅ | — | ✅ | — | ✅ | ✅ |
-| Assembly Engine | ✅ | ✅ | ✅ | — | ✅ | — | ✅ | ✅ |
-| Tier Router | ✅ | ✅ | ✅ | — | ✅ | — | ✅ | ✅ |
-| Re-entry Controller | ✅ | ✅ | ✅★ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Hook Library | — | — | — | ✅ | ✅ | — | ✅ | ✅ |
+| 1. Creative Director Agent | ✅ | ✅ | ✅ | ✅ | ✅ | — | ✅★ | ✅ |
+| 2. Plan Review Gate | ✅ | ✅ | ✅ | ✅ | ✅ | — | ✅★ | ✅ |
+| 3. Revision Agent | ✅ | ✅ | ✅ | ✅ | ✅ | — | ✅★ | ✅ |
+| 4. Asset Analyzer | ✅ | ✅ | ✅ | — | ✅ | ✅ | ✅ | ✅★ |
+| 5. SEALCaM | opt | opt | ✅ | — | ✅ | — | ✅ | ✅★ |
+| 6. Core Elements Board | ✅ | ✅ | ✅ | ✅ | ✅ | ★ | ✅ | ✅ |
+| 7. Music Engine | ✅ | ✅ | ✅ | — | ✅ | — | ✅ | ✅ |
+| 8. Assembly Engine | ✅ | ✅ | ✅ | — | ✅ | — | ✅ | ✅ |
+| 9. Tier Router | ✅ | ✅ | ✅ | — | ✅ | — | ✅ | ✅ |
+| 10. Re-entry Controller | ✅ | ✅ | ✅★ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| 11. Hook Library | — | ✅ | — | ✅ | ✅ | — | ✅ | ✅ |
+| 12. Brand Voice DNA | ✅ | ✅ | — | ✅ | ✅ | — | ✅ | ✅ |
+| 13. Character Consistency | ✅ | — | — | — | ✅ | — | — | ✅ |
+| 14. Provider Routing | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| 15. Template Image Composer | — | — | — | ✅ | — | — | — | — |
+| 16. Motion Variant Selector | — | ✅ | — | — | — | — | — | — |
+| 17. UGC Voiceover | ✅ | — | — | — | — | — | — | — |
+| 18. Prompt Schema Normalizer | — | — | — | — | — | — | ✅ | — |
 
 **Legend**: ✅ = adopted, ✅★ = reference pattern (other families should follow this implementation), opt = optional/opt-in, — = not applicable, ★ = is the module itself
