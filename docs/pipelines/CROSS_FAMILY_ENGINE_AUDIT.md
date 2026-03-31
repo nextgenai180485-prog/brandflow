@@ -232,13 +232,13 @@ See `ENGINE_MODULE_REGISTRY.md` for full adoption matrix and build order.
 ```
 Phase A — Foundation (no AI calls)
   ├── Re-entry Controller (state machine logic)
-  ├── Tier Router (config + routing logic)
+  ├── Provider & Tier Routing Engine (unified routing + failover)
   └── Plan Review Gate (approval UI + API)
 
 Phase B — Intelligence (AI-powered)
   ├── Asset Analyzer (unified vision analysis)
   ├── Creative Director Agent (AGENT framework)
-  ├── SEALCaM Prompt Builder (structured prompts)
+  ├── SEALCaM Prompt Builder (includes F7 normalization)
   └── Revision Agent (feedback loop)
 
 Phase C — Media (heavy compute)
