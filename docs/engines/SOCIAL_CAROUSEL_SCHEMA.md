@@ -43,13 +43,12 @@ F4 Social Content currently generates images from caption text via DALL-E/Seedre
 ```text
 1. Select composition template by platform + layout_style
 2. Inject brand_palette into template color slots
-3. Generate base scene with Seedream 5.0 Lite (template prompt + brand context)
-4. Fuse product_anchor into scene via SeedEdit 3.0 (product placement)
-5. Overlay text elements (headline, body, CTA) if provided
-6. Export at platform-optimized dimensions
+3. Run SeedEdit 3.0 on template image (swap product, adjust colors)
+4. Overlay text elements (headline, body, CTA) programmatically using brand fonts
+5. Export at platform-optimized dimensions
 ```
 
-See `IMAGE_TEMPLATE_ENGINE_DESIGN.md` for Seedream 5.0 Lite + SeedEdit 3.0 fusion details.
+See `IMAGE_TEMPLATE_ENGINE_DESIGN.md` for SeedEdit 3.0 architecture and `docs/ux/IMAGE_TEMPLATE_UX_FLOW.md` for the full screen-by-screen flow.
 
 ---
 
