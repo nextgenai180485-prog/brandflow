@@ -66,18 +66,24 @@ Map UGC archetype to curated ElevenLabs voice:
 - User can override in brief settings
 - Brand-level default persona stored in `brand_profiles`
 
-### Step 3: ElevenLabs TTS Generation
+### Step 3: TTS Generation (via Voice Management Engine #20)
 
-**Provider**: ElevenLabs Text-to-Speech API
+> **IMPORTANT**: UGC Voiceover Extension does NOT call providers directly.  
+> All TTS operations are delegated to the **Voice Management Engine (#20)**, which owns provider selection, quality scoring, and audio normalization.
 
-**Model**: `eleven_multilingual_v2`
+**Call**: `VoiceEngine.generateSpeech()`
+- `voice_id`: Resolved from persona mapping (Step 2) via #20's preset registry
+- `style`: `conversational` (default for UGC)
+- `language`: From brief or auto-detected
+- `speed`: 1.0 (default)
 
-**Voice Settings** (UGC-optimized):
-- `stability`: 0.3 (lower = more expressive, natural variation)
-- `similarity_boost`: 0.7
-- `style`: 0.5 (conversational)
+**#20 handles internally**:
+- Provider selection (ElevenLabs primary, Azure TTS fallback)
+- Model selection (`eleven_multilingual_v2` or equivalent)
+- Voice stem normalization to -16 LUFS
+- Quality scoring and `approved_for_use` validation
 
-**Output**: MP3 audio file stored in Supabase Storage.
+**Output**: MP3 audio URL returned by #20, stored in Supabase Storage.
 
 ---
 
