@@ -1,107 +1,106 @@
 # Image Template Engine — Design Document
 
-> Template-based image recreation using Seedream 5.0 Lite + SeedEdit 3.0
+> Template-based image creation using SeedEdit 3.0 (targeted editing of pre-designed templates)
 
 ---
 
 ## 1. Vision
 
-Store pre-designed marketing templates (social posts, ad creatives, product posters) in the database with their prompts and metadata. Users select a template, supply their product image + text, and the system generates a new image that follows the template's layout and style but with the user's brand assets swapped in.
+Store pre-designed marketing templates (social posts, ad creatives, product posters) in the database with their prompts and metadata. Users select a template, supply their product image + text, and **SeedEdit 3.0 surgically swaps elements** while preserving the template's layout, lighting, and composition.
 
-Zero-effort Canva alternative: users pick a template and hit generate. AI handles compositing, style matching, and brand alignment automatically.
+Zero-effort Canva alternative: users pick a template, customize text and assets, hit generate. SeedEdit handles compositing and brand alignment automatically.
+
+**Architecture decision**: SeedEdit 3.0 is the **sole generation model** for F9. Templates are finished designs — we edit them, we don't regenerate them. See `docs/ux/IMAGE_TEMPLATE_UX_FLOW.md` for the full rationale.
 
 ---
 
-## 2. Two Complementary Approaches
+## 2. Generation Model — SeedEdit 3.0
 
-### Approach A — Seedream 5.0 Lite (Multi-Image Fusion)
+### How It Works
 
-Best for: generating new images from template references + user assets.
+SeedEdit 3.0 takes one input image + a text instruction and performs targeted edits while preserving everything else.
 
-- Accepts up to 14 reference images via `image_urls`
-- You provide: template reference image + user's product photo + user's logo
-- Prompt instructs the model to follow the template layout but use the user's product/branding
-- $0.035/image via BytePlus ModelArk
-- Available via BytePlus ModelArk direct API, Replicate, AIML API, WaveSpeed
-
-```text
-INPUTS:
-  image_urls: [template_image, product_photo, logo]
-  prompt: "Create a social media ad following the layout of image 1.
-           Feature the product from image 2 as the hero element.
-           Use the brand logo from image 3 in the top-left corner.
-           Headline: 'Summer Collection 2026'. Clean, modern aesthetic."
-
-OUTPUT: New image matching template layout with user's assets
-```
-
-### Approach B — SeedEdit 3.0 (Targeted Edit)
-
-Best for: precise edits to an existing template image (swap product, change text).
-
-- Takes one input image + text instruction
+- Takes one input image (the template) + text instruction
 - "Replace the product in this image with [description]" or "Change the headline to X"
-- Better for templates where the layout is fixed and you only need to swap specific elements
+- Preserves layout, lighting, color scheme, decorative elements
 - Available via BytePlus ModelArk (`seededit-3-0-i2i-250628`), WaveSpeed, AIML API
 
 ```text
 INPUT:
   image: template_image_url
   prompt: "Replace the product with a sleek black perfume bottle.
-           Change the headline text to 'Noir Collection'.
-           Keep the same layout, lighting, and color scheme."
+           Adjust the accent colors to warm coral (#FF6B35).
+           Keep the same layout, lighting, and decorations."
 
 OUTPUT: Edited template with swapped content
 ```
 
-### When to Use Which
+### Why Not Seedream 5.0 Lite
 
-| Use Case | Model | Why |
-|----------|-------|-----|
-| Social media posts (product + text + layout) | Seedream 5.0 Lite | Multi-image fusion handles product + logo + template reference |
-| Ad creatives with specific product placement | Seedream 5.0 Lite | Can composite product photo into template scene |
-| Quick text/color/mood changes on existing ads | SeedEdit 3.0 | Precise targeted edits without regenerating everything |
-| Template variations (same template, different style) | SeedEdit 3.0 | "Make this warmer" / "Change to night scene" |
+| Factor | SeedEdit 3.0 | Seedream 5.0 Lite |
+|--------|-------------|-------------------|
+| Layout fidelity | Pixel-faithful to template | "Inspired by" — reinterprets layout |
+| Consistency | Same template = same layout every time | Varies per generation |
+| Use case | Edit existing design | Generate from scratch |
+| Cost | ~$0.03/edit | ~$0.035/generation |
+| F9 fit | ✅ Perfect — templates ARE the design | ❌ Wrong tool for the job |
+
+Seedream 5.0 Lite is used elsewhere (F6 Core Elements Board, F4 Social Content for no-template generation) but has no role in F9.
 
 ---
 
 ## 3. Pipeline Flow
 
 ```text
-USER SELECTS TEMPLATE → SYSTEM INJECTS BRAND ASSETS
+USER SELECTS TEMPLATE → CUSTOMIZES ASSETS → SEEDEDIT SWAPS ELEMENTS
         │
         ▼
 ┌──────────────────────────────┐
 │ STAGE 0 — TEMPLATE SELECT    │
 │ User picks from categorized  │
-│ template gallery (or AI      │
-│ auto-selects based on brief) │
+│ template gallery, filtered   │
+│ by theme + platform          │
 └──────────┬───────────────────┘
            │
            ▼
 ┌──────────────────────────────┐
-│ STAGE 1 — PROMPT ASSEMBLY    │  Edge Function
-│ Merge template.base_prompt   │  Template prompt + brand assets
-│ with user's product images,  │  + user text = final prompt
-│ logo, headline, brand colors │
+│ STAGE 1 — ASSET CUSTOMIZATION│
+│ User fills input_slots:      │
+│ product photo, headline,     │
+│ logo, accent colors          │
 └──────────┬───────────────────┘
            │
-     ┌─────┴──────┐
-     ▼            ▼
-  SEEDREAM      SEEDEDIT         ← Router picks model
-  5.0 Lite      3.0              based on template.model_type
-  (new image)   (edit image)
-     │            │
-     └─────┬──────┘
            ▼
 ┌──────────────────────────────┐
-│ STAGE 2 — REVIEW + VARIANTS  │
-│ Show result, offer 2-3       │
-│ variants, approve/reject     │
+│ STAGE 2 — PROMPT ASSEMBLY    │  Edge Function
+│ Merge template.base_prompt   │  Template prompt + customizations
+│ with user's assets + text    │  = SeedEdit instruction
+└──────────┬───────────────────┘
+           │
+           ▼
+┌──────────────────────────────┐
+│ STAGE 3 — SEEDEDIT 3.0       │  ~10-20 seconds
+│ Input: template_image_url    │  Single model, single call
+│ Input: assembled prompt      │  Surgical element swap
+│ Output: edited image         │
+└──────────┬───────────────────┘
+           │
+           ▼
+┌──────────────────────────────┐
+│ STAGE 4 — TEXT OVERLAY        │  Programmatic (Sharp/Canvas)
+│ Pixel-perfect headline, CTA  │  Uses brand fonts, not AI text
+│ Logo placement               │  ~500ms, $0.00 cost
+└──────────┬───────────────────┘
+           │
+           ▼
+┌──────────────────────────────┐
+│ STAGE 5 — REVIEW + VARIANTS  │
+│ Approve / Regenerate / Swap  │
+│ Text-only changes are FREE   │
 └──────────────────────────────┘
 ```
 
-**Speed**: ~10-30 seconds per image. Near-instant compared to video pipelines.
+**Speed**: ~10-20 seconds per image. Near-instant compared to video pipelines.
 
 ---
 
@@ -112,87 +111,100 @@ USER SELECTS TEMPLATE → SYSTEM INJECTS BRAND ASSETS
 | `id` | uuid | Primary key |
 | `title` | text | "Minimal Product Poster", "Instagram Story Sale" |
 | `template_image_url` | text | Supabase Storage path to the template reference image |
-| `base_prompt` | text | Generation prompt with `{{product}}`, `{{headline}}`, `{{brand_color}}` placeholders |
-| `model_type` | enum | `seedream` or `seededit` — which model to use |
-| `category` | text | `social_post`, `ad_creative`, `product_poster`, `story`, `banner` |
-| `industry_tags` | text[] | `{fashion, food, tech, beauty}` |
+| `base_prompt` | text | SeedEdit instruction with `{{product_description}}`, `{{headline}}`, `{{brand_color}}` placeholders |
+| `category` | text | `product_spotlight`, `testimonial`, `quote_card`, `sale_promo`, `before_after`, `lifestyle` |
+| `theme_tags` | text[] | `{valentines, summer, holiday, new_arrival, evergreen}` |
+| `industry_tags` | text[] | `{fashion, food, tech, beauty, medspa}` |
 | `style_tags` | text[] | `{minimal, bold, luxury, playful}` |
-| `platform_fit` | text[] | `{instagram_feed, instagram_story, facebook, linkedin, tiktok}` |
+| `platform_fit` | text[] | `{instagram_post, instagram_story, facebook, linkedin, tiktok}` |
 | `aspect_ratio` | text | `1:1`, `9:16`, `16:9`, `4:5` |
-| `input_slots` | jsonb | What user provides: `{product_image: true, logo: true, headline: true, subtext: false}` |
-| `quality_score` | float | Internal rating (1-10) |
+| `input_slots` | jsonb | What user provides: `{product_image: true, logo: true, headline: true, subtext: false, accent_color: true}` |
+| `text_zones` | jsonb | Where programmatic text goes: `{headline: {x, y, w, h, align}, cta: {x, y, w, h, align}}` |
+| `logo_zone` | jsonb | Logo placement: `{position: "top-left", max_width: 120, max_height: 60}` |
+| `quality_score` | float | Internal rating (1-10), updated by Performance Feedback Engine |
 | `usage_count` | int | How many times used (analytics) |
 | `is_active` | boolean | Enable/disable without deleting |
 | `created_at` | timestamp | When added to library |
 
+**Note**: `model_type` column removed — all templates use SeedEdit 3.0. No routing decision needed.
+
 ### Prompt Template Example
 
 ```text
-base_prompt: "Create a {{category}} following this template's layout.
-Feature {{product}} as the hero element, centered.
-Brand colors: {{brand_color}}. Logo placement: top-left.
-Headline: '{{headline}}'.
-Style: {{style_tags}}. Clean, professional finish."
+base_prompt: "Replace the product in the center with {{product_description}}.
+Adjust the accent colors to {{brand_color}}.
+Keep the same layout, lighting, decorations, and composition.
+Style: {{style_tags}}. Professional finish."
 ```
 
-The Edge Function replaces `{{placeholders}}` with values from the user's Brand Kit + any custom text input.
+The Edge Function replaces `{{placeholders}}` with values from the user's Brand Kit + customization inputs.
 
 ---
 
 ## 5. Provider Summary
 
-| Provider | Model | Cost | Use |
-|----------|-------|------|-----|
-| BytePlus ModelArk | Seedream 5.0 Lite | $0.035/image | Multi-image fusion (primary) |
-| BytePlus ModelArk | SeedEdit 3.0 (`seededit-3-0-i2i-250628`) | ~$0.03/image | Targeted edits |
-| WaveSpeed | Seedream 5.0 Lite | ~$0.04/image | Fallback provider |
-| Replicate | Seedream 5.0 Lite | ~$0.04/image | Fallback provider |
+| Provider | Model | Cost | Role |
+|----------|-------|------|------|
+| BytePlus ModelArk | SeedEdit 3.0 (`seededit-3-0-i2i-250628`) | ~$0.03/edit | Primary provider |
+| WaveSpeed | SeedEdit 3.0 | ~$0.035/edit | Fallback provider |
+| AIML API | SeedEdit 3.0 | ~$0.035/edit | Fallback provider |
 
-**Volume economics**: 3 variants per template = ~$0.10. Generating 10 social posts = ~$0.35.
+**Volume economics**: 3 variants per template = ~$0.09. Generating 10 social posts = ~$0.30.
 
 ---
 
 ## 6. Key Technical Considerations
 
-1. **Provider routing**: BytePlus ModelArk is the cheapest direct source. WaveSpeed also hosts both models. Add BytePlus as a provider option alongside Kie AI in the provider abstraction layer.
+1. **Single model simplicity**: No routing logic between models. Every template uses SeedEdit 3.0. Provider routing only selects which SeedEdit host (BytePlus → WaveSpeed → AIML).
 
-2. **Text rendering**: Seedream 5.0 Lite has improved text rendering but is not pixel-perfect for exact typography. For templates with critical text (prices, phone numbers), use a two-pass approach: generate image without text via AI, then overlay text programmatically using a canvas/image processing step (Python Pillow or Sharp).
+2. **Text rendering**: SeedEdit can change text in images but results are not pixel-perfect. Critical text (headlines, prices, CTAs) uses a two-pass approach: SeedEdit handles visual composition without text → programmatic overlay (Sharp/Canvas) renders typography using brand fonts.
 
-3. **Brand consistency**: Seedream's multi-image fusion with `image_urls` is ideal — pass user's product photo + logo + brand style guide image as references, and the model maintains visual consistency.
+3. **Brand consistency**: User's Brand Kit (colors, logo, product photos) is loaded from Module #12 Brand Voice DNA and injected into every SeedEdit prompt automatically.
 
-4. **Speed**: Seedream 5.0 Lite generates in ~10-30 seconds. SeedEdit 3.0 is similarly fast. Much faster than video pipelines — users get near-instant results.
+4. **Speed**: SeedEdit 3.0 generates in ~10-20 seconds. Text overlay adds ~500ms. Total user wait: under 25 seconds.
 
-5. **Batch generation**: At $0.035/image, this is extremely cost-effective for "generate 10 social posts" batch operations. Can run in parallel for even faster throughput.
+5. **Batch generation**: At $0.03/edit, batch operations (e.g., "generate 10 Valentine's posts") cost ~$0.30 total. Platform variants run in parallel for faster throughput.
+
+6. **Text-only edits are free**: Changing headline or CTA text re-runs only the programmatic overlay — no SeedEdit call, zero cost.
 
 ---
 
 ## 7. Integration with Other Pipelines
 
-- **Social Content Pipeline**: This engine generates the images; Social Content Pipeline generates the captions. Together = full content package (image + platform-optimized text), ready to post.
-- **Ad Creator Pipeline**: Can use image templates for the static ad variant instead of full video generation.
-- **Creative Cloner Pipeline**: Shares the template library concept — video templates for video cloning, image templates for image recreation.
+- **Social Content Pipeline (F4)**: F9 generates the images; F4 generates the captions. Together = full content package (image + platform-optimized text), ready to post.
+- **Ad Creator Pipeline (F7)**: Can use image templates for the static ad variant instead of full video generation.
+- **Creative Cloner Pipeline (F8)**: Shares the template library concept — video templates for video cloning, image templates for image recreation.
 
 ---
 
 ## 8. Template Curation Strategy
 
-Same approach as video templates (see `CREATIVE_CLONER_ENGINE_DESIGN.md`):
-
 1. Source high-quality reference ad images or create original template designs
-2. Write the `base_prompt` with placeholder variables
-3. Tag with industry, style, platform, category
-4. Set `model_type` based on whether the template works better with fusion (seedream) or editing (seededit)
+2. Write the `base_prompt` as a SeedEdit instruction with placeholder variables
+3. Define `text_zones` and `logo_zone` for programmatic overlay positioning
+4. Tag with theme, industry, style, platform, category
 5. Quality review and scoring
 6. Insert into `image_templates` table
 
-Track `usage_count` and approval rates to identify top performers and retire low-performers.
+Track `usage_count` and approval rates via Performance Feedback Engine (#22) to identify top performers and retire low-performers.
 
 ---
 
-## 9. Next Steps (When Ready to Build)
+## 9. UX Flow Reference
 
-1. Design the `image_templates` table and seed with initial templates
-2. Add BytePlus ModelArk as a provider in the provider abstraction layer
-3. Build the template gallery UI (categorized, filterable, with previews)
-4. Create the Edge Function that assembles prompts from template + brand assets
-5. Integrate with the Social Content pipeline for image + caption bundles
+See `docs/ux/IMAGE_TEMPLATE_UX_FLOW.md` for the complete screen-by-screen user flow, including:
+- All 6 screens with engine modules that fire at each step
+- Data payloads passed between screens
+- Touchpoint events emitted
+- Cost model per user action
+- Module dependency map
+
+---
+
+## 10. Next Steps (When Ready to Build)
+
+1. Design the `image_templates` table and seed with initial templates (include `text_zones` + `logo_zone`)
+2. Ensure BytePlus ModelArk SeedEdit 3.0 is registered in the provider abstraction layer
+3. Build the template gallery UI (categorized, filterable, theme-aware)
+4. Create the Edge Function: prompt assembly + SeedEdit call + text overlay
+5. Integrate with F4 Social Content pipeline for image + caption bundles
