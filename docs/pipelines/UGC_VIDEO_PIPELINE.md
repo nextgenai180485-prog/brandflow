@@ -268,3 +268,276 @@ The n8n workflow uses batching with intervals:
 4. **Diversity is explicitly required**: gender, ethnicity, hair color, settings
 5. **No post-processing/merge stage** in this workflow — each scene produces one standalone video
 6. **Double quotes are forbidden** in image/video prompts (escaping issue with downstream APIs)
+
+---
+---
+
+# UGC Video Pipeline — Variant B: Nanobanana (Multi-Clip Merge)
+
+> Reverse-engineered from production n8n workflow: `Nanobanana UGCs, any length, any character`
+
+---
+
+## Overview
+
+A more advanced UGC pipeline that generates **longer-form videos** by creating multiple 8-second clips and merging them into one seamless video. Key architectural differences from Variant A:
+
+1. **Two separate AI agents** — Image Agent (1 image) + Video Agent (N clips)
+2. **Fal AI for image generation** (`fal-ai/nano-banana/edit`) instead of Kie AI
+3. **Duration-based scene calculation** — total duration ÷ 8s = number of clips
+4. **Clip merging step** — `fal-ai/ffmpeg-api/merge-videos` combines clips into final video
+5. **Telegram I/O** — triggered by photo+caption, delivers final video via Telegram
+
+---
+
+## Pipeline Stages
+
+```text
+Trigger (Telegram) → Get Image Path → Describe Image (GPT-4o Vision)
+  → Image AI Agent (1 prompt) → Create Image (Fal AI) → Poll
+  → Video AI Agent (N prompts) → Split Scenes
+  → [per scene] Create Video (Kie AI Veo) → Poll
+  → Aggregate URLs → Combine Clips (Fal AI FFmpeg) → Poll → Deliver
+```
+
+---
+
+## Stage 1: Trigger & Image Retrieval
+
+**Source**: Telegram message with photo + caption (user instructions)
+
+**Steps**:
+1. Telegram Trigger receives photo + caption
+2. Extract bot token from config
+3. Call Telegram `getFile` API to get the image file path
+4. Download reference image via `https://api.telegram.org/file/bot<token>/<file_path>`
+
+**Brandflow adaptation**: Replace Telegram trigger with web UI upload. The reference image comes from Supabase Storage instead.
+
+---
+
+## Stage 2: Describe Reference Image
+
+**Purpose**: Analyze whether the image contains a product, a character, or both — and extract visual details.
+
+**Provider**: OpenAI GPT-4o (vision)
+
+**Prompt** (handles both product and character images):
+```
+Analyze the given image and determine if it primarily depicts a product or a character, or BOTH.
+
+- If product:
+  brand_name, color_scheme (hex + name), font_style, visual_description
+
+- If character:
+  character_name, color_scheme (hex + name), outfit_style, visual_description
+
+- If BOTH: return both descriptions
+
+Only return YAML. No explanations.
+```
+
+**Key difference from Variant A**: This analyzer handles characters AND products, not just products.
+
+---
+
+## Stage 3A: Image AI Agent (Single Image)
+
+**Purpose**: Generate ONE image prompt to create a base frame with the product/character in a UGC scene.
+
+**Provider**: OpenAI GPT-4.1 + Structured Output Parser
+
+**System prompt** (condensed):
+```
+Default: Put this (product) into the scene with the (character).
+If user wants UGC: use casual UGC-style scenes.
+If user specifies a different style: follow their instructions.
+
+UGC style rules: (same as Variant A)
+- Amateur iPhone photos, candid, imperfections
+- Preserve all visible product TEXT accurately
+- Camera: amateur iPhone photo, casual selfie, uneven framing
+
+Only image prompts. No video/dialogue generation.
+```
+
+**Output Schema**:
+```json
+{
+  "image_prompt": "action: ...\ncharacter: ...\nproduct: ...\nsetting: ...\ncamera: ...\nstyle: ...\ntext_accuracy: ...",
+  "aspect_ratio_image": "2:3 | 3:2"
+}
+```
+
+---
+
+## Stage 4: Image Generation (Fal AI)
+
+**Purpose**: Generate the base image using Fal AI's Nanobanana model (image editing/compositing).
+
+**Provider**: Fal AI (`fal-ai/nano-banana/edit`) — async queue API
+
+**Request**:
+```json
+POST https://queue.fal.run/fal-ai/nano-banana/edit
+{
+  "prompt": "<image_prompt>",
+  "image_urls": ["<reference_image_url>"]
+}
+```
+
+**Authentication**: API key via HTTP header (`Authorization: Key <FAL_API_KEY>`)
+
+**Response**: Returns `response_url` for async polling (queue-based, not taskId-based).
+
+**Polling**:
+- Wait ~30 seconds
+- GET `<response_url>` with same auth header
+- Check if `images[0].url` is not empty
+- If not ready → wait 30s and re-poll
+- If ready → `images[0].url` contains the generated image
+
+**Key difference from Variant A**: Fal AI uses a queue URL pattern (`response_url`) instead of Kie AI's `taskId` pattern.
+
+---
+
+## Stage 3B: Video AI Agent (Multiple Clips)
+
+**Purpose**: Generate N video prompts based on desired total duration. Runs AFTER the image is generated.
+
+**Provider**: OpenAI GPT-4.1 + Structured Output Parser
+
+**Scene count logic**:
+- User specifies total video duration (e.g., "30 seconds")
+- Each clip = 8 seconds
+- Scene count = ceil(total_duration / 8)
+- If not specified, default to 3 scenes
+
+**System prompt** (condensed):
+```
+UGC-Style Veo3/Veo3_fast Prompt Generator (Video-Only)
+
+Same UGC style rules as Variant A.
+
+Dialogue: If not provided, generate casual conversational line under 150 chars.
+Use ... for pauses. No special characters.
+
+For each scene, have the character talk about the product naturally.
+Only mention brand name in the FIRST scene.
+Unless stated, do NOT have character open/eat/use the product — just show it.
+
+Dialogue must run continuously across scenes and make sense as a whole.
+```
+
+**Output Schema**:
+```json
+{
+  "scenes": [
+    {
+      "video_prompt": "dialogue: ...\naction: ...\ncamera: ...\nemotion: ...\nvoice_type: ...\ncharacter: ...\nsetting: ...",
+      "aspect_ratio_video": "9:16 | 16:9",
+      "model": "veo3 | veo3_fast"
+    }
+  ]
+}
+```
+
+**Key differences from Variant A**:
+- No `image_prompt` per scene (single shared image)
+- Dialogue is continuous across scenes (narrative coherence)
+- 150-char dialogue limit (vs 200 in Variant A)
+
+---
+
+## Stage 5: Video Generation (per clip)
+
+**Provider**: Kie AI (`/api/v1/veo/generate`) — same as Variant A
+
+**Request**:
+```json
+{
+  "prompt": "<scene.video_prompt>",
+  "model": "<scene.model>",
+  "aspectRatio": "<scene.aspect_ratio_video>",
+  "imageUrls": "<generated_image_url_from_stage_4>"
+}
+```
+
+**Note**: ALL clips use the SAME base image from Stage 4 (not per-scene images like Variant A).
+
+**Polling**: Same as Variant A — wait ~450s, check `successFlag === 1`, get `resultUrls[0]`.
+
+---
+
+## Stage 6: Aggregate & Combine Clips
+
+**Purpose**: Collect all individual clip URLs and merge them into one seamless video.
+
+**Step 6a — Aggregate**: Collect `data.response.resultUrls[0]` from all completed clips into a single array.
+
+**Step 6b — Combine Clips**:
+
+**Provider**: Fal AI (`fal-ai/ffmpeg-api/merge-videos`) — async queue API
+
+**Request**:
+```json
+POST https://queue.fal.run/fal-ai/ffmpeg-api/merge-videos
+{
+  "video_urls": ["<clip1_url>", "<clip2_url>", "<clip3_url>"]
+}
+```
+
+**Polling**:
+- Wait ~60 seconds
+- GET `<response_url>` with auth header
+- Check if `video.url` is not empty
+- If not ready → wait 60s and re-poll
+- If ready → `video.url` contains the final merged video
+
+---
+
+## Stage 7: Deliver
+
+**Original**: Send final video back via Telegram bot
+**Brandflow**: Store in Supabase Storage, create artifact record, notify user via UI
+
+---
+
+## Provider Summary (Variant B)
+
+| Stage | Provider | API Endpoint | Auth |
+|-------|----------|-------------|------|
+| Describe Image | OpenAI GPT-4o | OpenAI API (vision) | API key |
+| Image Agent | OpenAI GPT-4.1 | OpenAI API (chat) | API key |
+| Video Agent | OpenAI GPT-4.1 | OpenAI API (chat) | API key |
+| Image Generation | Fal AI | `queue.fal.run/fal-ai/nano-banana/edit` | API key (header) |
+| Image Polling | Fal AI | `<response_url>` | API key (header) |
+| Video Generation | Kie AI (Veo3) | `api.kie.ai/api/v1/veo/generate` | HTTP header |
+| Video Polling | Kie AI | `api.kie.ai/api/v1/veo/record-info` | HTTP header |
+| Clip Merging | Fal AI | `queue.fal.run/fal-ai/ffmpeg-api/merge-videos` | API key (header) |
+| Merge Polling | Fal AI | `<response_url>` | API key (header) |
+
+---
+
+## Key Architectural Differences: Variant A vs Variant B
+
+| Aspect | Variant A (Ads Factory) | Variant B (Nanobanana) |
+|--------|------------------------|----------------------|
+| Trigger | Manual / API | Telegram (→ Web UI) |
+| Image per scene | Yes (unique per scene) | No (single shared image) |
+| Image provider | Kie AI | Fal AI (nano-banana) |
+| AI agents | 1 combined agent | 2 separate agents (image + video) |
+| Dialogue style | Per-scene, independent | Continuous narrative across scenes |
+| Clip merging | None (standalone clips) | Yes (FFmpeg via Fal AI) |
+| Output | Individual clip files | Single merged video |
+| Duration control | By video count | By total seconds ÷ 8s per clip |
+
+---
+
+## Brandflow Implementation Notes
+
+1. **Both variants should be selectable** — user picks "Individual Clips" vs "Merged Video" in the brief
+2. **Provider abstraction** must support both Kie AI (taskId polling) and Fal AI (queue URL polling) patterns
+3. **The single-image approach (Variant B) is cheaper** — one image generation call regardless of clip count
+4. **Clip merging adds ~60s+ to total pipeline time** — factor into user-facing time estimates
+5. **Narrative coherence** across clips is a key differentiator — the dialogue must flow naturally when clips are stitched together
