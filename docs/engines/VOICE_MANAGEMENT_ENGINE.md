@@ -178,6 +178,47 @@ interface VoiceProvider {
 
 ---
 
+## Persona Matching
+
+The Voice Engine maps brand archetypes to voice characteristics using Brand Voice DNA (#12):
+
+| Brand Archetype | Voice Characteristics | Recommended Style |
+|-----------------|----------------------|-------------------|
+| Professional / Corporate | Clear, measured pace, neutral tone | `neutral` or `conversational` |
+| Friendly / Approachable | Warm, slightly faster pace, upward inflections | `conversational` or `energetic` |
+| Authoritative / Premium | Deep, deliberate, confident cadence | `dramatic` or `neutral` |
+| Playful / Youth | Energetic, varied pitch, casual | `energetic` or `whisper` |
+| Calm / Wellness | Soft, slow, even-paced | `whisper` or `neutral` |
+
+### Matching Flow
+
+```
+Brand Voice DNA signature
+  → Extract tone_profile + personality traits
+  → Map to voice archetype
+  → Filter voice_presets by archetype + language
+  → Rank by quality_score
+  → Return top match (must have approved_for_use = true)
+```
+
+---
+
+## Voice Quality Scoring
+
+Every voice preset receives a quality score (0-100) based on:
+
+| Factor | Weight | Measurement |
+|--------|--------|-------------|
+| Naturalness | 0.30 | MOS (Mean Opinion Score) from sample evaluation |
+| Clarity | 0.25 | Signal-to-noise ratio of generated samples |
+| Consistency | 0.20 | Variance across multiple generations |
+| Tone alignment | 0.15 | Brand Voice DNA match score |
+| Language quality | 0.10 | Pronunciation accuracy for target language |
+
+Presets scoring below **60** are flagged for review. Presets below **40** are auto-disabled (`approved_for_use = false`).
+
+---
+
 ## Voice Quality Pipeline
 
 Every generated audio passes through a quality pipeline before delivery:
@@ -188,6 +229,7 @@ Raw TTS Output
   → Noise Gate (remove artifacts)
   → EQ Polish (presence boost 2-4kHz)
   → Compression (gentle, broadcast-standard)
+  → Quality Score Assessment
   → Final Output
 ```
 

@@ -148,15 +148,59 @@ Approved Asset
 
 ---
 
+## Multiplication Plan Schema
+
+The `multiplication_plan` is the planning object that defines the full scope of variant generation before execution begins. It is produced by the Creative Director Agent (#1) based on the source asset and campaign objectives.
+
+```json
+{
+  "multiplication_plan": {
+    "plan_id": "uuid",
+    "source_asset_id": "uuid",
+    "source_job_id": "uuid (approved parent)",
+    "initiative_id": "uuid (ref: PLAN_OBJECT_SCHEMA.md)",
+    "family": "F1|F2|F3|F4|F5|F7|F8|F9",
+    "variant_count": 12,
+    "hook_strategy_set": {
+      "enabled": true,
+      "count": 3,
+      "styles": ["question", "statistic", "bold_claim"],
+      "source": "hook_library (#11)"
+    },
+    "platform_matrix": {
+      "instagram_reels": { "aspect_ratio": "9:16", "duration_s": 30 },
+      "instagram_feed": { "aspect_ratio": "1:1", "duration_s": 30 },
+      "tiktok": { "aspect_ratio": "9:16", "duration_s": 15 },
+      "youtube": { "aspect_ratio": "16:9", "duration_s": 60 },
+      "linkedin": { "aspect_ratio": "16:9", "duration_s": 30 },
+      "twitter": { "aspect_ratio": "16:9", "duration_s": 15 },
+      "pinterest": { "aspect_ratio": "2:3", "duration_s": null }
+    },
+    "testing_pack_enabled": true,
+    "testing_dimensions": ["hook", "cta", "aspect_ratio"],
+    "localization_matrix": {
+      "enabled": true,
+      "target_markets": ["ar-SA", "es-MX", "ja-JP"],
+      "components": ["subtitles", "dubbed_audio", "visual_text"]
+    },
+    "tier": "draft | standard | premium",
+    "status": "planning | generating | review | approved | delivered"
+  }
+}
+```
+
+---
+
 ## Multiplication Job Schema
 
 ```json
 {
   "multiplication_job": {
     "job_id": "uuid",
+    "plan_id": "uuid (ref: multiplication_plan)",
     "source_job_id": "uuid (approved parent)",
     "source_asset_url": "string",
-    "family": "F1|F2|F3|F5|F7|F8",
+    "family": "F1|F2|F3|F4|F5|F7|F8|F9",
     "requested_variants": [
       {
         "type": "aspect_ratio",
