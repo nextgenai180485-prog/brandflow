@@ -81,7 +81,7 @@ Each pipeline family has a standardized contract defining its inputs, outputs, a
 | **Input** | Reference image, creative brief |
 | **Output** | Single polished product ad (image + video) + caption |
 | **Primary Deliverable** | MP4 video file + image + caption |
-| **Engine Modules** | Asset Analyzer, Creative Director Agent (reference pattern), Plan Review Gate (reference pattern), Revision Agent (reference pattern), SEALCaM, Core Elements Board, Hook Library, Music Engine (optional), Assembly Engine, Re-entry Controller, Tier Router, Prompt Schema Normalizer, Brand Voice DNA, Provider Routing |
+| **Engine Modules** | Asset Analyzer, Creative Director Agent (reference pattern), Plan Review Gate (reference pattern), Revision Agent (reference pattern), SEALCaM (includes F7 normalization), Core Elements Board, Hook Library, Music Engine (optional), Assembly Engine, Re-entry Controller, Provider & Tier Routing, Brand Voice DNA |
 | **Doc** | `pipelines/AD_CREATOR_PIPELINE.md` |
 
 ### F8 — Creative Cloner
