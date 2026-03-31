@@ -134,9 +134,77 @@ interface SEALCaMScene {
 |--------|---------------|-------|
 | **Creative Cloner (F8)** | **Mandatory** | Core to the pipeline — all prompts must be SEALCaM-structured |
 | **Cinematic Ad (F5)** | **Recommended** | ClearCam YAML can map to SEALCaM fields; improves consistency |
-| **Ad Creator (F7)** | **Recommended** | Creative Director agent can output SEALCaM; adds structure to single-scene ads |
+| **Ad Creator (F7)** | **Mandatory** | Prompt Schema Normalizer converts legacy stringified JSON to SEALCaM (see below) |
 | **UGC Video (F1)** | Optional | Simpler scenes may not benefit from full framework |
 | **AI Spokesperson (F2)** | Not applicable | Avatar-driven; camera/lighting controlled by avatar engine |
 | **Product Videography (F3)** | Optional | Could enhance start/end frame prompts |
 | **Social Content (F4)** | Not applicable | Static images with simpler prompt requirements |
 | **Core Elements Board (F6)** | Optional | Compositing prompts could use S + E fields |
+
+---
+
+## F7 Prompt Schema Normalization (formerly standalone module #18)
+
+> **Merged into SEALCaM** — this is the F7-specific normalization rule that converts the Ad Creator's legacy stringified JSON video prompts into SEALCaM-compliant nested objects.
+
+### Problem
+
+F7 Ad Creator originally output `video_prompt` as a stringified JSON string inside the output JSON — requiring double-serialization handling and making prompts fragile.
+
+### Solution: Nested Object → SEALCaM Fields
+
+| Old Field (Stringified) | New Field (Nested) | SEALCaM Field |
+|------------------------|-------------------|---------------|
+| `description` | `subject` | Subject |
+| `setting` | `environment` | Environment |
+| `action` | `action` | Action |
+| `lighting` | `lighting` | Lighting |
+| `camera_type` + `camera_movement` | `camera` | Camera |
+| `other_details` + `keywords` | `metatokens` | Metatokens |
+| `dialogue` | removed (separate field if needed) | — |
+| `music` | removed (handled by Music Engine) | — |
+| `ending` | merged into `action` | — |
+
+### Updated F7 Output Schema
+
+```json
+{
+  "image_prompt": {
+    "subject": "Premium perfume bottle, cut glass, amber liquid",
+    "environment": "Marble surface, noir studio, dark backdrop",
+    "lighting": "Dramatic side lighting, single key light, deep shadows",
+    "camera": "Close-up, shallow depth of field, 85mm equivalent",
+    "composition": "Center-weighted, negative space left, bottle fills 60% frame",
+    "style": "Editorial luxury photography, film grain, high contrast"
+  },
+  "video_prompt": {
+    "subject": "Perfume bottle centered in frame, light interaction",
+    "environment": "Noir studio, marble surface, dark ambient",
+    "action": "Light slowly sweeps across bottle, refractions dance on marble",
+    "lighting": "Dramatic side lighting transitions to soft front fill",
+    "camera": "Slow dolly forward, slight tilt up, Steadicam smoothness",
+    "metatokens": "luxury_product_hero, film_grain, cinematic_color_grade, 24fps_motion"
+  },
+  "caption": "Darkness reveals beauty ✨ #luxury #perfume",
+  "creative_summary": "...",
+  "aspect_ratio": "9:16",
+  "video_model": "veo3_fast"
+}
+```
+
+### Migration in F7 Pipeline
+
+**Stage 3**: Creative Director Agent system prompt updated to output nested objects instead of stringified JSON.
+
+**Stage 6**: Video generation reads structured fields directly:
+```javascript
+const { subject, environment, action, lighting, camera, metatokens } = output.video_prompt;
+const prompt = buildSEALCaMPrompt(output.video_prompt); // uses shared function above
+```
+
+### Key Notes
+
+1. **Backward compatible** — existing jobs with stringified JSON still parse correctly; new jobs use nested objects
+2. **SEALCaM alignment** enables template reuse across F5, F7, F8
+3. **Music and dialogue removed from video prompt** — handled by separate Music Engine and voice lanes
+4. **The `metatokens` field** is the catch-all for style, mood, keywords — keeps the schema clean

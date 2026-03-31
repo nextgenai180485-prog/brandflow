@@ -1,14 +1,79 @@
-# Provider Routing Policy — Technical Reference
+# Provider & Tier Routing Engine — Technical Reference
 
 > **Status**: Design reference — not yet implemented  
-> **Owner**: Cross-family shared module  
-> **Purpose**: Eliminate single-provider dependency with automatic fallback routing
+> **Owner**: Cross-family shared module (infrastructure)  
+> **Purpose**: Unified routing layer combining quality-tier selection AND provider failover into a single decision engine
+> **Consolidation note**: This module merges the former **Tier Router (#9)** and **Provider Routing Layer (#14)** — they are two halves of the same routing decision.
 
 ---
 
 ## Overview
 
-Brandflow currently depends heavily on Kie AI (video), WaveSpeed (images), and Fal.ai (lip-sync, FFmpeg). If any provider goes down, entire pipeline families fail. This policy defines fallback chains, health-check monitoring, and auto-recovery for all provider categories.
+Every generation request flows through a single routing engine that answers two questions in sequence:
+
+1. **What quality tier?** → Draft (fast/cheap preview) or Production (high-fidelity final render)
+2. **Which provider at that tier?** → Select from the healthy primary; if down, failover to next in chain
+
+Previously these were separate modules. Merging them eliminates a double-routing hop and ensures tier + provider decisions are consistent.
+
+---
+
+## Architecture
+
+```text
+Generation Request
+  │
+  ▼
+┌─────────────────────────────────────┐
+│ Provider & Tier Routing Engine      │
+│                                     │
+│  1. Resolve tier (draft/production) │
+│     ├─ job.status === 'approved' → production │
+│     └─ else → draft                │
+│                                     │
+│  2. Select provider from chain      │
+│     ├─ Check provider_status_registry│
+│     ├─ Primary healthy? → use it   │
+│     └─ Else → next fallback        │
+│                                     │
+│  3. Return: { provider, model, tier }│
+└─────────────────────────────────────┘
+  │
+  ▼
+Provider Adapter (Kie AI / Runway / WaveSpeed / etc.)
+```
+
+---
+
+## Tier Routing Logic
+
+### Tier Definitions
+
+| Tier | Purpose | Trigger | Cost | Latency |
+|------|---------|---------|------|---------|
+| **Draft** | Fast iteration, first previews | Pre-approval, first generation | ~$0.02–0.05/call | 5–30s |
+| **Production** | Final approved render | Post-approval via Plan Review Gate | ~$0.10–0.50/call | 30–120s |
+
+### Tier-Specific Model Selection
+
+| Category | Draft Model | Production Model |
+|----------|-------------|-----------------|
+| Video | veo3_fast | veo3 |
+| Image | Seedream 5.0 Lite | Seedream 5.0 Pro |
+| Lip-sync | ByteDance LatentSync | Sync Labs Lipsync 2.0 |
+| Music | Suno V5 (30s) | Suno V5 (full) |
+| Voice | ElevenLabs Turbo v2.5 | ElevenLabs Multilingual V2 |
+
+### Auto-Tier Selection Rules
+
+```
+function resolveTier(job):
+  if job.status === 'approved':
+    return 'production'
+  if job.revision_count > 0 and user_requested_final:
+    return 'production'
+  return 'draft'
+```
 
 ---
 
@@ -119,17 +184,24 @@ Brandflow currently depends heavily on Kie AI (video), WaveSpeed (images), and F
 
 ---
 
-## Routing Logic (Pseudocode)
+## Unified Routing Logic (Pseudocode)
 
 ```
-function selectProvider(category, tier):
+function route(category, job):
+  // Step 1: Resolve tier
+  tier = resolveTier(job)
+  
+  // Step 2: Get chain for category
   chain = fallback_chains[category]
+  
+  // Step 3: Select model for tier
   for provider in chain:
     status = registry.getStatus(provider.id)
     if status.status === "healthy":
-      return provider
-    if status.status === "degraded" and no better option:
-      return provider  // with warning
+      model = provider.models[tier]  // draft or production model
+      return { provider: provider.id, model, tier }
+    if status.status === "degraded" and no_better_option:
+      return { provider: provider.id, model: provider.models[tier], tier, warning: "degraded" }
   
   // All providers down
   throw ProviderUnavailableError(category)
@@ -161,8 +233,10 @@ CREATE TABLE provider_status (
 
 ## Key Design Notes
 
-1. **Fallback ≠ equivalent** — fallback providers may produce slightly different quality/style. Document differences per chain.
-2. **Cost implications** — fallback providers are often more expensive. Log cost delta when fallback is active.
-3. **Rate limit awareness** — if failover is due to rate limiting, the fallback provider may also rate-limit under sudden load.
-4. **Provider-specific polling patterns** — Kie AI uses `taskId`, Fal.ai uses `response_url`, WaveSpeed uses `request_id`. The routing layer must abstract these differences.
-5. **Alert on failover** — notify system admins when any provider enters `degraded` or `down` state.
+1. **Single routing call** — tier + provider resolved in one function, not two sequential lookups
+2. **Fallback ≠ equivalent** — fallback providers may produce slightly different quality/style. Document differences per chain.
+3. **Cost implications** — fallback providers are often more expensive. Log cost delta when fallback is active.
+4. **Rate limit awareness** — if failover is due to rate limiting, the fallback provider may also rate-limit under sudden load.
+5. **Provider-specific polling patterns** — Kie AI uses `taskId`, Fal.ai uses `response_url`, WaveSpeed uses `request_id`. The routing layer must abstract these differences.
+6. **Alert on failover** — notify system admins when any provider enters `degraded` or `down` state.
+7. **Tier override** — users on Enterprise plan can force `production` tier on first generation (skip draft).
