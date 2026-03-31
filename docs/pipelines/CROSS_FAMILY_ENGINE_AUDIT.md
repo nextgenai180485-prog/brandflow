@@ -158,21 +158,25 @@ Cinematic Ad and Creative Cloner generate background music via Suno. UGC and AI 
 
 ## 9. Assembly / Post-Production
 
-**Automated in**: F1B UGC Variant B (Fal AI FFmpeg)  
-**Planned for**: F5 Cinematic Ad, F8 Creative Cloner  
-**Missing from**: F1A UGC Variant A, F2 AI Spokesperson, F3 Product Videography, F7 Ad Creator
+**Automated in**: F1B UGC Variant B (Fal AI FFmpeg), **F5 Cinematic Ad (Fal AI FFmpeg — 4-step pipeline)**  
+**Adopted by**: F8 Creative Cloner (shared Assembly Engine)  
+**Available for**: F1A UGC Variant A (music overlay), F2 AI Spokesperson (clip concat + music), F3 Product Videography (music overlay), F7 Ad Creator (music overlay)
 
-Only UGC Variant B has automated FFmpeg merging via Fal AI. Cinematic Ad explicitly notes assembly is "not automated — currently requires manual assembly."
+F5 Cinematic Ad assembly is now **fully automated** via a 4-step pipeline:
+1. **Concat**: `fal-ai/ffmpeg-api/merge-videos` — merge scene videos in order
+2. **Audio Mix**: Custom FFmpeg command — background music (25% vol) + voiceover (100% vol)
+3. **Transitions**: Optional 0.5s crossfade via FFmpeg `xfade` filter
+4. **Export**: Aspect ratio enforcement + Supabase Storage upload
 
-### Proposed Standard
+### Shared AssemblyEngine Standard
 
-A shared `AssemblyEngine` that handles:
-- Video concatenation (multi-scene families)
-- Music overlay with volume control
-- Voiceover overlay with timing sync
-- Fade transitions between scenes
-- Caption/subtitle burn-in (optional)
-- Final export with aspect ratio enforcement
+A shared `AssemblyEngine` module handles:
+- Video concatenation (multi-scene families: F1B, F2, F5, F8)
+- Music overlay with volume control (all video families when music toggle enabled)
+- Voiceover overlay with timing sync (F5 only — has voice lane)
+- Fade transitions between scenes (configurable: crossfade, fade-to-black, dissolve)
+- Caption/subtitle burn-in (optional, future)
+- Final export with aspect ratio enforcement (16:9 or 9:16)
 
 ---
 
