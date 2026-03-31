@@ -66,7 +66,24 @@ The enterprise engine layer consists of 22 shared modules that sit between famil
 |-----|---------|
 | `engines/TEMPLATE_LIBRARY_OPERATIONS.md` | Template curation, scoring, retirement for F8 + Image Template Engine |
 | `engines/CORE_ELEMENTS_BOARD_V2.md` | Named slots, preview overlays, partial regeneration for F6 |
-| `PLAN_OBJECT_SCHEMA.md` | Unified plan object contract consumed by Strategy Engine, Review Packets, and all orchestrators |
+| `PLAN_OBJECT_SCHEMA.md` | Unified plan object contract with versioning, budget check, capacity check, dependencies, and SLA enforcement |
+| `engines/BUDGET_GOVERNANCE.md` | Per-brand spend caps, campaign allocations, burn rate tracking, tier downgrade suggestions |
+| `OBSERVABILITY_CONTRACTS.md` | 3-layer observability: Event Bus, Metrics Aggregation, Audit Trail |
+
+### Enterprise Planning Governance (cross-cutting capabilities)
+
+| Capability | Phase | Host Module | Description |
+|------------|-------|-------------|-------------|
+| Budget & Spend Governance | 1A | Strategy Engine (#21) + Budget Governance doc | Pre-flight cost checks, brand spend caps, burn rate tracking |
+| Configurable Approval Chains | 1B | Review Packet Engine (#19) | Role-based multi-step approval with threshold escalation and auto-approve rules |
+| Plan Versioning & Diff | 1C | Plan Object Schema | Immutable version snapshots, rollback support, audit integration |
+| Capacity Planning & Queue Mgmt | 2A | Strategy Engine (#21) | Provider rate limits, queue priority scoring, backpressure |
+| SLA & Deadline Enforcement | 2B | Plan Object Schema + Strategy Engine (#21) | Critical path calculation, escalation triggers, compliance metrics |
+| Forecasting & What-If | 2C | Strategy Engine (#21) | Dry-run simulation of cost, capacity, and SLA risk |
+| Plan Templates & Playbooks | 3A | Strategy Engine (#21) | Reusable campaign blueprints by vertical |
+| Dependency Tracking (DAG) | 3B | Plan Object Schema | Blocking/informing relationships between plans |
+| Schedule Conflict Resolution | 3C | Strategy Engine (#21) | Platform posting limits, conflict detection and auto-resolution |
+| Cross-Brand Portfolio View | 3D | Strategy Engine (#21) | Agency-tier unified dashboard, portfolio budget governance |
 
 ---
 
