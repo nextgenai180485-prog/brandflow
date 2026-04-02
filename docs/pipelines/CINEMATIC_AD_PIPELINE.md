@@ -142,11 +142,25 @@ G – Guidance:
       "scene": "Scene X - Title of Scene",
       "starting_image_prompt": "Composition: ...\nLighting: ...\nEnvironment: ...\nAction: ...\nRefinements: ...\nCamera: ...\nAesthetic: ...\nMood: ...\nSubject: ...",
       "ending_image_prompt": "Short 1-2 sentence evolution of starting frame",
-      "transition_prompt": "Short 1-2 sentence camera/character action"
+      "camera_motion": {
+        "move_type": "DOLLY_IN",
+        "intensity": 0.3,
+        "speed_curve": "EASE_IN_OUT"
+      },
+      "scene_transition": {
+        "type": "DISSOLVE",
+        "duration_ms": 1000
+      },
+      "interpolation": {
+        "style": "SMOOTH",
+        "easing": "EASE_IN_OUT"
+      }
     }
   ]
 }
 ```
+
+> **Migration note**: The `transition_prompt` string field is replaced by structured `camera_motion`, `scene_transition`, and `interpolation` objects. See `engines/CAMERA_MOTION_ENGINE.md` (Module #24) for full schema. At runtime, the Camera Motion Engine translates structured parameters to provider-specific prompt text via `translateCameraMotion()`.
 
 ---
 
