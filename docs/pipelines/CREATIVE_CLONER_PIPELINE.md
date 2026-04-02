@@ -7,6 +7,8 @@
 
 ## Architecture Overview
 
+> **Stage 0 — Creative Direction (Module #23)**: Before video analysis begins, business inputs are processed through the Creative Direction Engine to establish ad angle, brand constraints, and offer emphasis. This ensures the recreation serves a commercial objective, not just structural replication. Camera motion presets (Module #24) are applied to the recreation plan. See `engines/CREATIVE_DIRECTION_ENGINE.md`.
+
 ```
 INPUT VIDEO + REFERENCE IMAGES
         │

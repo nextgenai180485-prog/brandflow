@@ -1,8 +1,8 @@
 # Pipeline Contracts — Standardized Input/Output Reference
 
 > **Status**: Design reference — master contract for all 8 pipeline families  
-> **Last updated**: 2026-03-31  
-> **Engine count**: 22 modules + 1 workflow — see ENGINE_MODULE_REGISTRY.md
+> **Last updated**: 2026-04-02  
+> **Engine count**: 24 modules + 1 workflow — see ENGINE_MODULE_REGISTRY.md
 
 ---
 
@@ -21,7 +21,7 @@ Each pipeline family has a standardized contract defining its inputs, outputs, a
 | **Input** | Reference image URL, video count, dialogue (optional), model, aspect ratio, special requests |
 | **Output** | Individual video clips (Variant A) or single merged video (Variant B) |
 | **Primary Deliverable** | MP4 video file(s) |
-| **Engine Modules** | Asset Analyzer, Creative Director Agent, Plan Review Gate, Revision Agent, Core Elements Board, Music Engine (optional), Assembly Engine, Re-entry Controller, Provider & Tier Routing, UGC Voiceover (optional), Character Consistency (multi-scene), Brand Voice DNA (dialogue) |
+| **Engine Modules** | **Creative Direction (#23)**, Asset Analyzer, Creative Director Agent, Plan Review Gate, Revision Agent, Core Elements Board, Music Engine (optional), Assembly Engine, Re-entry Controller, Provider & Tier Routing, UGC Voiceover (optional), Character Consistency (multi-scene), Brand Voice DNA (dialogue), Camera Motion (#24, optional) |
 | **Doc** | `pipelines/UGC_VIDEO_PIPELINE.md` |
 
 ### F2 — AI Spokesperson (Lip-Sync Talking Head)
@@ -31,7 +31,7 @@ Each pipeline family has a standardized contract defining its inputs, outputs, a
 | **Input** | Script, spokesperson photo, voice mode (upload/TTS/clone), aspect ratio |
 | **Output** | Lip-synced talking-head video with optional music and captions |
 | **Primary Deliverable** | MP4 video file |
-| **Engine Modules** | Asset Analyzer, Creative Director Agent (script enhancement), Plan Review Gate, Revision Agent, Hook Library, Music Engine (optional), Assembly Engine, Re-entry Controller, Provider & Tier Routing, Motion Variant Selector, Brand Voice DNA |
+| **Engine Modules** | **Creative Direction (#23)**, Asset Analyzer, Creative Director Agent (script enhancement), Plan Review Gate, Revision Agent, Hook Library, Music Engine (optional), Assembly Engine, Re-entry Controller, Provider & Tier Routing, Motion Variant Selector, Brand Voice DNA |
 | **Doc** | `pipelines/AI_SPOKESPERSON_PIPELINE.md` |
 
 ### F3 — Product Videography
@@ -41,7 +41,7 @@ Each pipeline family has a standardized contract defining its inputs, outputs, a
 | **Input** | Product image, core elements board, creative direction, aspect ratio |
 | **Output** | Product showcase video with start/end frames per scene |
 | **Primary Deliverable** | MP4 video file |
-| **Engine Modules** | Asset Analyzer, Creative Director Agent, Plan Review Gate, Revision Agent, SEALCaM, Core Elements Board, Music Engine (optional), Assembly Engine, Re-entry Controller (reference pattern), Provider & Tier Routing |
+| **Engine Modules** | **Creative Direction (#23)**, Asset Analyzer, Creative Director Agent, Plan Review Gate, Revision Agent, SEALCaM, Core Elements Board, Music Engine (optional), Assembly Engine, Re-entry Controller (reference pattern), Provider & Tier Routing, **Camera Motion & Transition (#24)** |
 | **Doc** | `pipelines/PRODUCT_VIDEOGRAPHY_PIPELINE.md` |
 
 ### F4 — Social Content Batch
@@ -51,7 +51,7 @@ Each pipeline family has a standardized contract defining its inputs, outputs, a
 | **Input** | Topic, keywords (optional), link (optional) |
 | **Output** | Platform-optimized posts for 7 platforms + generated image(s) |
 | **Primary Deliverable** | JSON with per-platform content + image URLs |
-| **Engine Modules** | Creative Director Agent, Plan Review Gate, Revision Agent, Hook Library, Core Elements Board, Re-entry Controller, Template-Driven Image Composer, Brand Voice DNA, Provider & Tier Routing |
+| **Engine Modules** | **Creative Direction (#23)**, Creative Director Agent, Plan Review Gate, Revision Agent, Hook Library, Core Elements Board, Re-entry Controller, Template-Driven Image Composer, Brand Voice DNA, Provider & Tier Routing |
 | **Doc** | `pipelines/SOCIAL_CONTENT_PIPELINE.md` |
 
 ### F5 — Cinematic Ad
@@ -61,7 +61,7 @@ Each pipeline family has a standardized contract defining its inputs, outputs, a
 | **Input** | Creative direction, core image, core elements board, aspect ratio, voice ID |
 | **Output** | Full cinematic ad with synced video, music, and voiceover |
 | **Primary Deliverable** | MP4 video file |
-| **Engine Modules** | Asset Analyzer, Creative Director Agent, Plan Review Gate, Revision Agent, SEALCaM, Core Elements Board, Hook Library, Music Engine, Assembly Engine, Re-entry Controller, Provider & Tier Routing, Character Consistency, Brand Voice DNA |
+| **Engine Modules** | **Creative Direction (#23)**, Asset Analyzer, Creative Director Agent, Plan Review Gate, Revision Agent, SEALCaM, Core Elements Board, Hook Library, Music Engine, Assembly Engine, Re-entry Controller, Provider & Tier Routing, Character Consistency, Brand Voice DNA, **Camera Motion & Transition (#24)** |
 | **Doc** | `pipelines/CINEMATIC_AD_PIPELINE.md` |
 
 ### F6 — Core Elements Board
@@ -81,7 +81,7 @@ Each pipeline family has a standardized contract defining its inputs, outputs, a
 | **Input** | Reference image, creative brief |
 | **Output** | Single polished product ad (image + video) + caption |
 | **Primary Deliverable** | MP4 video file + image + caption |
-| **Engine Modules** | Asset Analyzer, Creative Director Agent (reference pattern), Plan Review Gate (reference pattern), Revision Agent (reference pattern), SEALCaM (includes F7 normalization), Core Elements Board, Hook Library, Music Engine (optional), Assembly Engine, Re-entry Controller, Provider & Tier Routing, Brand Voice DNA |
+| **Engine Modules** | **Creative Direction (#23)**, Asset Analyzer, Creative Director Agent (reference pattern), Plan Review Gate (reference pattern), Revision Agent (reference pattern), SEALCaM (includes F7 normalization), Core Elements Board, Hook Library, Music Engine (optional), Assembly Engine, Re-entry Controller, Provider & Tier Routing, Brand Voice DNA, **Camera Motion & Transition (#24)** |
 | **Doc** | `pipelines/AD_CREATOR_PIPELINE.md` |
 
 ### F8 — Creative Cloner
@@ -91,7 +91,7 @@ Each pipeline family has a standardized contract defining its inputs, outputs, a
 | **Input** | Source video URL, reference images, brand brief |
 | **Output** | Recreated video preserving original cinematic structure |
 | **Primary Deliverable** | MP4 video file |
-| **Engine Modules** | Asset Analyzer (reference pattern), Creative Director Agent, Plan Review Gate, Revision Agent, SEALCaM (reference pattern), Core Elements Board, Hook Library, Music Engine, Assembly Engine, Re-entry Controller, Provider & Tier Routing, Character Consistency, Brand Voice DNA |
+| **Engine Modules** | **Creative Direction (#23)**, Asset Analyzer (reference pattern), Creative Director Agent, Plan Review Gate, Revision Agent, SEALCaM (reference pattern), Core Elements Board, Hook Library, Music Engine, Assembly Engine, Re-entry Controller, Provider & Tier Routing, Character Consistency, Brand Voice DNA, **Camera Motion & Transition (#24)** |
 | **Doc** | `pipelines/CREATIVE_CLONER_PIPELINE.md` |
 
 ---
@@ -102,8 +102,10 @@ Each pipeline family has a standardized contract defining its inputs, outputs, a
 
 Every family follows this abstract stage flow:
 ```
-brief_intake → asset_analysis → planning → plan_review → [revision_loop] → generation → assembly → post_production → [localization] → delivery
+creative_direction → asset_analysis → planning → plan_review → [revision_loop] → generation → assembly → post_production → [localization] → delivery
 ```
+
+**Stage 0 — Creative Direction (Module #23)**: Mandatory for all video families (F1–F5, F7, F8). Transforms business inputs into a strategic creative brief containing ad angle, hook logic, scene architecture with camera presets (Module #24), offer emphasis, and emotional arc. Output feeds into Plan Review Gate for user approval before any generation.
 
 Specific stage names vary per family but map to this pattern.
 
@@ -350,7 +352,7 @@ These boundaries were established during the engine overlap audit to eliminate d
 
 | Document | Purpose |
 |----------|---------|
-| `ENGINE_MODULE_REGISTRY.md` | Master registry of all 22 engine modules |
+| `ENGINE_MODULE_REGISTRY.md` | Master registry of all 24 engine modules |
 | `PLAN_OBJECT_SCHEMA.md` | Unified plan object contract |
 | `pipelines/CROSS_FAMILY_ENGINE_AUDIT.md` | Original audit identifying shared patterns |
 | `BRANDFLOW_FEATURE_GAPS.md` | Feature expansion gaps beyond engine modules |

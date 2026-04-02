@@ -1,15 +1,15 @@
 # Engine Module Registry — Brandflow Enterprise Engine Layer
 
 > **Status**: Design reference — master index of all shared engine modules  
-> **Last updated**: 2026-03-31  
-> **Module count**: 22 modules + 1 workflow  
-> **Consolidation note**: Merged Prompt Schema Normalizer into SEALCaM (#5) and Tier Router + Provider Routing into a unified Provider & Tier Routing Engine (#9). Added Module #17 for post-production finishing, Module #18 for localization & cultural adaptation, Module #19 for review packets, Module #20 for voice management, Module #21 for strategy planning, and Module #22 for performance feedback.
+> **Last updated**: 2026-04-02  
+> **Module count**: 24 modules + 1 workflow  
+> **Consolidation note**: Merged Prompt Schema Normalizer into SEALCaM (#5) and Tier Router + Provider Routing into a unified Provider & Tier Routing Engine (#9). Added Module #17 for post-production finishing, Module #18 for localization & cultural adaptation, Module #19 for review packets, Module #20 for voice management, Module #21 for strategy planning, Module #22 for performance feedback, Module #23 for creative direction, and Module #24 for camera motion & transitions.
 
 ---
 
 ## Overview
 
-The enterprise engine layer consists of 22 shared modules that sit between family-specific orchestration logic and provider adapters. Each module is documented in its own design doc and adopted across multiple pipeline families.
+The enterprise engine layer consists of 24 shared modules that sit between family-specific orchestration logic and provider adapters. Each module is documented in its own design doc and adopted across multiple pipeline families.
 
 ---
 
@@ -46,6 +46,8 @@ The enterprise engine layer consists of 22 shared modules that sit between famil
 | 20 | Voice Management Engine | `engines/VOICE_MANAGEMENT_ENGINE.md` | Cross-family | Designed |
 | 21 | Strategy Engine | `engines/STRATEGY_ENGINE.md` | Cross-family | Designed |
 | 22 | Performance Feedback Engine | `engines/PERFORMANCE_FEEDBACK_ENGINE.md` | Cross-family | Designed |
+| 23 | Creative Direction Engine | `engines/CREATIVE_DIRECTION_ENGINE.md` | Cross-family (mandatory Stage 1) | Designed |
+| 24 | Camera Motion & Transition Engine | `engines/CAMERA_MOTION_ENGINE.md` | F1, F3, F5, F7, F8 | Designed |
 
 ### Workflows
 
@@ -113,6 +115,8 @@ The enterprise engine layer consists of 22 shared modules that sit between famil
 | 20. Voice Management | ✅ | ✅ | opt | — | ✅ | — | opt | ✅ |
 | 21. Strategy Engine | ✅ | ✅ | ✅ | ✅ | ✅ | — | ✅ | ✅ |
 | 22. Performance Feedback | ✅ | ✅ | ✅ | ✅ | ✅ | — | ✅ | ✅ |
+| 23. Creative Direction | ✅ | ✅ | ✅ | ✅ | ✅ | — | ✅ | ✅ |
+| 24. Camera Motion & Transition | ✅ | — | ✅ | — | ✅ | — | ✅ | ✅ |
 
 ---
 
@@ -155,4 +159,8 @@ Phase F — Approval & Scaling
 Phase G — Strategy & Learning
   ├── 21. Strategy Engine
   └── 22. Performance Feedback Engine
+
+Phase H — Premium Cinematic (enterprise-grade)
+  ├── 23. Creative Direction Engine (mandatory Stage 1 for all video families)
+  └── 24. Camera Motion & Transition Engine
 ```

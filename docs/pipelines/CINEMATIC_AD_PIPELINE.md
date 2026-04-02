@@ -142,11 +142,25 @@ G – Guidance:
       "scene": "Scene X - Title of Scene",
       "starting_image_prompt": "Composition: ...\nLighting: ...\nEnvironment: ...\nAction: ...\nRefinements: ...\nCamera: ...\nAesthetic: ...\nMood: ...\nSubject: ...",
       "ending_image_prompt": "Short 1-2 sentence evolution of starting frame",
-      "transition_prompt": "Short 1-2 sentence camera/character action"
+      "camera_motion": {
+        "move_type": "DOLLY_IN",
+        "intensity": 0.3,
+        "speed_curve": "EASE_IN_OUT"
+      },
+      "scene_transition": {
+        "type": "DISSOLVE",
+        "duration_ms": 1000
+      },
+      "interpolation": {
+        "style": "SMOOTH",
+        "easing": "EASE_IN_OUT"
+      }
     }
   ]
 }
 ```
+
+> **Migration note**: The `transition_prompt` string field is replaced by structured `camera_motion`, `scene_transition`, and `interpolation` objects. See `engines/CAMERA_MOTION_ENGINE.md` (Module #24) for full schema. At runtime, the Camera Motion Engine translates structured parameters to provider-specific prompt text via `translateCameraMotion()`.
 
 ---
 
@@ -378,6 +392,10 @@ Each lane runs independently on its own schedule:
 
 > Applied from Cross-Family Engine Audit — standardizes this pipeline with enterprise-grade shared modules.
 
+### 0. Creative Direction Engine (new Stage 0 — Module #23)
+
+**Mandatory first stage** — transforms business inputs into a strategic creative brief before any scene planning occurs. Output includes ad angle, hook logic, scene architecture with camera presets from Module #24, offer emphasis, and emotional arc. See `engines/CREATIVE_DIRECTION_ENGINE.md` for full specification.
+
 ### 1. Asset Analyzer (replaces Stage 2)
 
 Switch from Gemini free-text to the unified `AnalyzeAsset` Edge Function:
@@ -411,7 +429,7 @@ When user rejects the plan:
 
 ### 5. SEALCaM Adoption
 
-Convert existing YAML-style scene prompts to SEALCaM 6-field standard:
+Convert existing YAML-style scene prompts to SEALCaM 6-field standard with **structured camera motion**:
 
 | Current Field | SEALCaM Field |
 |---------------|---------------|
@@ -420,11 +438,14 @@ Convert existing YAML-style scene prompts to SEALCaM 6-field standard:
 | Environment | Environment |
 | Action | Action |
 | Refinements | Metatokens |
-| Camera | Camera |
+| Camera | `camera_motion` (structured — Module #24) |
 | Aesthetic + Mood + Subject | Metatokens (appended) |
+| ~~transition_prompt~~ | `camera_motion` + `scene_transition` + `interpolation` (structured — Module #24) |
 
 - Enables template reuse across F3, F5, F7, F8
 - Existing prompt quality maintained — format standardization only
+- Camera motion is now a structured `CameraMotion` object, not freeform text
+- Scene transitions are explicit types (CUT, DISSOLVE, MATCH_CUT, etc.) handled by Assembly Engine (#8) via FFmpeg
 
 ### 6. Hook Library Injection
 

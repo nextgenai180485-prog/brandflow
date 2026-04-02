@@ -121,9 +121,40 @@ interface SEALCaMScene {
   environment: string;
   action: string;
   lighting: string;
-  camera: string;
+  camera_motion: CameraMotion;        // structured camera — see engines/CAMERA_MOTION_ENGINE.md
   metatokens: string;
+  scene_transition?: SceneTransition;  // inter-scene transition control
+  interpolation?: Interpolation;       // intra-scene start/end frame bridging
 }
+
+// Backward compatibility: legacy scenes with camera: string are still supported.
+// The buildSEALCaMPrompt() function detects the type and handles both.
+
+// CameraMotion, SceneTransition, and Interpolation types are defined in
+// engines/CAMERA_MOTION_ENGINE.md — Module #24
+```
+
+### Updated Prompt Builder
+
+```typescript
+function buildSEALCaMPrompt(scene: SEALCaMScene, provider?: string): string {
+  // Translate structured camera_motion to provider-specific text
+  const cameraText = typeof scene.camera_motion === 'string'
+    ? scene.camera_motion  // legacy string support
+    : translateCameraMotion(scene.camera_motion, provider ?? 'veo3');
+
+  return [
+    scene.subject,
+    scene.environment,
+    scene.action,
+    scene.lighting,
+    cameraText,
+    scene.metatokens
+  ].join('. ') + '.';
+}
+
+// translateCameraMotion() is provided by Camera Motion Engine (#24)
+// See engines/CAMERA_MOTION_ENGINE.md for provider-specific translation logic
 ```
 
 ---

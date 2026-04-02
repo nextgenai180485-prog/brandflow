@@ -26,6 +26,12 @@ Telegram Trigger (photo + caption) → Get Image Path → Analyze Image (GPT-4o 
 
 ---
 
+## Stage 0: Creative Direction (Module #23)
+
+**Mandatory first stage** — transforms the creative brief into a strategic ad concept before the Creative Director Agent runs. For F7, this feeds the gold-standard AGENT framework with pre-reasoned ad angles, hook logic, and camera motion presets (Module #24). See `engines/CREATIVE_DIRECTION_ENGINE.md`.
+
+---
+
 ## Stage 1: Brief Intake
 
 **Source**: Telegram photo + caption (Brandflow: web UI upload + form)

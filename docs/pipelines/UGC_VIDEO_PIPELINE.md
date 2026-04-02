@@ -21,6 +21,12 @@ Brief Intake → Analyze Image → Scene Planning (AI Agent) → Split Scenes
 
 ---
 
+## Stage 0: Creative Direction (Module #23)
+
+**Mandatory first stage** — transforms business inputs (brand, product, audience, platform) into a strategic creative brief before scene planning. For F1 UGC, this stage applies authenticity-biased angle selection, casual hook styles, and single-character framing. Output feeds into the Plan Review Gate for user approval. See `engines/CREATIVE_DIRECTION_ENGINE.md`.
+
+---
+
 ## Stage 1: Brief Intake
 
 **Purpose**: Collect all user inputs needed for generation.
