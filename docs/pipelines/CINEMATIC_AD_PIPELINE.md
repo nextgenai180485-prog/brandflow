@@ -429,7 +429,7 @@ When user rejects the plan:
 
 ### 5. SEALCaM Adoption
 
-Convert existing YAML-style scene prompts to SEALCaM 6-field standard:
+Convert existing YAML-style scene prompts to SEALCaM 6-field standard with **structured camera motion**:
 
 | Current Field | SEALCaM Field |
 |---------------|---------------|
@@ -438,11 +438,14 @@ Convert existing YAML-style scene prompts to SEALCaM 6-field standard:
 | Environment | Environment |
 | Action | Action |
 | Refinements | Metatokens |
-| Camera | Camera |
+| Camera | `camera_motion` (structured — Module #24) |
 | Aesthetic + Mood + Subject | Metatokens (appended) |
+| ~~transition_prompt~~ | `camera_motion` + `scene_transition` + `interpolation` (structured — Module #24) |
 
 - Enables template reuse across F3, F5, F7, F8
 - Existing prompt quality maintained — format standardization only
+- Camera motion is now a structured `CameraMotion` object, not freeform text
+- Scene transitions are explicit types (CUT, DISSOLVE, MATCH_CUT, etc.) handled by Assembly Engine (#8) via FFmpeg
 
 ### 6. Hook Library Injection
 

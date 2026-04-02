@@ -284,3 +284,19 @@ CREATE TABLE provider_status (
 5. **Provider-specific polling patterns** — Kie AI uses `taskId`, Fal.ai uses `response_url`, WaveSpeed uses `request_id`. The routing layer must abstract these differences.
 6. **Alert on failover** — notify system admins when any provider enters `degraded` or `down` state.
 7. **Tier override** — users on Enterprise plan can force `production` tier on first generation (skip draft).
+
+---
+
+## Camera Capability Matrix
+
+See `engines/CAMERA_MOTION_ENGINE.md` (Module #24) for the full provider camera capability matrix. Key summary:
+
+| Capability | Veo3 | Kling 2.6 | Runway Gen-4 | Seedance 1.0 |
+|------------|------|-----------|---------------|--------------|
+| Basic moves (dolly, pan, tilt) | ✅ text | ✅ text | ✅ native | ✅ text |
+| Advanced moves (crane, orbit) | ✅ text | ⚠️ partial | ⚠️ partial | ❌ |
+| Motion intensity control | via word choice | via word choice | native param | ❌ |
+| Rack focus | ⚠️ text hint | ❌ | ❌ | ❌ |
+| Handheld simulation | ✅ text | ✅ text | ❌ | ❌ |
+
+The Camera Motion Engine (#24) translates structured `CameraMotion` parameters to provider-optimized prompt syntax, with automatic fallback moves when a provider doesn't support a requested move type.

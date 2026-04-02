@@ -28,6 +28,12 @@ User Photo + Script
 
 ---
 
+## Stage 0: Creative Direction (Module #23)
+
+**Mandatory first stage** — transforms business inputs into a strategic creative brief optimized for spokesperson content. For F2, this stage applies authority-biased angle selection, script-first flow, and direct-address hook styles. Output includes talking points, CTA placement logic, and script structure. See `engines/CREATIVE_DIRECTION_ENGINE.md`.
+
+---
+
 ## Stage 1: Brief Intake
 
 **Source**: Brandflow web UI form

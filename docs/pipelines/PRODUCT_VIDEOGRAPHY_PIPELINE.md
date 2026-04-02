@@ -37,6 +37,12 @@ This allows the workflow to be re-triggered at any stage (e.g., after manual pro
 
 ---
 
+## Stage 0: Creative Direction (Module #23)
+
+**Mandatory first stage** — transforms business inputs into a strategic creative brief for product showcase. For F3, this stage applies lifestyle-biased angle selection, visual hook strategies, and product hero emphasis. Camera motion presets (Module #24) default to `DOLLY_IN` at `intensity: 0.2` with `EASE_IN_OUT` for premium macro cinematography. See `engines/CREATIVE_DIRECTION_ENGINE.md`.
+
+---
+
 ## Stage 1: Brief Intake
 
 **Source**: Airtable project record (Brandflow: web UI form)
