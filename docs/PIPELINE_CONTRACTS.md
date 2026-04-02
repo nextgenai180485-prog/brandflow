@@ -102,8 +102,10 @@ Each pipeline family has a standardized contract defining its inputs, outputs, a
 
 Every family follows this abstract stage flow:
 ```
-brief_intake → asset_analysis → planning → plan_review → [revision_loop] → generation → assembly → post_production → [localization] → delivery
+creative_direction → asset_analysis → planning → plan_review → [revision_loop] → generation → assembly → post_production → [localization] → delivery
 ```
+
+**Stage 0 — Creative Direction (Module #23)**: Mandatory for all video families (F1–F5, F7, F8). Transforms business inputs into a strategic creative brief containing ad angle, hook logic, scene architecture with camera presets (Module #24), offer emphasis, and emotional arc. Output feeds into Plan Review Gate for user approval before any generation.
 
 Specific stage names vary per family but map to this pattern.
 
