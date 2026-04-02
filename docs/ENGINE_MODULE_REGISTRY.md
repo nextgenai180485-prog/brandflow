@@ -115,6 +115,8 @@ The enterprise engine layer consists of 24 shared modules that sit between famil
 | 20. Voice Management | ✅ | ✅ | opt | — | ✅ | — | opt | ✅ |
 | 21. Strategy Engine | ✅ | ✅ | ✅ | ✅ | ✅ | — | ✅ | ✅ |
 | 22. Performance Feedback | ✅ | ✅ | ✅ | ✅ | ✅ | — | ✅ | ✅ |
+| 23. Creative Direction | ✅ | ✅ | ✅ | ✅ | ✅ | — | ✅ | ✅ |
+| 24. Camera Motion & Transition | ✅ | — | ✅ | — | ✅ | — | ✅ | ✅ |
 
 ---
 
