@@ -392,6 +392,10 @@ Each lane runs independently on its own schedule:
 
 > Applied from Cross-Family Engine Audit — standardizes this pipeline with enterprise-grade shared modules.
 
+### 0. Creative Direction Engine (new Stage 0 — Module #23)
+
+**Mandatory first stage** — transforms business inputs into a strategic creative brief before any scene planning occurs. Output includes ad angle, hook logic, scene architecture with camera presets from Module #24, offer emphasis, and emotional arc. See `engines/CREATIVE_DIRECTION_ENGINE.md` for full specification.
+
 ### 1. Asset Analyzer (replaces Stage 2)
 
 Switch from Gemini free-text to the unified `AnalyzeAsset` Edge Function:
