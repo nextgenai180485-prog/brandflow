@@ -41,7 +41,7 @@ Each pipeline family has a standardized contract defining its inputs, outputs, a
 | **Input** | Product image, core elements board, creative direction, aspect ratio |
 | **Output** | Product showcase video with start/end frames per scene |
 | **Primary Deliverable** | MP4 video file |
-| **Engine Modules** | Asset Analyzer, Creative Director Agent, Plan Review Gate, Revision Agent, SEALCaM, Core Elements Board, Music Engine (optional), Assembly Engine, Re-entry Controller (reference pattern), Provider & Tier Routing |
+| **Engine Modules** | **Creative Direction (#23)**, Asset Analyzer, Creative Director Agent, Plan Review Gate, Revision Agent, SEALCaM, Core Elements Board, Music Engine (optional), Assembly Engine, Re-entry Controller (reference pattern), Provider & Tier Routing, **Camera Motion & Transition (#24)** |
 | **Doc** | `pipelines/PRODUCT_VIDEOGRAPHY_PIPELINE.md` |
 
 ### F4 — Social Content Batch
