@@ -159,4 +159,8 @@ Phase F — Approval & Scaling
 Phase G — Strategy & Learning
   ├── 21. Strategy Engine
   └── 22. Performance Feedback Engine
+
+Phase H — Premium Cinematic (enterprise-grade)
+  ├── 23. Creative Direction Engine (mandatory Stage 1 for all video families)
+  └── 24. Camera Motion & Transition Engine
 ```

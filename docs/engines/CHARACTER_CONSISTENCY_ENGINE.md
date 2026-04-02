@@ -127,6 +127,87 @@ After each scene is generated, optionally run a consistency check:
 
 ---
 
+## Consistency Hardening (85% → 95% Target)
+
+### 1. Structured Appearance Locking
+
+Convert canonical descriptors to **per-provider optimized constraint prompts** instead of generic text injection:
+
+| Provider | Constraint Strategy |
+|----------|-------------------|
+| **Veo3** | Append `"CRITICAL: Maintain exact character appearance: [descriptor]. DO NOT alter any facial features, hair, or clothing."` as a priority block at prompt start |
+| **Kling 2.6** | Use `character_reference` parameter (when available) + text descriptor as reinforcement |
+| **Runway Gen-4** | Use `character_reference_image` API parameter + text descriptor |
+| **WaveSpeed nano-banana-pro** | Pass `character_seed_reference` in `images[]` array alongside scene reference |
+
+### 2. Scene-Chain Validation Gate
+
+After each scene generates, run an automated consistency check before proceeding:
+
+```text
+Scene N generated
+  │
+  ▼
+Extract face region from generated frame
+  │
+  ▼
+Compare against character_seed_reference (vision model)
+  │
+  ▼
+Score: 0.0 – 1.0
+  │
+  ├─ Score ≥ 0.85 → Pass — proceed to Scene N+1
+  ├─ Score 0.70–0.84 → Regenerate with strengthened descriptor
+  │   ├─ Add "EXACT MATCH REQUIRED" prefix
+  │   ├─ Include character_seed_reference as additional image input
+  │   └─ Max 2 retries before flagging for user review
+  └─ Score < 0.70 → Fail — flag for user review, do not proceed
+```
+
+**Strengthened descriptor template** (used on retry):
+```
+## CHARACTER IDENTITY — EXACT MATCH REQUIRED
+You MUST reproduce this EXACT person. Any deviation is unacceptable.
+- Face: {{canonical_descriptor.appearance}}
+- Hair: {{canonical_descriptor.hair}} — EXACT color, length, texture
+- Outfit: {{canonical_descriptor.outfit}} — EXACT clothing, no substitutions
+- Expression: {{canonical_descriptor.expression}}
+- Features: {{canonical_descriptor.distinguishing_features}}
+
+Reference image attached. Match this person EXACTLY.
+```
+
+### 3. End-Frame Quality Gate
+
+Before passing an end-frame to the next scene as a reference:
+
+1. **Face detection check**: Verify face is visible and unobstructed in end-frame
+2. **Consistency score**: Compare end-frame face against `character_seed_reference`
+3. **If face not visible**: Use `character_seed_reference` instead of end-frame for next scene
+4. **If consistency < 0.80**: Use `character_seed_reference` + strengthened descriptor
+
+### 4. Provider-Specific Identity Hints
+
+Map character descriptors to provider-native features when available:
+
+| Provider | Native Feature | Integration |
+|----------|---------------|-------------|
+| **Kling 2.6** | Character reference image parameter | Pass `character_seed_reference` as `character_ref` |
+| **Runway Gen-4** | Character consistency mode | Enable `character_consistency: true` + reference image |
+| **Veo3** | Identity tokens (future) | Placeholder — use text + image reference for now |
+| **Seedance 1.0** | Face reference (beta) | Pass reference when API supports it |
+
+### 5. Outfit Drift Prevention
+
+Outfit changes are the #1 source of consistency breaks. Mitigation:
+
+- **Outfit descriptor is repeated verbatim** in every scene prompt — no paraphrasing
+- **Color hex codes included**: e.g., `"Navy blazer (#1B2A4A) over sage green top (#8BA888)"`
+- **Accessory list explicit**: `"Gold hoop earrings, no necklace, no glasses"`
+- **Negative guidance**: `"Do NOT change clothing. Do NOT add accessories not in the descriptor."`
+
+---
+
 ## Key Design Notes
 
 1. **Text descriptor is the primary consistency mechanism** — image-to-image reference is supplementary
@@ -134,3 +215,6 @@ After each scene is generated, optionally run a consistency check:
 3. **Character identity embedding is future-proofing** — not required for MVP
 4. **Works with AI-generated characters too** — the canonical descriptor is extracted from the first generated frame if no real photo is provided
 5. **Outfit consistency is the hardest problem** — explicitly include outfit details in every prompt
+6. **Scene-chain validation adds ~5-10s per scene** — acceptable given the quality improvement
+7. **Strengthened descriptors on retry are aggressive by design** — better to over-constrain than lose character identity
+8. **Provider-native features are additive** — always use text descriptor as baseline, provider features as reinforcement
