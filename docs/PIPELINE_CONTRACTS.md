@@ -352,7 +352,7 @@ These boundaries were established during the engine overlap audit to eliminate d
 
 | Document | Purpose |
 |----------|---------|
-| `ENGINE_MODULE_REGISTRY.md` | Master registry of all 22 engine modules |
+| `ENGINE_MODULE_REGISTRY.md` | Master registry of all 24 engine modules |
 | `PLAN_OBJECT_SCHEMA.md` | Unified plan object contract |
 | `pipelines/CROSS_FAMILY_ENGINE_AUDIT.md` | Original audit identifying shared patterns |
 | `BRANDFLOW_FEATURE_GAPS.md` | Feature expansion gaps beyond engine modules |
