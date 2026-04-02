@@ -46,6 +46,8 @@ The enterprise engine layer consists of 24 shared modules that sit between famil
 | 20 | Voice Management Engine | `engines/VOICE_MANAGEMENT_ENGINE.md` | Cross-family | Designed |
 | 21 | Strategy Engine | `engines/STRATEGY_ENGINE.md` | Cross-family | Designed |
 | 22 | Performance Feedback Engine | `engines/PERFORMANCE_FEEDBACK_ENGINE.md` | Cross-family | Designed |
+| 23 | Creative Direction Engine | `engines/CREATIVE_DIRECTION_ENGINE.md` | Cross-family (mandatory Stage 1) | Designed |
+| 24 | Camera Motion & Transition Engine | `engines/CAMERA_MOTION_ENGINE.md` | F1, F3, F5, F7, F8 | Designed |
 
 ### Workflows
 
