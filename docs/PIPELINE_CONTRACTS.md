@@ -61,7 +61,7 @@ Each pipeline family has a standardized contract defining its inputs, outputs, a
 | **Input** | Creative direction, core image, core elements board, aspect ratio, voice ID |
 | **Output** | Full cinematic ad with synced video, music, and voiceover |
 | **Primary Deliverable** | MP4 video file |
-| **Engine Modules** | Asset Analyzer, Creative Director Agent, Plan Review Gate, Revision Agent, SEALCaM, Core Elements Board, Hook Library, Music Engine, Assembly Engine, Re-entry Controller, Provider & Tier Routing, Character Consistency, Brand Voice DNA |
+| **Engine Modules** | **Creative Direction (#23)**, Asset Analyzer, Creative Director Agent, Plan Review Gate, Revision Agent, SEALCaM, Core Elements Board, Hook Library, Music Engine, Assembly Engine, Re-entry Controller, Provider & Tier Routing, Character Consistency, Brand Voice DNA, **Camera Motion & Transition (#24)** |
 | **Doc** | `pipelines/CINEMATIC_AD_PIPELINE.md` |
 
 ### F6 — Core Elements Board
