@@ -128,9 +128,12 @@ The enterprise engine layer consists of 27 shared modules, 3 architectural layer
 | 19. Review Packet | ✅ | ✅ | ✅ | ✅ | ✅ | — | ✅ | ✅ |
 | 20. Voice Management | ✅ | ✅ | opt | — | ✅ | — | opt | ✅ |
 | 21. Strategy Engine | ✅ | ✅ | ✅ | ✅ | ✅ | — | ✅ | ✅ |
-| 22. Performance Feedback | ✅ | ✅ | ✅ | ✅ | ✅ | — | ✅ | ✅ |
+| 22. Performance & Preference Feedback | ✅ | ✅ | ✅ | ✅ | ✅ | — | ✅ | ✅ |
 | 23. Creative Direction | ✅ | ✅ | ✅ | ✅ | ✅ | — | ✅ | ✅ |
 | 24. Camera Motion & Transition | ✅ | — | ✅ | — | ✅ | — | ✅ | ✅ |
+| 25. Research & Competitor Intel | ✅ | ✅ | ✅ | ✅ | ✅ | — | ✅ | ✅ |
+| 26. Decision Engine | ✅ | ✅ | ✅ | ✅ | ✅ | — | ✅ | ✅ |
+| 27. Social Publishing | ✅ | ✅ | ✅ | ✅ | ✅ | — | ✅ | ✅ |
 
 ---
 
