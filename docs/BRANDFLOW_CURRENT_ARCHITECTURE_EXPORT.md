@@ -407,6 +407,101 @@ Brandflow is an **AI-powered social media operating system** that transforms bus
 | **Pipeline Position** | Pre-generation — feeds structured params into SEALCaM (#5) and Assembly (#8) |
 | **Key Detail** | Provider translation layer maps structured params to: Veo3 (natural language with intensity keywords), Kling 2.6 (motion control parameters), Runway Gen-4 (camera motion presets + intensity) |
 
+### Research & Market Intelligence Layer ★ NEW
+
+#### Module #25 — Research & Competitor Intelligence Engine
+| Field | Value |
+|-------|-------|
+| **Purpose** | Gather external market context, competitor patterns, category norms, and trend signals before creative reasoning |
+| **Category** | Research / Market Intelligence |
+| **Doc** | `engines/RESEARCH_COMPETITOR_INTELLIGENCE_ENGINE.md` |
+| **Status** | Designed — not yet implemented |
+| **Inputs** | brand_id, initiative_id, vertical, product/service, target audience, platform targets, campaign objective |
+| **Outputs** | `internal_intelligence_brief.json` — brand_summary, current_offer, target_audience, target_channel, campaign_goal, category_patterns, competitor_patterns, opportunity_gap, reusable_assets_available, historical_performance_signals, confidence_score |
+| **Dependencies** | Brand Memory Engine, Category Intelligence Cache, Firecrawl |
+| **Pipeline Position** | Pre-generation step 5 — after Category Intelligence Cache, before Strategy Engine (#21) |
+| **Key Detail** | Architectural home for deep_search-style research. Supports cached and fresh research modes. Families must NOT call research directly |
+
+#### Brand Memory Engine (Architectural Layer)
+| Field | Value |
+|-------|-------|
+| **Purpose** | Store and retrieve long-term brand-specific intelligence: approved/rejected hooks, winning formats, voice preferences, visual style preferences, do-not-use patterns |
+| **Category** | Memory / Learning |
+| **Doc** | `engines/BRAND_MEMORY_ENGINE.md` |
+| **Status** | Designed — not yet implemented |
+| **Inputs** | brand_id, query context |
+| **Outputs** | Brand memory snapshot (approved hooks, rejected hooks, winning formats, do_not_use patterns, voice/visual preferences, approval_acceptance_rate, revision_patterns) |
+| **Dependencies** | Performance & Preference Feedback (#22) feeds memory updates |
+| **Pipeline Position** | Pre-generation step 3 — before research and decisioning |
+| **Key Detail** | Auto-detection: 5+ rejections → auto-flag do_not_use. Tables: brand_memory, asset_memory, preference_memory, creative_history, do_not_use_registry |
+
+#### Category Intelligence Cache (Architectural Layer)
+| Field | Value |
+|-------|-------|
+| **Purpose** | Reduce research cost/latency by caching reusable vertical/category intelligence |
+| **Category** | Research / Cache |
+| **Doc** | `engines/CATEGORY_INTELLIGENCE_CACHE.md` |
+| **Status** | Designed — not yet implemented |
+| **Inputs** | vertical, platform, region |
+| **Outputs** | Cached category intelligence with freshness window and confidence score |
+| **Dependencies** | Research Engine (#25) populates; invalidation policy refreshes stale data |
+| **Pipeline Position** | Pre-generation step 4 — before Research Engine (#25) |
+
+### Decision & Trust Layer ★ NEW
+
+#### Module #26 — Decision Engine
+| Field | Value |
+|-------|-------|
+| **Purpose** | Convert user intent + brand memory + market research into per-request strategic creative decision |
+| **Category** | Decision / Creative Strategy |
+| **Doc** | `engines/DECISION_ENGINE.md` |
+| **Status** | Designed — not yet implemented |
+| **Inputs** | User intent, initiative context, brand memory, category intelligence, intelligence_brief, performance signals, brand voice profile |
+| **Outputs** | `strategy_object.json` — angle, creative_family, hook_type, tone_profile, persona_alignment, platform_priority, cta_strategy, testing_plan, asset_selection_strategy, confidence_score |
+| **Dependencies** | Research Engine (#25), Brand Memory Engine, Category Intelligence Cache, Strategy Engine (#21), Hook Library (#11), Performance Feedback (#22) |
+| **Pipeline Position** | Pre-generation step 9 — after Hook Library, before Strategy Object Builder |
+| **Key Detail** | Strategy Engine = campaign planning (weekly). Decision Engine = per-request creative decisioning. Weighted angle scoring: prior_approval (0.25), performance (0.30), opportunity_gap (0.20), intent_alignment (0.25) |
+
+#### Strategy Object Builder (Architectural Layer)
+| Field | Value |
+|-------|-------|
+| **Purpose** | Transform Decision Engine output into family-specific generation instructions for F1–F9 |
+| **Category** | Decision / Transformation |
+| **Doc** | `engines/STRATEGY_OBJECT_BUILDER.md` |
+| **Status** | Designed — not yet implemented |
+| **Inputs** | strategy_object from Decision Engine (#26), target family |
+| **Outputs** | Family-specific generation instructions: prompt scaffolding, asset selection, scene architecture, format/platform constraints, variant planning |
+| **Dependencies** | Decision Engine (#26) |
+| **Pipeline Position** | Pre-generation step 10 — after Decision Engine, before Trust layer |
+
+#### Trust & Explainability Engine (Architectural Layer)
+| Field | Value |
+|-------|-------|
+| **Purpose** | Generate decision_trace explaining why creative decisions were made |
+| **Category** | Trust / Transparency |
+| **Doc** | `engines/TRUST_EXPLAINABILITY_ENGINE.md` |
+| **Status** | Designed — not yet implemented |
+| **Inputs** | strategy_object, decision rationale, research brief, brand memory snapshot |
+| **Outputs** | `decision_trace.json` — signals_used, rationale, rejected_alternatives, confidence, assumptions, next_test_recommendation |
+| **Dependencies** | Decision Engine (#26), Research Engine (#25) |
+| **Pipeline Position** | Pre-generation step 11 — after Strategy Object Builder, before Creative Director Agent (#1) |
+| **Key Detail** | Attached to every Review Packet. No "random asset selection" reasoning allowed |
+
+### Social Publishing Layer ★ NEW
+
+#### Module #27 — Social Publishing Engine
+| Field | Value |
+|-------|-------|
+| **Purpose** | Automate the "last mile" — publish approved content to connected social accounts |
+| **Category** | Delivery / Publishing |
+| **Doc** | `engines/SOCIAL_PUBLISHING_ENGINE.md` |
+| **Status** | Designed — not yet implemented |
+| **Inputs** | Approved production exports, platform targets, scheduling config, connected accounts |
+| **Outputs** | Publish status per platform, scheduled post IDs, failure handling, publish audit trail |
+| **Dependencies** | Delivery Packaging, Post-Production (#17) |
+| **Pipeline Position** | Post-delivery — after Delivery Packaging, before Performance Feedback (#22) |
+| **Key Detail** | Initial: Meta Graph API (Instagram, Facebook), TikTok API (planned). Architecture placeholder for LinkedIn/X |
+
 ### Workflows
 
 #### W6 — Campaign Multiplication Workflow
