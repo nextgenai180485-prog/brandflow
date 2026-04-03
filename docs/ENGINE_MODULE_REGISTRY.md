@@ -71,6 +71,7 @@ The enterprise engine layer consists of 24 shared modules that sit between famil
 | `PLAN_OBJECT_SCHEMA.md` | Unified plan object contract with versioning, budget check, capacity check, dependencies, and SLA enforcement |
 | `engines/BUDGET_GOVERNANCE.md` | Per-brand spend caps, campaign allocations, burn rate tracking, tier downgrade suggestions |
 | `OBSERVABILITY_CONTRACTS.md` | 3-layer observability: Event Bus, Metrics Aggregation, Audit Trail |
+| `BRANDFLOW_CURRENT_ARCHITECTURE_EXPORT.md` | Complete system architecture snapshot for enterprise upgrade review |
 
 ### Enterprise Planning Governance (cross-cutting capabilities)
 
