@@ -173,11 +173,22 @@ Phase F — Approval & Scaling
   ├── 20. Voice Management Engine
   └── W6. Campaign Multiplication Workflow
 
-Phase G — Strategy & Learning
-  ├── 21. Strategy Engine
-  └── 22. Performance Feedback Engine
+Phase G — Intelligence & Decisioning
+  ├── 25. Research & Competitor Intelligence Engine
+  ├── 26. Decision Engine
+  ├── Category Intelligence Cache (layer)
+  ├── Strategy Object Builder (layer)
+  └── Brand Memory Engine (layer)
 
-Phase H — Premium Cinematic (enterprise-grade)
-  ├── 23. Creative Direction Engine (mandatory Stage 1 for all video families)
+Phase H — Strategy & Learning
+  ├── 21. Strategy Engine
+  ├── 22. Performance & Preference Feedback Engine
+  └── Trust & Explainability Engine (layer)
+
+Phase I — Premium Cinematic (enterprise-grade)
+  ├── 23. Creative Direction Engine (mandatory Stage 0 for all video families)
   └── 24. Camera Motion & Transition Engine
+
+Phase J — Distribution
+  └── 27. Social Publishing Engine
 ```
