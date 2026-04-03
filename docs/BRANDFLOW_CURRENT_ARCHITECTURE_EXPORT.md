@@ -611,79 +611,90 @@ Brandflow is an **AI-powered social media operating system** that transforms bus
 
 ---
 
-## SECTION D — Pre-Generation Pipeline Order
+## SECTION D — Pre-Generation Pipeline Order (Enterprise-Upgraded)
 
-The exact ordered flow from user intent to generation trigger:
+The canonical 15-step research-backed pre-generation flow:
 
 ```
 Step 1:  User Intent Capture
          └─ User submits brief (brand, product, offer, audience, platform, duration, tone, assets)
          └─ System loads brand profile (colors, fonts, voice_profile, assets)
-         └─ System loads initiative context (campaign track, content pillar)
 
-Step 2:  Strategy Engine (#21) → Plan Object Creation
+Step 2:  Initiative Context Loading
+         └─ Load initiative context (campaign track, content pillar, plan_object_ref)
+         └─ Budget Governance pre-flight check
+         └─ Capacity check / queue management
+
+Step 3:  Brand Memory Retrieval ★ NEW
+         └─ Query Brand Memory Engine for brand_id
+         └─ Return: approved/rejected hooks, winning formats, do_not_use patterns,
+            voice preferences, visual style preferences, approval_acceptance_rate,
+            revision_patterns, asset reuse candidates, campaign history
+
+Step 4:  Category Intelligence Cache Check ★ NEW
+         └─ Check cache for vertical + platform + region
+         └─ If fresh (within freshness window) → return cached intelligence
+         └─ If stale → flag for fresh research in step 5
+
+Step 5:  Research & Competitor Intelligence Engine (#25) ★ NEW
+         └─ Competitor discovery and creative pattern extraction
+         └─ Category norms, premium signals, trend signals
+         └─ Visual cliché avoidance, audience expectation summaries
+         └─ Output: internal_intelligence_brief.json with confidence_score
+         └─ Update Category Intelligence Cache with fresh data
+
+Step 6:  Strategy Engine (#21) → Plan Object Creation
          └─ Translates intent into plan_object (ref: PLAN_OBJECT_SCHEMA.md)
+         └─ Consumes brand memory + intelligence brief for informed planning
          └─ Sets routing: family, platform, format, aspect_ratio
          └─ Sets generation_config: tier, provider_route, voice_config, music_config
-         └─ Sets variant_config: hook_variants, aspect_ratio_variants, localization_targets
 
-Step 3:  Budget Governance Pre-Flight Check
-         └─ Validates plan cost_estimate against brand spend caps
-         └─ Checks burn_rate_daily_usd and projected_exhaustion_date
-         └─ If blocked → status: blocked_budget (plan paused until budget increased)
-
-Step 4:  Capacity Check / Queue Management
-         └─ Validates provider availability via Provider Routing (#9) health checks
-         └─ Assigns queue_position and estimated_start
-         └─ If backpressure → queue with priority scoring
-
-Step 5:  Stage 0 — Creative Direction (#23) [MANDATORY for F1-F5, F7, F8]
+Step 7:  Creative Direction Engine (#23) [MANDATORY for F1-F5, F7, F8]
          └─ Intake: brand, product, offer, audience, platform, duration, tone, constraints, assets, style
          └─ Reasoning: ad_angle selection, hook_logic from Hook Library (#11)
-         └─ Output: scene_architecture[] with purpose (hook/build/offer/CTA), timing, camera_motion presets
-         └─ Output: offer_emphasis (overlay timing, verbal mention, visual callout)
-         └─ Output: emotional_arc (intrigue → desire → urgency → action)
-         └─ Family-specific adaptation applied (F1=authenticity, F2=script-first, F3=product-hero, F5=narrative)
-
-Step 6:  Asset Analysis (#4)
-         └─ Vision model scoring of all reference images and uploaded assets
-         └─ Quality scores, subject classification, composition analysis
-         └─ Usability flags (resolution, cropping suggestions)
-
-Step 7:  Brand Voice DNA Injection (#12)
-         └─ Load brand_voice_profile from brand_profiles.voice_profile JSONB
-         └─ Inject tone, vocabulary, sentence patterns, emoji usage into generation prompts
+         └─ Output: scene_architecture[], offer_emphasis, emotional_arc
+         └─ Family-specific adaptation (F1=authenticity, F2=script-first, F3=product-hero, F5=narrative)
 
 Step 8:  Hook Library Query (#11)
          └─ Query ranked hooks by industry, platform, content format
+         └─ Filter by brand memory (exclude rejected, boost approved)
+         └─ Cross-reference competitor patterns (prefer unused hooks)
          └─ Apply brand voice weighting
-         └─ Return top-N hook options with performance scores
 
-Step 9:  SEALCaM Prompt Construction (#5)
-         └─ Convert creative direction + scene architecture into structured SEALCaM scenes
-         └─ Map camera_motion objects to provider-specific prompt syntax via translation layer
-         └─ Include character descriptors from Character Consistency (#13)
+Step 9:  Decision Engine (#26) ★ NEW
+         └─ Consume: user intent, initiative context, brand memory, category intelligence,
+            intelligence brief, performance signals, brand voice profile
+         └─ Choose: angle, creative_family, hook_type, tone_profile, platform_priority,
+            cta_strategy, testing_plan, asset_selection_strategy
+         └─ Output: strategy_object.json with confidence_score
+         └─ Boundary: per-request creative decisioning (vs Strategy Engine = campaign planning)
 
-Step 10: Creative Director Agent (#1)
-         └─ AGENT framework reasoning over all upstream outputs
+Step 10: Strategy Object Builder ★ NEW
+         └─ Transform strategy_object into family-specific generation instructions
+         └─ Prompt scaffolding, asset selection packaging, scene architecture alignment
+         └─ Format/platform constraint injection, variant planning handoff
+
+Step 11: Trust & Explainability Engine ★ NEW
+         └─ Generate decision_trace.json
+         └─ Include: signals_used, rationale, rejected_alternatives, confidence,
+            assumptions, next_test_recommendation
+         └─ Attach to downstream Review Packet
+
+Step 12: Creative Director Agent (#1)
+         └─ AGENT framework reasoning over strategy_object + decision_trace
          └─ Generate final creative plan with scene descriptions, prompt strategy, generation params
-         └─ Integrate hook selection, camera presets, brand voice constraints
+         └─ SEALCaM prompt construction (#5) + Brand Voice DNA injection (#12)
 
-Step 11: Plan Review Gate (#2) — Checkpoint 1
-         └─ Present plan to user: creative direction, cost estimate, risk assessment, budget check
+Step 13: Plan Review Gate (#2) — Checkpoint 1
+         └─ Present plan to user: creative direction, cost estimate, risk assessment,
+            decision_trace (why this angle), confidence score, alternatives considered
          └─ User decision: approve / reject / request revision
 
-Step 12: [Revision Loop via #3 if rejected]
-         └─ Revision Agent takes rejection reason + reviewer feedback
-         └─ Adjusts plan parameters, re-runs relevant upstream steps
-         └─ Returns to Plan Review Gate
+Step 14: Provider & Tier Routing (#9)
+         └─ Resolve final provider + model based on plan tier, capabilities, health
+         └─ Set fallback_provider, camera capability matrix check
 
-Step 13: Provider & Tier Routing (#9)
-         └─ Resolve final provider + model based on plan tier, required capabilities, health
-         └─ Set fallback_provider for automated failover
-         └─ Camera capability matrix check (does selected provider support required camera_motion?)
-
-Step 14: Generation Trigger
+Step 15: Generation Trigger
          └─ All pre-generation steps complete
          └─ Job status: generating
          └─ Provider API calls begin
