@@ -112,8 +112,10 @@ Each pipeline family has a standardized contract defining its inputs, outputs, a
 
 Every family follows this abstract stage flow:
 ```
-creative_direction → asset_analysis → planning → plan_review → [revision_loop] → generation → assembly → post_production → [localization] → delivery
+intent_capture → initiative_context → brand_memory → category_intelligence → research (#25) → strategy (#21) → creative_direction (#23) → hook_query (#11) → decision (#26) → strategy_object_build → trust_trace → creative_director (#1) → plan_review (#2) → [revision_loop] → provider_routing (#9) → generation → assembly → post_production → [localization] → delivery → [social_publishing (#27)] → performance_feedback (#22) → brand_memory_update
 ```
+
+**Pre-Generation Intelligence Stack**: Before any generation occurs, the system runs through: User Intent → Initiative Context Loading → Brand Memory Retrieval → Category Intelligence Cache Check → Research & Competitor Intelligence (#25) → Strategy Engine (#21) → Creative Direction (#23) → Hook Library Query (#11) → Decision Engine (#26) → Strategy Object Builder → Trust & Explainability Engine → Creative Director Agent (#1) → Plan Review Gate (#2) → Provider Routing (#9) → Generation Trigger.
 
 **Stage 0 — Creative Direction (Module #23)**: Mandatory for all video families (F1–F5, F7, F8). Transforms business inputs into a strategic creative brief containing ad angle, hook logic, scene architecture with camera presets (Module #24), offer emphasis, and emotional arc. Output feeds into Plan Review Gate for user approval before any generation.
 
