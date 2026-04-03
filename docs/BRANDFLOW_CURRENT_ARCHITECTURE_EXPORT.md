@@ -902,97 +902,80 @@ Step 15: Audit Trail Logging (Layer 3)
 
 ---
 
-## SECTION H — Current Gaps / Structural Weaknesses
+## SECTION H — Current Gaps / Structural Weaknesses (Post-Enterprise Upgrade)
 
-### Critical Gaps
+### ✅ Gaps Resolved by Enterprise Upgrade
+
+| # | Former Gap | Resolution |
+|---|-----------|------------|
+| 3 | No research/competitor intelligence engine | ✅ **Module #25** — Research & Competitor Intelligence Engine created |
+| 5 | No memory/learning persistence layer | ✅ **Brand Memory Engine** + 5 memory tables created |
+| 8 | No social publishing integration | ✅ **Module #27** — Social Publishing Engine created |
+| 9 | Duplicate planning logic #21/#23 | ✅ **Clear boundary defined**: Strategy Engine = campaign planning (weekly), Decision Engine (#26) = per-request creative decisioning |
+| 10 | No user preference learning | ✅ **Performance Feedback #22 expanded** with approval/rejection learning, user_preference_memory table |
+| 11 | No A/B test result ingestion | ✅ **variant_results table** + variant winner tracking added to #22 |
+| 13 | No trust/explainability layer | ✅ **Trust & Explainability Engine** + decision_trace.json created |
+| 14 | Weak research integration | ✅ **Research Engine #25** + Category Intelligence Cache + deep_search architecture |
+| 15-20 | Missing SQL CREATE statements | ✅ **32-table schema** formalized in `docs/db/BRANDFLOW_SQL_SCHEMA.md` |
+
+### Remaining Critical Gaps
 
 | # | Gap | Severity | Impact |
 |---|-----|----------|--------|
-| 1 | **All 24 modules are documentation-only** — zero implementation exists | 🔴 Critical | No functionality is operational |
-| 2 | **Creative Direction Engine (#23) has no reasoning logic** — spec exists but no ad angle, hook selection, or scene architecture code | 🔴 Critical | Biggest commercial gap — system is a prompt rewriter, not a creative strategist |
-| 3 | **No research/competitor intelligence engine** — mentioned in FEATURE_GAPS.md but no module number assigned | 🔴 Critical | Users create content in a vacuum with no market context |
-| 4 | **F9 Image Template missing from PIPELINE_CONTRACTS.md** — F9 referenced in pricing but has no formal family contract | 🟡 High | Inconsistency between pricing and technical architecture |
+| 1 | **All 27 modules + 4 layers are documentation-only** — zero implementation exists | 🔴 Critical | No functionality is operational |
+| 2 | **Creative Direction Engine (#23) has no reasoning logic** — spec exists but no code | 🔴 Critical | Biggest commercial gap |
 
-### Structural Weaknesses
+### Remaining Structural Weaknesses
 
 | # | Weakness | Severity | Detail |
 |---|----------|----------|--------|
-| 5 | **No memory/learning persistence layer** | 🟡 High | Performance Feedback (#22) collects signals but no long-term brand learning memory exists — system doesn't accumulate knowledge about what works for each brand |
-| 6 | **Camera motion is still text-hint dependent** | 🟡 High | Structured camera vocabulary defined but providers interpret natural language; no guaranteed execution fidelity |
-| 7 | **Character consistency ~85%** | 🟡 High | No provider-native identity embeddings available; text descriptors + end-frame passthrough is the best current approach |
-| 8 | **No social publishing integration** | 🟡 High | Delivery stops at export — no Meta/TikTok API push; users must manually post |
-| 9 | **Duplicate planning logic between #21 and #23** | 🟡 Medium | Strategy Engine and Creative Direction both perform "intake" with overlapping schemas; unclear boundary |
-| 10 | **No user preference learning** | 🟡 Medium | System doesn't learn from approval/rejection patterns to improve future suggestions |
-| 11 | **No A/B test result ingestion** | 🟡 Medium | Campaign Multiplication generates variants but no closed-loop measurement of which variant won |
-| 12 | **Hook Library requires manual/Firecrawl seeding** | 🟡 Medium | No automated platform API scraping; hook performance data depends on external enrichment |
-| 13 | **No explicit trust/explainability layer** | 🟡 Medium | No module explains "why this angle was chosen" to users beyond Plan Review Gate display |
-| 14 | **Weak research integration** | 🟡 Medium | No deep_search, no category intelligence, no market research module; content generation has no external market awareness |
-
-### Schema/Contract Gaps
-
-| # | Gap | Location |
-|---|-----|----------|
-| 15 | No `jobs` table CREATE statement in any doc — referenced but never defined | `PIPELINE_CONTRACTS.md` |
-| 16 | No `brand_profiles` table CREATE statement — referenced in Brand Voice DNA but schema not formalized | `engines/BRAND_VOICE_DNA_ENGINE.md` |
-| 17 | No `artifacts` table CREATE statement — contract defined as JSON but no SQL | `PIPELINE_CONTRACTS.md` |
-| 18 | `performance_signals` and `feedback_signals` tables referenced but no CREATE statements | `engines/PERFORMANCE_FEEDBACK_ENGINE.md` |
-| 19 | `voice_generations` table referenced but no CREATE statement | `engines/VOICE_MANAGEMENT_ENGINE.md` |
-| 20 | `hooks` table referenced but no CREATE statement | `pipelines/HOOK_LIBRARY_ENGINE_DESIGN.md` |
+| 4 | **Camera motion is still text-hint dependent** | 🟡 High | Structured vocabulary defined but providers interpret natural language |
+| 6 | **Character consistency ~85%** | 🟡 High | No provider-native identity embeddings |
+| 7 | **Hook Library requires manual/Firecrawl seeding** | 🟡 Medium | No automated platform API scraping |
+| 8 | **F9 Image Template contract incomplete** | 🟡 Medium | Added to PIPELINE_CONTRACTS but engine module list needs validation |
 
 ---
 
-## SECTION I — Recommended Insertion Points for Enterprise Upgrade
+## SECTION I — Implementation Priority (Post-Upgrade)
 
-> **Note**: This section identifies WHERE new capabilities should be inserted. It does NOT redesign the architecture.
+> **Note**: The enterprise architecture upgrade is complete at the documentation level. This section now identifies implementation priority.
 
-### New Module Insertion Points
+### Phase 1 — Foundation (Weeks 1-4)
+Build the core tables and infrastructure that everything depends on.
 
-| Capability | Recommended Position | Insertion Point | Suggested Module # |
-|-----------|---------------------|----------------|-------------------|
-| **Research/Competitor Intelligence** | Between Strategy Engine (#21) and Creative Direction (#23) | After plan_object creation, before creative reasoning | #25 |
-| **Market/Category Intelligence** | Alongside Research module | Feeds into Creative Direction for competitive positioning | Part of #25 |
-| **Social Publishing** | After Delivery, before Performance Feedback | Automates posting to connected social accounts | #26 |
-| **User Preference Learning** | Extension of Performance Feedback (#22) | Ingests approval/rejection patterns to personalize suggestions | Extend #22 |
-| **A/B Test Result Ingestion** | Extension of Performance Feedback (#22) | Connects variant outcomes back to Campaign Multiplication decisions | Extend #22 |
+| Priority | Component | Reason |
+|----------|-----------|--------|
+| P0 | Supabase schema deployment (32 tables) | Everything depends on persistence |
+| P0 | Brand Profile + Brand Memory tables | Every family needs brand context |
+| P0 | Jobs + Job Stages tables | Billing and orchestration core |
 
-### Layer Insertion Points
+### Phase 2 — Intelligence Stack (Weeks 5-8)
+Build the research-backed pre-generation flow.
 
-| New Layer | Between | Purpose |
-|-----------|---------|---------|
-| **Research & Intelligence** | Strategy (L6) and Intelligence (L5) | External market awareness, competitor monitoring, trend detection |
-| **Trust & Explainability** | Alongside Approval (L2) | "Why this angle" explanations, confidence scores, alternative options shown |
-| **Brand Memory** | Between Learning (L0) and Strategy (L6) | Long-term brand knowledge accumulation, preference patterns, historical performance |
+| Priority | Component | Reason |
+|----------|-----------|--------|
+| P1 | Creative Direction Engine (#23) reasoning logic | Biggest commercial gap |
+| P1 | Decision Engine (#26) | Per-request strategic decisioning |
+| P1 | Brand Memory Engine | Long-term learning loop |
+| P1 | Strategy Object Builder | Families consume structured objects |
 
-### Pre-Generation Flow Insertion Points
+### Phase 3 — Research & Trust (Weeks 9-12)
+Add market awareness and explainability.
 
-```
-Current:  Intent → Strategy (#21) → Budget → Capacity → Creative Direction (#23) → ...
-Upgraded: Intent → Strategy (#21) → Budget → Capacity → [RESEARCH (#25)] → Creative Direction (#23) → ...
-                                                         ↑
-                                                    Insert here: competitor analysis,
-                                                    trend signals, category intelligence
-```
+| Priority | Component | Reason |
+|----------|-----------|--------|
+| P2 | Research Engine (#25) | External market context |
+| P2 | Category Intelligence Cache | Reduce research latency |
+| P2 | Trust & Explainability Engine | Decision traces for review packets |
+| P2 | Performance Feedback expansion (#22) | Closed-loop learning |
 
-### Post-Generation Flow Insertion Points
+### Phase 4 — Delivery & Publishing (Weeks 13-16)
+Close the last-mile gap.
 
-```
-Current:  ... → Delivery → Performance Feedback (#22)
-Upgraded: ... → Delivery → [SOCIAL PUBLISHING (#26)] → Performance Feedback (#22) → [BRAND MEMORY UPDATE]
-                            ↑                                                        ↑
-                       Insert here: auto-post                               Insert here: accumulate
-                       to connected accounts                                long-term brand learning
-```
-
-### Missing SQL Schema Priority
-
-To make the architecture implementation-ready, these CREATE statements should be formalized:
-
-1. `jobs` table (core — everything references it)
-2. `brand_profiles` table (core — every family uses it)
-3. `artifacts` table (core — all generated content)
-4. `hooks` table (Hook Library)
-5. `voice_generations` table (Voice Management)
-6. `performance_signals` + `feedback_signals` tables (Performance Feedback)
+| Priority | Component | Reason |
+|----------|-----------|--------|
+| P3 | Social Publishing Engine (#27) | Automate posting |
+| P3 | Review Packet explainability | Trust-building approvals |
 
 ---
 
@@ -1000,14 +983,22 @@ To make the architecture implementation-ready, these CREATE statements should be
 
 | Document | Purpose |
 |----------|---------|
-| `ENGINE_MODULE_REGISTRY.md` | Master index of 24 engine modules |
-| `PIPELINE_CONTRACTS.md` | Family contracts, shared patterns, cost tracking |
+| `ENGINE_MODULE_REGISTRY.md` | Master index of 27 engine modules + 4 architectural layers |
+| `PIPELINE_CONTRACTS.md` | Family contracts, shared patterns, cost tracking, F9 contract |
 | `PLAN_OBJECT_SCHEMA.md` | Plan object schema with versioning, budget, capacity, dependencies, SLA |
 | `OBSERVABILITY_CONTRACTS.md` | 3-layer observability: Event Bus, Metrics, Audit Trail |
 | `BRANDFLOW_PRICING_STRATEGY.md` | Tier pricing tied to pipeline costs |
-| `BRANDFLOW_FEATURE_GAPS.md` | Feature expansion roadmap (7 gaps) |
+| `BRANDFLOW_FEATURE_GAPS.md` | Feature expansion roadmap |
 | `engines/BUDGET_GOVERNANCE.md` | Spend caps, burn rate, tier downgrade |
 | `BRANDFLOW_MVP_EXECUTION_ROADMAP.md` | MVP execution sequence |
 | `BRANDFLOW_UX_FLOW_AUDIT.md` | UX flow audit |
+| `db/BRANDFLOW_SQL_SCHEMA.md` | 32-table SQL schema (enterprise upgrade) |
+| `engines/RESEARCH_COMPETITOR_INTELLIGENCE_ENGINE.md` | Module #25 spec |
+| `engines/DECISION_ENGINE.md` | Module #26 spec |
+| `engines/SOCIAL_PUBLISHING_ENGINE.md` | Module #27 spec |
+| `engines/BRAND_MEMORY_ENGINE.md` | Brand memory layer spec |
+| `engines/CATEGORY_INTELLIGENCE_CACHE.md` | Category cache layer spec |
+| `engines/STRATEGY_OBJECT_BUILDER.md` | Strategy object builder spec |
+| `engines/TRUST_EXPLAINABILITY_ENGINE.md` | Trust/explainability layer spec |
 | Individual engine docs (`engines/*.md`) | Per-module detailed specifications |
 | Individual pipeline docs (`pipelines/*.md`) | Per-family pipeline specifications |
