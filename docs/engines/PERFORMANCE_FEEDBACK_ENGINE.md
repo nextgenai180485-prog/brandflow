@@ -198,12 +198,71 @@ conversion_signal = weighted_sum(
       "current_weight": 0.20,
       "recommended_weight": 0.28,
       "reason": "Pillar 'behind-the-scenes' consistently outperforms 'product-spotlight' by 2.1x"
-    },
+    }
+  ]
+}
+```
+
+### 5. Decision Engine Signals → Module #26
+
+```json
+{
+  "signal_type": "decision_confidence_update",
+  "target": "decision_engine",
+  "updates": [
     {
-      "platform": "linkedin",
-      "current_distribution": 0.10,
-      "recommended_distribution": 0.05,
-      "reason": "LinkedIn engagement below vertical benchmark for 4 consecutive weeks"
+      "brand_id": "uuid",
+      "angle_type": "transformation",
+      "current_confidence": 0.75,
+      "new_confidence": 0.87,
+      "evidence": {
+        "approval_rate": 0.82,
+        "engagement_rate": 0.045,
+        "sample_size": 12
+      }
+    }
+  ]
+}
+```
+
+### 6. Preference Updates → Brand Memory Engine
+
+```json
+{
+  "signal_type": "preference_update",
+  "target": "brand_memory",
+  "updates": [
+    {
+      "brand_id": "uuid",
+      "preference_type": "hook_style",
+      "preferred": ["question", "before_after"],
+      "avoided": ["urgency"],
+      "confidence": 0.82,
+      "evidence": {
+        "approved_count": 18,
+        "rejected_count": 5,
+        "sample_size": 23
+      }
+    }
+  ]
+}
+```
+
+### 7. Approval Pattern Signals → Brand Memory Engine
+
+```json
+{
+  "signal_type": "approval_pattern",
+  "target": "brand_memory",
+  "updates": [
+    {
+      "brand_id": "uuid",
+      "approval_acceptance_rate": 0.78,
+      "avg_revision_rounds": 1.2,
+      "common_revision_reasons": ["tone too formal", "CTA too aggressive"],
+      "hook_win_rate": { "question": 0.85, "before_after": 0.80, "urgency": 0.40 },
+      "format_preference": { "reel": 0.90, "carousel": 0.85, "static": 0.70 },
+      "asset_reuse_success_rate": 0.72
     }
   ]
 }
