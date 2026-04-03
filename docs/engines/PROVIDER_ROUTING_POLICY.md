@@ -109,6 +109,7 @@ function resolveTier(job):
 |----------|----------|-------|----------|
 | Primary | WaveSpeed AI | Kling 2.6 Pro | F8 |
 | Fallback 1 | Kie AI | Kling 2.6 | F2 |
+| Fallback 2 | Higgsfield | Higgsfield Diffusion (i2v) | F1, F5, F8 |
 | Fallback 2 | Fal.ai | Kling variants | F2, F8 |
 
 ### Lip-Sync
