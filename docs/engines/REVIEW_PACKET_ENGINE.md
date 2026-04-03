@@ -101,6 +101,19 @@ Without this engine, approvals are ad-hoc: reviewers get raw links, no context, 
     "total_generation_time_s": "number"
   },
 
+  "explainability": {
+    "decision_trace_id": "uuid",
+    "strategy_angle": "string — selected angle from Decision Engine #26",
+    "why_chosen": "string — one-paragraph explanation of creative direction rationale",
+    "competitor_context_summary": "string — key competitive insights from Research Engine #25",
+    "confidence_score": "number (0-1)",
+    "assumptions": ["string"],
+    "alternatives_considered": [
+      { "alternative": "string", "why_not": "string" }
+    ],
+    "recommended_next_test": "string"
+  },
+
   "version_history": [
     {
       "version": 1,
