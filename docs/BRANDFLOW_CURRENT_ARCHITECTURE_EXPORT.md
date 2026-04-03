@@ -892,8 +892,9 @@ Step 15: Audit Trail Logging (Layer 3)
 
 | Capability | Primary | Fallback 1 | Fallback 2 |
 |-----------|---------|------------|------------|
-| Video (F1, F3, F5, F7) | Kie AI Veo3 | BytePlus Seedance 1.0 | Kling 2.6 (WaveSpeed) |
+| Video (F1, F3, F5, F7) | Kie AI Veo3 | Higgsfield | Kling 2.6 (WaveSpeed) |
 | Video (F2 Spokesperson) | Kie AI Kling 2.6 | BytePlus Seedance 1.0 | — |
+| Image-to-Video (F1, F5, F8) | Kie AI Veo3 | BytePlus Seedance 1.0 | Higgsfield |
 | Image | WaveSpeed | BytePlus SeedEdit 3.0 | — |
 | Post-Production | BytePlus VOD | FFmpeg (local) | — |
 | Voice/TTS | ElevenLabs | BytePlus VOD | — |
