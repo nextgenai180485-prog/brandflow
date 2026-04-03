@@ -94,6 +94,16 @@ Each pipeline family has a standardized contract defining its inputs, outputs, a
 | **Engine Modules** | **Creative Direction (#23)**, Asset Analyzer (reference pattern), Creative Director Agent, Plan Review Gate, Revision Agent, SEALCaM (reference pattern), Core Elements Board, Hook Library, Music Engine, Assembly Engine, Re-entry Controller, Provider & Tier Routing, Character Consistency, Brand Voice DNA, **Camera Motion & Transition (#24)** |
 | **Doc** | `pipelines/CREATIVE_CLONER_PIPELINE.md` |
 
+### F9 — Image Template Engine
+
+| Field | Value |
+|-------|-------|
+| **Input** | Template ID, slot values (text, images, colors), brand profile |
+| **Output** | Template-driven composed image(s) |
+| **Primary Deliverable** | PNG/JPG image file(s) |
+| **Engine Modules** | **Creative Direction (#23)**, Template-Driven Image Composer (#14), Brand Voice DNA (#12), Provider & Tier Routing (#9), Re-entry Controller (#10) |
+| **Doc** | `pipelines/IMAGE_TEMPLATE_ENGINE_DESIGN.md`, `docs/ux/IMAGE_TEMPLATE_UX_FLOW.md` |
+
 ---
 
 ## Shared Contract Patterns
