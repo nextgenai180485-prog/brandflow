@@ -1,71 +1,64 @@
 
 
-# Plan: Enterprise-Grade Architecture Upgrade — Completed
+# Plan: Enterprise-Grade Architecture Upgrade — Completed + Post-Upgrade Execution
 
-## Status: ✅ COMPLETED (2026-04-03)
+## Status: ✅ Phase 1 COMPLETED (2026-04-03) | Phase 2 IN PROGRESS
 
-## What Was Delivered
+## Phase 1 — Enterprise Architecture Upgrade (COMPLETED)
 
 Upgraded Brandflow from a 24-module documentation-only architecture into a 27-module + 4 architectural layer enterprise-grade, research-backed creative operating system.
 
-## Changes Made
+### What Was Delivered
 
-### New Engines Added
-- **Module #25** — Research & Competitor Intelligence Engine (`engines/RESEARCH_COMPETITOR_INTELLIGENCE_ENGINE.md`)
-- **Module #26** — Decision Engine (`engines/DECISION_ENGINE.md`)
-- **Module #27** — Social Publishing Engine (`engines/SOCIAL_PUBLISHING_ENGINE.md`)
+- **Module #25** — Research & Competitor Intelligence Engine
+- **Module #26** — Decision Engine
+- **Module #27** — Social Publishing Engine
+- **Brand Memory Engine** — Long-term brand-specific intelligence
+- **Category Intelligence Cache** — Vertical/category heuristics
+- **Strategy Object Builder** — Family-specific generation instructions
+- **Trust & Explainability Engine** — Decision tracing and transparency
+- **32-table SQL schema** — Formalized in `docs/db/BRANDFLOW_SQL_SCHEMA.md`
+- **15-step canonical pre-generation flow**
+- **Higgsfield** added as video provider in routing chain
 
-### New Architectural Layers Added
-- **Brand Memory Engine** (`engines/BRAND_MEMORY_ENGINE.md`)
-- **Category Intelligence Cache** (`engines/CATEGORY_INTELLIGENCE_CACHE.md`)
-- **Strategy Object Builder** (`engines/STRATEGY_OBJECT_BUILDER.md`)
-- **Trust & Explainability Engine** (`engines/TRUST_EXPLAINABILITY_ENGINE.md`)
+## Phase 2 — Post-Upgrade Execution (COMPLETED 2026-04-03)
 
-### Updated Engines
-- **Module #22** — Performance Feedback Engine expanded to include preference learning, approval/rejection loops, variant winner tracking
-- **Module #19** — Review Packet Engine updated with explainability fields (strategy angle, rationale, confidence, alternatives)
+### Step 1: Sync Architecture Export ✅
+- `docs/BRANDFLOW_CURRENT_ARCHITECTURE_EXPORT.md` fully synced with 27+4 system
+- Higgsfield added to integration matrix and provider routing table
+- All "24 module" references corrected to "27 modules + 4 architectural layers"
 
-### New Schema
-- **32-table SQL schema** formalized in `docs/db/BRANDFLOW_SQL_SCHEMA.md`
+### Step 2: Implementation Priority Document ✅
+- Created `docs/BRANDFLOW_IMPLEMENTATION_PRIORITIES.md`
+- Tier 1 (Trust-Critical): Creative Direction, Decision Engine, Brand Memory, Strategy Object Builder, Trust Engine
+- Tier 2 (Learning-Critical): Performance Feedback, preference learning, Category Intelligence Cache
+- Tier 3 (Scale-Critical): Social Publishing, Campaign Multiplication, Localization
+- User-facing flow compression: Understand → Decide → Create → Finish → Publish → Learn
 
-### Canonical Pre-Generation Flow (15 steps)
-1. User Intent Capture
-2. Initiative Context Loading
-3. Brand Memory Retrieval
-4. Category Intelligence Cache Check
-5. Research & Competitor Intelligence Engine (#25)
-6. Strategy Engine (#21)
-7. Creative Direction Engine (#23)
-8. Hook Library Query (#11)
-9. Decision Engine (#26)
-10. Strategy Object Builder
-11. Trust / Explainability Engine
-12. Creative Director Agent (#1)
-13. Plan Review Gate (#2)
-14. Provider Routing (#9)
-15. Generation Trigger
+### Step 3: Brand Memory Auto-Detection ✅
+- Created `docs/engines/BRAND_MEMORY_AUTO_DETECTION.md`
+- 6 auto-detection domains: brand-user association, asset ownership, approved styles, performance history, campaign context, do-not-use patterns
+- Confidence scoring model (0.30 tentative → 0.90 established)
+- Memory loading sequence with <200ms target latency
+- Auto-flag lifecycle: Detected → Flagged (soft) → Confirmed (hard) → Permanent
 
-### Files Created
-| File | Purpose |
-|------|---------|
-| `docs/engines/RESEARCH_COMPETITOR_INTELLIGENCE_ENGINE.md` | Module #25 spec |
-| `docs/engines/DECISION_ENGINE.md` | Module #26 spec |
-| `docs/engines/SOCIAL_PUBLISHING_ENGINE.md` | Module #27 spec |
-| `docs/engines/BRAND_MEMORY_ENGINE.md` | Brand memory layer spec |
-| `docs/engines/CATEGORY_INTELLIGENCE_CACHE.md` | Category cache layer spec |
-| `docs/engines/STRATEGY_OBJECT_BUILDER.md` | Strategy object builder spec |
-| `docs/engines/TRUST_EXPLAINABILITY_ENGINE.md` | Trust/explainability layer spec |
-| `docs/db/BRANDFLOW_SQL_SCHEMA.md` | 32-table SQL schema |
+### Step 4: Strategy Object as System Spine ✅
+- Updated `docs/PLAN_OBJECT_SCHEMA.md` with full Strategy Object Schema
+- System spine principle: every request must produce strategy_object + rationale + confidence + alternatives + traceable sources
+- No family may operate without strategy_object.json
+- Transformation chain: Decision Engine → Strategy Object → Strategy Object Builder → Family Instructions
 
-### Files Updated
-| File | Change |
+## Files Created/Updated in Phase 2
+
+| File | Action |
 |------|--------|
-| `docs/ENGINE_MODULE_REGISTRY.md` | Added modules #25–#27 and 4 architectural layers |
-| `docs/PIPELINE_CONTRACTS.md` | Updated pre-gen flow, added F9 contract |
-| `docs/engines/PERFORMANCE_FEEDBACK_ENGINE.md` | Expanded to preference learning |
-| `docs/engines/REVIEW_PACKET_ENGINE.md` | Added explainability fields |
-| `docs/BRANDFLOW_CURRENT_ARCHITECTURE_EXPORT.md` | ✅ Synced with enterprise upgrade |
+| `docs/BRANDFLOW_IMPLEMENTATION_PRIORITIES.md` | **Created** — Tiered implementation roadmap |
+| `docs/engines/BRAND_MEMORY_AUTO_DETECTION.md` | **Created** — Auto-detection logic design |
+| `docs/PLAN_OBJECT_SCHEMA.md` | **Updated** — Strategy Object as system spine |
+| `docs/BRANDFLOW_CURRENT_ARCHITECTURE_EXPORT.md` | **Updated** — Higgsfield in provider routing |
+| `.lovable/plan.md` | **Updated** — Reflect Phase 2 completion |
 
 ## Next Steps
-- Begin implementation priority planning
-- Design Brand Memory auto-detection logic
+- Begin Tier 1 implementation (Creative Direction Engine #23 reasoning logic)
+- Deploy 32-table Supabase schema
+- Build Decision Engine (#26) core logic

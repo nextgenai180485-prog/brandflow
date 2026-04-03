@@ -1,20 +1,146 @@
 # Plan Object Schema — Unified Initiative Contract
 
 > **Status**: Design reference  
-> **Last updated**: 2026-03-31  
-> **Purpose**: Single source of truth for the plan object that flows between Strategy Engine, family orchestrators, and Review Packets
+> **Last updated**: 2026-04-03  
+> **Purpose**: Single source of truth for the plan object and strategy object that flow through the entire system
 
 ---
 
 ## Overview
 
-Every content initiative in Brandflow is represented by a **Plan Object**. This is the canonical contract that:
+Every content initiative in Brandflow is represented by a **Plan Object**. Every creative decision is encoded in a **Strategy Object**. Together, these two contracts form the **system spine** — the canonical data structures that every engine reads from or writes to.
+
+### Plan Object — Initiative Contract
+
+The Plan Object is the **operational spine**: it tracks what needs to happen, when, at what cost, and through which provider.
 
 1. **Strategy Engine (#21)** produces (from business intent)
 2. **Family orchestrators** consume (to execute generation)
 3. **Review Packet Engine (#19)** references (for approval context)
 4. **Performance Feedback Engine (#22)** links back to (for learning)
 5. **Budget Governance** enforces spend limits against (pre-flight check)
+
+### Strategy Object — Creative Decision Contract
+
+The Strategy Object is the **intelligence spine**: it encodes what creative direction was chosen, why, with what confidence, and what alternatives were considered.
+
+1. **Decision Engine (#26)** produces (from brand memory + research + intent)
+2. **Strategy Object Builder** transforms (into family-specific generation instructions)
+3. **Trust & Explainability Engine** traces (why this decision was made)
+4. **Creative Director Agent (#1)** reasons over (to generate final creative plan)
+5. **Performance Feedback (#22)** evaluates against (to close the learning loop)
+
+### System Spine Principle
+
+> **Every major request must produce**: a strategy object, a rationale, a confidence signal, alternative paths, and traceable source inputs. No generation family may operate without a strategy_object.json — raw prompts are not a valid input.
+
+---
+
+## Strategy Object Schema
+
+The `strategy_object.json` is the output of Decision Engine (#26) and the primary input to Strategy Object Builder and all downstream families.
+
+```json
+{
+  "strategy_object": {
+    "strategy_id": "uuid",
+    "initiative_id": "uuid",
+    "brand_id": "uuid",
+    "created_at": "ISO 8601",
+
+    "angle": {
+      "type": "transformation | education | social_proof | lifestyle | urgency | fear_based | authority | curiosity",
+      "rationale": "string — why this angle was selected",
+      "confidence": 0.85,
+      "source_signals": ["brand_memory:approved_3x", "category_cache:top_performer", "research:competitor_gap"]
+    },
+
+    "creative_family": "F1 | F2 | F3 | F4 | F5 | F6 | F7 | F8 | F9",
+
+    "hook_type": {
+      "style": "question | social_proof | bold_claim | before_after | statistic | curiosity_gap | pain_point | transformation",
+      "text": "string — seed hook text",
+      "hook_id": "uuid | null — reference to Hook Library",
+      "performance_score": 0.78
+    },
+
+    "tone_profile": {
+      "primary_tone": "warm | authoritative | playful | urgent | aspirational | authentic",
+      "modifiers": ["conversational", "enthusiastic"],
+      "brand_voice_alignment": 0.92
+    },
+
+    "persona_alignment": {
+      "target_persona": "string — audience segment",
+      "pain_points": ["string"],
+      "desired_outcome": "string"
+    },
+
+    "platform_priority": {
+      "primary": "instagram | tiktok | youtube | linkedin | twitter | facebook | pinterest",
+      "secondary": ["string"],
+      "platform_specific_notes": {}
+    },
+
+    "cta_strategy": {
+      "type": "soft | direct | urgency | social_proof | educational",
+      "text": "string — seed CTA text",
+      "placement": "end | mid_and_end | overlay"
+    },
+
+    "asset_selection_strategy": {
+      "mode": "generate_new | reuse_approved | hybrid",
+      "reuse_candidates": ["artifact_id"],
+      "generation_requirements": ["string"]
+    },
+
+    "testing_plan": {
+      "enabled": true,
+      "test_dimension": "hook_style | angle | cta | duration | platform",
+      "variant_count": 2,
+      "success_metric": "engagement_rate | click_through | completion_rate"
+    },
+
+    "confidence_score": 0.82,
+    "rejected_alternatives": [
+      {
+        "angle": "urgency",
+        "reason": "Brand Memory: 4 rejections of urgency hooks, do_not_use threshold approaching",
+        "confidence_if_chosen": 0.45
+      }
+    ],
+
+    "source_inputs": {
+      "brand_memory_version": "ISO 8601",
+      "category_cache_hit": true,
+      "research_brief_id": "uuid | null",
+      "performance_signals_count": 24,
+      "hook_library_candidates_evaluated": 12
+    }
+  }
+}
+```
+
+### Strategy Object Rules
+
+| Rule | Detail |
+|------|--------|
+| **Required for all families** | No family orchestrator may start generation without a strategy_object |
+| **Immutable once created** | Strategy objects are append-only; revisions create new strategy_id |
+| **Must include alternatives** | At least 1 rejected alternative with reason (prevents "random selection" reasoning) |
+| **Must include confidence** | Overall confidence_score + per-field confidence where applicable |
+| **Must include source_inputs** | Traceability of what data informed the decision |
+| **Consumed by Trust Engine** | Trust & Explainability Engine reads strategy_object to generate decision_trace |
+
+### Strategy Object → Family Transformation
+
+The Strategy Object Builder transforms `strategy_object.json` into family-specific generation instructions. See `engines/STRATEGY_OBJECT_BUILDER.md` for per-family output formats (F1 UGC, F4 Social, F5 Cinematic, etc.).
+
+```
+strategy_object.json → Strategy Object Builder → generation_instructions[F1..F9]
+                                                → Creative Director Agent (#1)
+                                                → Trust Engine → decision_trace.json
+```
 
 ---
 

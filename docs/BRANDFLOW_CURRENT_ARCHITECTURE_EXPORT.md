@@ -871,6 +871,7 @@ Step 15: Audit Trail Logging (Layer 3)
 | **ElevenLabs** | TTS, voice cloning, dubbing (primary voice provider) | API documented — not yet integrated | Voice generation — F1, F2, F5, localization |
 | **Fal.ai** | Sync Labs Lipsync, ByteDance LatentSync, Whisper (transcription), FFmpeg API | API documented — not yet integrated | Post-production — lip-sync, transcription, assembly |
 | **Runway** | Gen-4 video generation (fallback) | API documented — not yet integrated | Generation fallback |
+| **Higgsfield** | Character-consistent video generation (Fallback 1 for F1/F5/F7; Fallback 2 for i2v) | API documented — not yet integrated | Generation layer — video families |
 | **Pika** | Pika 2.2 video generation (fallback) | API documented — not yet integrated | Generation fallback |
 | **Suno / Udio** | Music generation | API documented — not yet integrated | Music Engine (#7) — parallel with video generation |
 | **Firecrawl** | Web scraping for Brand Voice DNA extraction + Hook Library seeding + competitor intelligence | API documented — not yet integrated | Onboarding + periodic data enrichment |
@@ -892,8 +893,9 @@ Step 15: Audit Trail Logging (Layer 3)
 
 | Capability | Primary | Fallback 1 | Fallback 2 |
 |-----------|---------|------------|------------|
-| Video (F1, F3, F5, F7) | Kie AI Veo3 | BytePlus Seedance 1.0 | Kling 2.6 (WaveSpeed) |
+| Video (F1, F3, F5, F7) | Kie AI Veo3 | Higgsfield | Kling 2.6 (WaveSpeed) |
 | Video (F2 Spokesperson) | Kie AI Kling 2.6 | BytePlus Seedance 1.0 | — |
+| Image-to-Video (F1, F5, F8) | Kie AI Veo3 | BytePlus Seedance 1.0 | Higgsfield |
 | Image | WaveSpeed | BytePlus SeedEdit 3.0 | — |
 | Post-Production | BytePlus VOD | FFmpeg (local) | — |
 | Voice/TTS | ElevenLabs | BytePlus VOD | — |
