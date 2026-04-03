@@ -291,7 +291,10 @@ Signals are only emitted when statistical confidence is sufficient:
 | #14 Template Image Composer | Receives template_priority_updates for template scoring |
 | #9 Provider & Tier Routing | Receives family_routing_adjustments for platform-family preference |
 | #21 Strategy Engine | Receives strategy_rebalance signals for pillar and platform redistribution |
-| #19 Review Packet Engine | Performance history attached to review packets for context |
+| #19 Review Packet Engine | Performance history attached to review packets for context; approval/rejection signals ingested |
+| #26 Decision Engine | Receives decision_confidence_updates for angle/hook/family selection calibration |
+| #27 Social Publishing Engine | Provides publish metadata (post_id, published_at) for metric collection triggers |
+| Brand Memory Engine | Receives preference_updates and approval_pattern signals for long-term brand learning |
 | W6 Campaign Multiplication | Variant rank data informs which variants to prioritize in future campaigns |
 
 ---
