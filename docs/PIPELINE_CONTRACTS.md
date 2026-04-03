@@ -128,7 +128,7 @@ All generated artifacts are stored in Supabase Storage with metadata in the `art
 {
   "artifact_id": "uuid",
   "job_id": "uuid",
-  "family": "F1|F2|F3|F4|F5|F6|F7|F8",
+  "family": "F1|F2|F3|F4|F5|F6|F7|F8|F9",
   "type": "video|image|audio|text",
   "storage_url": "https://...",
   "metadata": { "duration": 30, "aspect_ratio": "9:16", "file_size_kb": 5200 }

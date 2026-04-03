@@ -255,6 +255,10 @@ Send notifications via configured channels. Start expiry countdown.
 | #1 Creative Director Agent | Provides caption options |
 | #12 Brand Voice DNA | Provides voice alignment score |
 | #13 Character Consistency | Provides consistency score |
+| #26 Decision Engine | Provides strategy_object for explainability context |
+| Trust & Explainability Engine | Provides decision_trace for transparent review |
+| #25 Research Engine | Provides competitor/category context summary |
+| Brand Memory Engine | Approval/rejection decisions feed back as memory updates |
 
 ---
 
