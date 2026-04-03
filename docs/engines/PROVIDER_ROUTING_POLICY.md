@@ -308,12 +308,13 @@ CREATE TABLE provider_status (
 
 See `engines/CAMERA_MOTION_ENGINE.md` (Module #24) for the full provider camera capability matrix. Key summary:
 
-| Capability | Veo3 | Kling 2.6 | Runway Gen-4 | Seedance 1.0 |
-|------------|------|-----------|---------------|--------------|
-| Basic moves (dolly, pan, tilt) | ✅ text | ✅ text | ✅ native | ✅ text |
-| Advanced moves (crane, orbit) | ✅ text | ⚠️ partial | ⚠️ partial | ❌ |
-| Motion intensity control | via word choice | via word choice | native param | ❌ |
-| Rack focus | ⚠️ text hint | ❌ | ❌ | ❌ |
-| Handheld simulation | ✅ text | ✅ text | ❌ | ❌ |
+| Capability | Veo3 | Kling 2.6 | Runway Gen-4 | Seedance 1.0 | Higgsfield |
+|------------|------|-----------|---------------|--------------|------------|
+| Basic moves (dolly, pan, tilt) | ✅ text | ✅ text | ✅ native | ✅ text | ✅ text |
+| Advanced moves (crane, orbit) | ✅ text | ⚠️ partial | ⚠️ partial | ❌ | ⚠️ partial |
+| Motion intensity control | via word choice | via word choice | native param | ❌ | via word choice |
+| Rack focus | ⚠️ text hint | ❌ | ❌ | ❌ | ❌ |
+| Handheld simulation | ✅ text | ✅ text | ❌ | ❌ | ✅ text |
+| Character consistency | ⚠️ text | ⚠️ text | ⚠️ partial | ❌ | ✅ native |
 
 The Camera Motion Engine (#24) translates structured `CameraMotion` parameters to provider-optimized prompt syntax, with automatic fallback moves when a provider doesn't support a requested move type.
