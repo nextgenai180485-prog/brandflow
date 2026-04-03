@@ -770,19 +770,31 @@ Step 11: Delivery Packaging
          └─ Branded thumbnails
          └─ Download URLs generated
 
-Step 12: Performance Signal Collection (#22) [ASYNC, post-delivery]
+Step 12: Social Publishing (#27) [OPTIONAL] ★ NEW
+         └─ Publish to connected social accounts (Meta Graph API, TikTok)
+         └─ Queue scheduled posts
+         └─ Platform-specific packaging
+         └─ Publish status tracking + failure handling
+         └─ Publish audit trail
+
+Step 13: Performance & Preference Signal Collection (#22) [ASYNC, post-delivery]
          └─ T+24h: Initial engagement metrics (views, likes, comments)
          └─ T+48h: Engagement velocity (growth rate, share ratio)
          └─ T+7d: Medium-term performance (saves, click-through)
          └─ T+30d: Long-term performance (conversion correlation)
+         └─ Approval/rejection learning: track patterns per brand
+         └─ Variant winner tracking: which A/B variant performed best
 
-Step 13: Feedback Signal Distribution
+Step 14: Feedback Signal Distribution + Brand Memory Update ★ EXPANDED
          └─ Hook weight updates → Hook Library (#11)
          └─ Template priority updates → Template Library
          └─ Family routing adjustments → Provider Routing (#9)
          └─ Strategy rebalancing signals → Strategy Engine (#21)
+         └─ Decision confidence updates → Decision Engine (#26)
+         └─ Preference + rejection patterns → Brand Memory Engine
+         └─ Auto-flag do_not_use patterns (5+ rejections)
 
-Step 14: Audit Trail Logging (Layer 3)
+Step 15: Audit Trail Logging (Layer 3)
          └─ All decisions affecting money, access, or content delivery → audit_log
          └─ Immutable, append-only, 7-year retention
          └─ GDPR Article 15/17 support
