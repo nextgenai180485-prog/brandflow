@@ -65,6 +65,15 @@ The enterprise engine layer consists of 27 shared modules, 3 architectural layer
 | 14 (old) | Provider Routing Layer | **#9 Provider & Tier Routing Engine** | Provider fallback + quality tier = single routing decision |
 | 18 (old) | Prompt Schema Normalizer | **#5 SEALCaM Prompt Builder** | F7 normalization is a SEALCaM compliance rule, not a separate engine |
 
+### Architectural Layers (not numbered — cross-cutting)
+
+| Layer | Doc Path | Purpose |
+|-------|----------|---------|
+| Category Intelligence Cache | `engines/CATEGORY_INTELLIGENCE_CACHE.md` | Cached vertical/category intelligence for cost/latency reduction |
+| Strategy Object Builder | `engines/STRATEGY_OBJECT_BUILDER.md` | Transform Decision Engine output into family-specific generation instructions |
+| Brand Memory Engine | `engines/BRAND_MEMORY_ENGINE.md` | Long-term brand-specific learning: approvals, preferences, do-not-use patterns |
+| Trust & Explainability Engine | `engines/TRUST_EXPLAINABILITY_ENGINE.md` | Decision trace generation for transparent, evidence-backed recommendations |
+
 ### Supporting Docs
 
 | Doc | Purpose |
@@ -75,6 +84,7 @@ The enterprise engine layer consists of 27 shared modules, 3 architectural layer
 | `engines/BUDGET_GOVERNANCE.md` | Per-brand spend caps, campaign allocations, burn rate tracking, tier downgrade suggestions |
 | `OBSERVABILITY_CONTRACTS.md` | 3-layer observability: Event Bus, Metrics Aggregation, Audit Trail |
 | `BRANDFLOW_CURRENT_ARCHITECTURE_EXPORT.md` | Complete system architecture snapshot for enterprise upgrade review |
+| `db/BRANDFLOW_SQL_SCHEMA.md` | Complete database schema — 32 tables, single Supabase backend |
 
 ### Enterprise Planning Governance (cross-cutting capabilities)
 
