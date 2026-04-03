@@ -804,27 +804,42 @@ Step 15: Audit Trail Logging (Layer 3)
 
 ## SECTION F — Memory/State Architecture
 
-### Database Tables
+### Database Tables (32 tables — formalized in `docs/db/BRANDFLOW_SQL_SCHEMA.md`)
 
 | Table | Source Doc | Purpose | Key Fields |
 |-------|-----------|---------|------------|
 | `plan_objects` | `PLAN_OBJECT_SCHEMA.md` | Central initiative contract | plan_id, brand_id, version, status, intent, routing, generation_config, variant_config, cost_estimate, budget_check, capacity_check, risk_assessment, dependencies, latency_tier |
 | `plan_versions` | `PLAN_OBJECT_SCHEMA.md` | Immutable version snapshots | plan_id, version, changed_fields, previous_values, changed_by, reason |
-| `plan_dependencies` | `PLAN_OBJECT_SCHEMA.md` | DAG-style blocking/informing relationships | plan_id, depends_on_plan_id, dependency_type (blocks/informs), status |
+| `plan_dependencies` | `PLAN_OBJECT_SCHEMA.md` | DAG-style blocking/informing relationships | plan_id, depends_on_plan_id, dependency_type, status |
 | `jobs` | `PIPELINE_CONTRACTS.md` | Job execution records | job_id, brand_id, family, status, brief, created_at, completed_at |
-| `job_stages` | `PIPELINE_CONTRACTS.md` | **Billing source of truth** — per-stage cost tracking | job_id, stage, cost (JSONB: provider, model, cost_usd, tier) |
+| `job_stages` | `PIPELINE_CONTRACTS.md` | **Billing source of truth** | job_id, stage, cost (JSONB: provider, model, cost_usd, tier) |
 | `artifacts` | `PIPELINE_CONTRACTS.md` | Generated asset metadata | artifact_id, job_id, family, type, storage_url, metadata |
-| `touchpoint_events` | `PIPELINE_CONTRACTS.md` | Layer 0 raw observability signals | job_id, stage, module_id, provider_id, action, tier, status, cost_usd, latency_ms, metadata (max 1KB) |
-| `event_bus` | `OBSERVABILITY_CONTRACTS.md` | Layer 1 correlation & replay | correlation_id, parent_event_id, sequence_num, job_id, module_id, event_type, context (max 512 bytes) |
-| `audit_log` | `OBSERVABILITY_CONTRACTS.md` | Layer 3 immutable compliance trail | actor_type, actor_id, action, resource_type, resource_id, reason, change_summary, ip_address (7-year retention, append-only) |
-| `performance_signals` | `engines/PERFORMANCE_FEEDBACK_ENGINE.md` | Post-publish engagement metrics | plan_id, platform, metrics (likes, comments, shares, views), collected_at |
-| `feedback_signals` | `engines/PERFORMANCE_FEEDBACK_ENGINE.md` | Derived optimization signals | target_module, signal_type, weight_delta, confidence |
-| `provider_status` | `engines/PROVIDER_ROUTING_POLICY.md` | Provider health tracking | provider_id, status, last_check, failure_count, p95_latency_ms |
-| `forecast_runs` | `engines/STRATEGY_ENGINE.md` | Dry-run simulation results | brand_id, scenario, estimated_cost, capacity_risk, sla_risk |
-| `plan_templates` | `engines/STRATEGY_ENGINE.md` | Reusable campaign blueprints | template_id, vertical, family_mix, schedule_pattern |
-| `hooks` | `pipelines/HOOK_LIBRARY_ENGINE_DESIGN.md` | Performance-ranked hook patterns | hook_id, style, text, industry, platform, performance_score |
-| `brand_profiles` | `engines/BRAND_VOICE_DNA_ENGINE.md` | Brand identity + voice | brand_id, name, colors, fonts, industry, voice_profile (JSONB) |
-| `voice_generations` | `engines/VOICE_MANAGEMENT_ENGINE.md` | Per-TTS/dub/clone call cost detail | voice_id, job_id, mode, cost_usd, quality_score |
+| `touchpoint_events` | `PIPELINE_CONTRACTS.md` | Layer 0 raw observability | job_id, stage, module_id, provider_id, action, tier, status, cost_usd, latency_ms |
+| `event_bus` | `OBSERVABILITY_CONTRACTS.md` | Layer 1 correlation & replay | correlation_id, parent_event_id, sequence_num, job_id, module_id, event_type |
+| `audit_log` | `OBSERVABILITY_CONTRACTS.md` | Layer 3 immutable compliance | actor_type, actor_id, action, resource_type, resource_id, reason, change_summary (7-year retention) |
+| `performance_signals` | `PERFORMANCE_FEEDBACK_ENGINE.md` | Post-publish engagement metrics | plan_id, platform, metrics, collected_at |
+| `feedback_signals` | `PERFORMANCE_FEEDBACK_ENGINE.md` | Derived optimization signals | target_module, signal_type, weight_delta, confidence |
+| `provider_status` | `PROVIDER_ROUTING_POLICY.md` | Provider health tracking | provider_id, status, last_check, failure_count, p95_latency_ms |
+| `forecast_runs` | `STRATEGY_ENGINE.md` | Dry-run simulation results | brand_id, scenario, estimated_cost, capacity_risk, sla_risk |
+| `plan_templates` | `STRATEGY_ENGINE.md` | Reusable campaign blueprints | template_id, vertical, family_mix, schedule_pattern |
+| `hooks` | `HOOK_LIBRARY_ENGINE_DESIGN.md` | Performance-ranked hook patterns | hook_id, style, text, industry, platform, performance_score |
+| `brand_profiles` | `BRAND_VOICE_DNA_ENGINE.md` | Brand identity + voice | brand_id, name, colors, fonts, industry, voice_profile (JSONB) |
+| `voice_generations` | `VOICE_MANAGEMENT_ENGINE.md` | Per-TTS/dub/clone call cost | voice_id, job_id, mode, cost_usd, quality_score |
+| `brand_memory` | `BRAND_MEMORY_ENGINE.md` ★ NEW | Long-term brand learning | brand_id, approved_hooks, rejected_hooks, winning_formats, do_not_use_patterns |
+| `asset_memory` | `BRAND_MEMORY_ENGINE.md` ★ NEW | Asset reuse tracking | brand_id, artifact_id, usage_count, performance_score, reuse_eligible |
+| `preference_memory` | `BRAND_MEMORY_ENGINE.md` ★ NEW | User preference patterns | brand_id, preference_type, preference_value, confidence, learned_from |
+| `creative_history` | `BRAND_MEMORY_ENGINE.md` ★ NEW | Campaign/creative history | brand_id, initiative_id, angle_used, family_used, outcome |
+| `do_not_use_registry` | `BRAND_MEMORY_ENGINE.md` ★ NEW | Auto-flagged patterns | brand_id, pattern_type, pattern_value, rejection_count, flagged_at |
+| `category_intelligence_cache` | `CATEGORY_INTELLIGENCE_CACHE.md` ★ NEW | Cached vertical intelligence | vertical, platform, region, intelligence_data, freshness_window, confidence_score |
+| `intelligence_briefs` | `RESEARCH_ENGINE.md` ★ NEW | Research output storage | brief_id, brand_id, initiative_id, brief_data, confidence_score |
+| `competitor_profiles` | `RESEARCH_ENGINE.md` ★ NEW | Competitor tracking | competitor_id, brand_id, vertical, creative_patterns, last_updated |
+| `decision_traces` | `DECISION_ENGINE.md` ★ NEW | Decision explainability | trace_id, initiative_id, signals_used, rationale, rejected_alternatives, confidence |
+| `strategy_objects` | `DECISION_ENGINE.md` ★ NEW | Per-request creative decisions | strategy_id, initiative_id, angle, creative_family, hook_type, confidence_score |
+| `review_packets` | `REVIEW_PACKET_ENGINE.md` ★ EXPANDED | Structured approval artifacts | packet_id, job_id, decision_trace_ref, strategy_angle, alternatives, confidence |
+| `user_preference_memory` | `PERFORMANCE_FEEDBACK_ENGINE.md` ★ NEW | Approval/rejection learning | brand_id, user_id, preference_type, value, confidence |
+| `social_publish_log` | `SOCIAL_PUBLISHING_ENGINE.md` ★ NEW | Publish status tracking | publish_id, artifact_id, platform, status, scheduled_at, published_at |
+| `social_accounts` | `SOCIAL_PUBLISHING_ENGINE.md` ★ NEW | Connected social accounts | account_id, brand_id, platform, credentials_ref, status |
+| `variant_results` | `PERFORMANCE_FEEDBACK_ENGINE.md` ★ NEW | A/B test winner tracking | variant_id, campaign_id, variant_type, winner, metrics |
 
 ### Materialized Views (Pre-Computed Dashboards)
 
