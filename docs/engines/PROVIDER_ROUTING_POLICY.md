@@ -40,7 +40,7 @@ Generation Request
 └─────────────────────────────────────┘
   │
   ▼
-Provider Adapter (Kie AI / Runway / WaveSpeed / etc.)
+Provider Adapter (Kie AI / Higgsfield / Runway / WaveSpeed / etc.)
 ```
 
 ---
@@ -88,9 +88,10 @@ function resolveTier(job):
 | Priority | Provider | Model | Families |
 |----------|----------|-------|----------|
 | Primary | Kie AI | Veo3 / Veo3_fast | F1, F3, F5, F7 |
-| Fallback 1 | BytePlus | Seedance 1.0 | F3, F5 |
-| Fallback 2 | Runway | Gen-4 | F1, F5, F7 |
-| Fallback 3 | Pika | Pika 2.2 | F1, F5, F7 |
+| Fallback 1 | Higgsfield | Higgsfield Diffusion | F1, F5, F7 |
+| Fallback 2 | BytePlus | Seedance 1.0 | F3, F5 |
+| Fallback 3 | Runway | Gen-4 | F1, F5, F7 |
+| Fallback 4 | Pika | Pika 2.2 | F1, F5, F7 |
 
 ### Image Generation
 
@@ -108,7 +109,8 @@ function resolveTier(job):
 |----------|----------|-------|----------|
 | Primary | WaveSpeed AI | Kling 2.6 Pro | F8 |
 | Fallback 1 | Kie AI | Kling 2.6 | F2 |
-| Fallback 2 | Fal.ai | Kling variants | F2, F8 |
+| Fallback 2 | Higgsfield | Higgsfield Diffusion (i2v) | F1, F5, F8 |
+| Fallback 3 | Fal.ai | Kling variants | F2, F8 |
 
 ### Lip-Sync
 
@@ -199,6 +201,21 @@ function resolveTier(job):
         "veo_generate": { "status": "healthy", "latency_p95_ms": 2400 },
         "gpt4o_image": { "status": "healthy", "latency_p95_ms": 1800 },
         "suno_generate": { "status": "healthy", "latency_p95_ms": 5000 }
+      }
+    },
+    {
+      "provider_id": "higgsfield",
+      "display_name": "Higgsfield",
+      "status": "healthy",
+      "latency_p95_ms": 3200,
+      "last_checked": "2026-04-03T10:00:00Z",
+      "error_count_1h": 0,
+      "error_count_24h": 0,
+      "consecutive_failures": 0,
+      "failover_active": false,
+      "endpoints": {
+        "video_generate": { "status": "healthy", "latency_p95_ms": 3200 },
+        "i2v_generate": { "status": "healthy", "latency_p95_ms": 3800 }
       }
     }
   ]
@@ -291,12 +308,13 @@ CREATE TABLE provider_status (
 
 See `engines/CAMERA_MOTION_ENGINE.md` (Module #24) for the full provider camera capability matrix. Key summary:
 
-| Capability | Veo3 | Kling 2.6 | Runway Gen-4 | Seedance 1.0 |
-|------------|------|-----------|---------------|--------------|
-| Basic moves (dolly, pan, tilt) | ✅ text | ✅ text | ✅ native | ✅ text |
-| Advanced moves (crane, orbit) | ✅ text | ⚠️ partial | ⚠️ partial | ❌ |
-| Motion intensity control | via word choice | via word choice | native param | ❌ |
-| Rack focus | ⚠️ text hint | ❌ | ❌ | ❌ |
-| Handheld simulation | ✅ text | ✅ text | ❌ | ❌ |
+| Capability | Veo3 | Kling 2.6 | Runway Gen-4 | Seedance 1.0 | Higgsfield |
+|------------|------|-----------|---------------|--------------|------------|
+| Basic moves (dolly, pan, tilt) | ✅ text | ✅ text | ✅ native | ✅ text | ✅ text |
+| Advanced moves (crane, orbit) | ✅ text | ⚠️ partial | ⚠️ partial | ❌ | ⚠️ partial |
+| Motion intensity control | via word choice | via word choice | native param | ❌ | via word choice |
+| Rack focus | ⚠️ text hint | ❌ | ❌ | ❌ | ❌ |
+| Handheld simulation | ✅ text | ✅ text | ❌ | ❌ | ✅ text |
+| Character consistency | ⚠️ text | ⚠️ text | ⚠️ partial | ❌ | ✅ native |
 
 The Camera Motion Engine (#24) translates structured `CameraMotion` parameters to provider-optimized prompt syntax, with automatic fallback moves when a provider doesn't support a requested move type.
