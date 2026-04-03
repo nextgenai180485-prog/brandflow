@@ -23,11 +23,19 @@ Brandflow is an **AI-powered social media operating system** that transforms bus
 
 ```
 ┌──────────────────────────────────────────────────────────────────────┐
-│  LAYER 7: USER INTERFACE                                             │
+│  LAYER 9: USER INTERFACE                                             │
 │  React 18 + Vite 5 + Tailwind CSS + shadcn/ui                       │
 ├──────────────────────────────────────────────────────────────────────┤
-│  LAYER 6: STRATEGY & PLANNING                                        │
+│  LAYER 8: STRATEGY & PLANNING                                        │
 │  Strategy Engine (#21), Creative Direction (#23), Budget Governance   │
+├──────────────────────────────────────────────────────────────────────┤
+│  LAYER 7: RESEARCH & MARKET INTELLIGENCE  ★ NEW                      │
+│  Research & Competitor Intelligence (#25), Category Intelligence     │
+│  Cache, Brand Memory Engine                                          │
+├──────────────────────────────────────────────────────────────────────┤
+│  LAYER 6: DECISION & TRUST  ★ NEW                                    │
+│  Decision Engine (#26), Strategy Object Builder,                     │
+│  Trust & Explainability Engine                                       │
 ├──────────────────────────────────────────────────────────────────────┤
 │  LAYER 5: INTELLIGENCE & REASONING                                    │
 │  Creative Director Agent (#1), Asset Analyzer (#4), SEALCaM (#5),    │
@@ -39,7 +47,7 @@ Brandflow is an **AI-powered social media operating system** that transforms bus
 ├──────────────────────────────────────────────────────────────────────┤
 │  LAYER 3: POST-PRODUCTION & DELIVERY                                  │
 │  Post-Production (#17), Review Packet (#19), Localization (#18),     │
-│  Campaign Multiplication (W6), Delivery & Export                     │
+│  Campaign Multiplication (W6), Social Publishing (#27), Delivery     │
 ├──────────────────────────────────────────────────────────────────────┤
 │  LAYER 2: APPROVAL & TRUST                                            │
 │  Plan Review Gate (#2), Review Packets, Audit Trail (Layer 3 obs.)   │
@@ -50,7 +58,7 @@ Brandflow is an **AI-powered social media operating system** that transforms bus
 ├──────────────────────────────────────────────────────────────────────┤
 │  LAYER 0: INFRASTRUCTURE                                              │
 │  Supabase (DB, Auth, Storage, Edge Functions, Task Queue),           │
-│  Re-entry Controller (#10), Performance Feedback (#22)               │
+│  Re-entry Controller (#10), Performance & Preference Feedback (#22)  │
 └──────────────────────────────────────────────────────────────────────┘
 ```
 
