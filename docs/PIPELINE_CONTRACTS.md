@@ -1,8 +1,8 @@
 # Pipeline Contracts — Standardized Input/Output Reference
 
-> **Status**: Design reference — master contract for all 8 pipeline families  
-> **Last updated**: 2026-04-02  
-> **Engine count**: 24 modules + 1 workflow — see ENGINE_MODULE_REGISTRY.md
+> **Status**: Design reference — master contract for all 9 pipeline families  
+> **Last updated**: 2026-04-03  
+> **Engine count**: 27 modules + 3 architectural layers + 1 workflow — see ENGINE_MODULE_REGISTRY.md
 
 ---
 
