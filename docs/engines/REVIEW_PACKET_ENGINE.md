@@ -1,9 +1,9 @@
 # Module #19 — Review Packet Engine
 
 > **Status**: Design reference  
-> **Last updated**: 2026-03-31  
+> **Last updated**: 2026-04-03  
 > **Owner**: Cross-family  
-> **Depends on**: Module #17 (Delivery & Post-Production), Module #9 (Provider & Tier Routing)
+> **Depends on**: Module #17 (Delivery & Post-Production), Module #9 (Provider & Tier Routing), Trust & Explainability Engine
 
 ---
 
