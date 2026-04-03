@@ -1,10 +1,11 @@
 # Brandflow Current Architecture Export
 
-> **Status**: Snapshot — implementation-ready reference  
+> **Status**: Enterprise-upgraded — implementation-ready reference  
 > **Last updated**: 2026-04-03  
-> **Purpose**: Complete system architecture export for enterprise upgrade review  
-> **Module count**: 24 engines + 1 workflow (W6)  
-> **Family count**: 9 generation families (F1–F9)
+> **Purpose**: Complete system architecture — post-enterprise intelligence upgrade  
+> **Module count**: 27 engines + 4 architectural layers + 1 workflow (W6)  
+> **Family count**: 9 generation families (F1–F9)  
+> **Schema count**: 32 tables formalized in `docs/db/BRANDFLOW_SQL_SCHEMA.md`
 
 ---
 
@@ -22,11 +23,19 @@ Brandflow is an **AI-powered social media operating system** that transforms bus
 
 ```
 ┌──────────────────────────────────────────────────────────────────────┐
-│  LAYER 7: USER INTERFACE                                             │
+│  LAYER 9: USER INTERFACE                                             │
 │  React 18 + Vite 5 + Tailwind CSS + shadcn/ui                       │
 ├──────────────────────────────────────────────────────────────────────┤
-│  LAYER 6: STRATEGY & PLANNING                                        │
+│  LAYER 8: STRATEGY & PLANNING                                        │
 │  Strategy Engine (#21), Creative Direction (#23), Budget Governance   │
+├──────────────────────────────────────────────────────────────────────┤
+│  LAYER 7: RESEARCH & MARKET INTELLIGENCE  ★ NEW                      │
+│  Research & Competitor Intelligence (#25), Category Intelligence     │
+│  Cache, Brand Memory Engine                                          │
+├──────────────────────────────────────────────────────────────────────┤
+│  LAYER 6: DECISION & TRUST  ★ NEW                                    │
+│  Decision Engine (#26), Strategy Object Builder,                     │
+│  Trust & Explainability Engine                                       │
 ├──────────────────────────────────────────────────────────────────────┤
 │  LAYER 5: INTELLIGENCE & REASONING                                    │
 │  Creative Director Agent (#1), Asset Analyzer (#4), SEALCaM (#5),    │
@@ -38,7 +47,7 @@ Brandflow is an **AI-powered social media operating system** that transforms bus
 ├──────────────────────────────────────────────────────────────────────┤
 │  LAYER 3: POST-PRODUCTION & DELIVERY                                  │
 │  Post-Production (#17), Review Packet (#19), Localization (#18),     │
-│  Campaign Multiplication (W6), Delivery & Export                     │
+│  Campaign Multiplication (W6), Social Publishing (#27), Delivery     │
 ├──────────────────────────────────────────────────────────────────────┤
 │  LAYER 2: APPROVAL & TRUST                                            │
 │  Plan Review Gate (#2), Review Packets, Audit Trail (Layer 3 obs.)   │
@@ -49,7 +58,7 @@ Brandflow is an **AI-powered social media operating system** that transforms bus
 ├──────────────────────────────────────────────────────────────────────┤
 │  LAYER 0: INFRASTRUCTURE                                              │
 │  Supabase (DB, Auth, Storage, Edge Functions, Task Queue),           │
-│  Re-entry Controller (#10), Performance Feedback (#22)               │
+│  Re-entry Controller (#10), Performance & Preference Feedback (#22)  │
 └──────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -347,27 +356,28 @@ Brandflow is an **AI-powered social media operating system** that transforms bus
 #### Module #21 — Strategy Engine
 | Field | Value |
 |-------|-------|
-| **Purpose** | Transform business intent into executable plan objects with scheduling, budgeting, and capacity planning |
+| **Purpose** | Transform business intent into executable plan objects with scheduling, budgeting, and capacity planning. **Scope: campaign/system-level planning** (weekly/campaign frequency) |
 | **Category** | Strategy / Planning |
 | **Doc** | `engines/STRATEGY_ENGINE.md` |
 | **Status** | Designed — not yet implemented |
 | **Inputs** | Brand profile, campaign objectives, budget constraints, content calendar, trend signals |
 | **Outputs** | Plan objects (ref: PLAN_OBJECT_SCHEMA.md), weekly schedule, campaign tracks, trend injections |
-| **Dependencies** | Budget Governance doc, Performance Feedback (#22) for optimization signals |
-| **Pipeline Position** | Entry point — first module invoked; produces plan objects consumed by all downstream |
+| **Dependencies** | Budget Governance doc, Performance Feedback (#22), Brand Memory Engine |
+| **Pipeline Position** | Pre-generation step 6 — after Research Engine (#25), before Creative Direction (#23) |
 | **Key Detail** | Enterprise planning governance: budget & spend caps, configurable approval chains, plan versioning & diff, capacity planning & queue management, SLA & deadline enforcement, forecasting & what-if, plan templates & playbooks, dependency tracking (DAG), schedule conflict resolution, cross-brand portfolio view |
 
-#### Module #22 — Performance Feedback Engine
+#### Module #22 — Performance & Preference Feedback Engine
 | Field | Value |
 |-------|-------|
-| **Purpose** | Closed-loop learning — ingest performance signals, update hook weights, template priorities, provider routing |
+| **Purpose** | Full closed-loop learning — engagement feedback, approval/rejection learning, variant winner tracking, template success, family routing optimization, user preference learning |
 | **Category** | Learning / Optimization |
 | **Doc** | `engines/PERFORMANCE_FEEDBACK_ENGINE.md` |
 | **Status** | Designed — not yet implemented |
-| **Inputs** | Post-publish engagement metrics (T+24h, T+48h, T+7d, T+30d), platform analytics |
-| **Outputs** | Hook weight updates → Hook Library (#11), template priority updates → Template Library, family routing adjustments → Provider Routing (#9), strategy rebalancing signals → Strategy Engine (#21) |
-| **Dependencies** | Social platform APIs (planned), plan objects for correlation |
+| **Inputs** | Post-publish engagement metrics (T+24h, T+48h, T+7d, T+30d), platform analytics, approval/rejection events, variant A/B results |
+| **Outputs** | Hook weight updates → Hook Library (#11), template priority updates → Template Library, family routing adjustments → Provider Routing (#9), strategy rebalancing signals → Strategy Engine (#21), preference updates → Brand Memory Engine, decision confidence updates → Decision Engine (#26) |
+| **Dependencies** | Social platform APIs (planned), Social Publishing (#27), plan objects for correlation |
 | **Pipeline Position** | Post-delivery — asynchronous signal collection and weight updates |
+| **Key Detail** | Extended signals: approval_acceptance_rate, revision_patterns, hook_win_rate, asset_reuse_success, format_preference, user_preference_confidence. Feeds Brand Memory Engine for long-term learning |
 
 ### Premium Cinematic Layer
 
@@ -396,6 +406,101 @@ Brandflow is an **AI-powered social media operating system** that transforms bus
 | **Dependencies** | Creative Direction (#23) for scene presets, Provider Routing (#9) for camera capability matrix |
 | **Pipeline Position** | Pre-generation — feeds structured params into SEALCaM (#5) and Assembly (#8) |
 | **Key Detail** | Provider translation layer maps structured params to: Veo3 (natural language with intensity keywords), Kling 2.6 (motion control parameters), Runway Gen-4 (camera motion presets + intensity) |
+
+### Research & Market Intelligence Layer ★ NEW
+
+#### Module #25 — Research & Competitor Intelligence Engine
+| Field | Value |
+|-------|-------|
+| **Purpose** | Gather external market context, competitor patterns, category norms, and trend signals before creative reasoning |
+| **Category** | Research / Market Intelligence |
+| **Doc** | `engines/RESEARCH_COMPETITOR_INTELLIGENCE_ENGINE.md` |
+| **Status** | Designed — not yet implemented |
+| **Inputs** | brand_id, initiative_id, vertical, product/service, target audience, platform targets, campaign objective |
+| **Outputs** | `internal_intelligence_brief.json` — brand_summary, current_offer, target_audience, target_channel, campaign_goal, category_patterns, competitor_patterns, opportunity_gap, reusable_assets_available, historical_performance_signals, confidence_score |
+| **Dependencies** | Brand Memory Engine, Category Intelligence Cache, Firecrawl |
+| **Pipeline Position** | Pre-generation step 5 — after Category Intelligence Cache, before Strategy Engine (#21) |
+| **Key Detail** | Architectural home for deep_search-style research. Supports cached and fresh research modes. Families must NOT call research directly |
+
+#### Brand Memory Engine (Architectural Layer)
+| Field | Value |
+|-------|-------|
+| **Purpose** | Store and retrieve long-term brand-specific intelligence: approved/rejected hooks, winning formats, voice preferences, visual style preferences, do-not-use patterns |
+| **Category** | Memory / Learning |
+| **Doc** | `engines/BRAND_MEMORY_ENGINE.md` |
+| **Status** | Designed — not yet implemented |
+| **Inputs** | brand_id, query context |
+| **Outputs** | Brand memory snapshot (approved hooks, rejected hooks, winning formats, do_not_use patterns, voice/visual preferences, approval_acceptance_rate, revision_patterns) |
+| **Dependencies** | Performance & Preference Feedback (#22) feeds memory updates |
+| **Pipeline Position** | Pre-generation step 3 — before research and decisioning |
+| **Key Detail** | Auto-detection: 5+ rejections → auto-flag do_not_use. Tables: brand_memory, asset_memory, preference_memory, creative_history, do_not_use_registry |
+
+#### Category Intelligence Cache (Architectural Layer)
+| Field | Value |
+|-------|-------|
+| **Purpose** | Reduce research cost/latency by caching reusable vertical/category intelligence |
+| **Category** | Research / Cache |
+| **Doc** | `engines/CATEGORY_INTELLIGENCE_CACHE.md` |
+| **Status** | Designed — not yet implemented |
+| **Inputs** | vertical, platform, region |
+| **Outputs** | Cached category intelligence with freshness window and confidence score |
+| **Dependencies** | Research Engine (#25) populates; invalidation policy refreshes stale data |
+| **Pipeline Position** | Pre-generation step 4 — before Research Engine (#25) |
+
+### Decision & Trust Layer ★ NEW
+
+#### Module #26 — Decision Engine
+| Field | Value |
+|-------|-------|
+| **Purpose** | Convert user intent + brand memory + market research into per-request strategic creative decision |
+| **Category** | Decision / Creative Strategy |
+| **Doc** | `engines/DECISION_ENGINE.md` |
+| **Status** | Designed — not yet implemented |
+| **Inputs** | User intent, initiative context, brand memory, category intelligence, intelligence_brief, performance signals, brand voice profile |
+| **Outputs** | `strategy_object.json` — angle, creative_family, hook_type, tone_profile, persona_alignment, platform_priority, cta_strategy, testing_plan, asset_selection_strategy, confidence_score |
+| **Dependencies** | Research Engine (#25), Brand Memory Engine, Category Intelligence Cache, Strategy Engine (#21), Hook Library (#11), Performance Feedback (#22) |
+| **Pipeline Position** | Pre-generation step 9 — after Hook Library, before Strategy Object Builder |
+| **Key Detail** | Strategy Engine = campaign planning (weekly). Decision Engine = per-request creative decisioning. Weighted angle scoring: prior_approval (0.25), performance (0.30), opportunity_gap (0.20), intent_alignment (0.25) |
+
+#### Strategy Object Builder (Architectural Layer)
+| Field | Value |
+|-------|-------|
+| **Purpose** | Transform Decision Engine output into family-specific generation instructions for F1–F9 |
+| **Category** | Decision / Transformation |
+| **Doc** | `engines/STRATEGY_OBJECT_BUILDER.md` |
+| **Status** | Designed — not yet implemented |
+| **Inputs** | strategy_object from Decision Engine (#26), target family |
+| **Outputs** | Family-specific generation instructions: prompt scaffolding, asset selection, scene architecture, format/platform constraints, variant planning |
+| **Dependencies** | Decision Engine (#26) |
+| **Pipeline Position** | Pre-generation step 10 — after Decision Engine, before Trust layer |
+
+#### Trust & Explainability Engine (Architectural Layer)
+| Field | Value |
+|-------|-------|
+| **Purpose** | Generate decision_trace explaining why creative decisions were made |
+| **Category** | Trust / Transparency |
+| **Doc** | `engines/TRUST_EXPLAINABILITY_ENGINE.md` |
+| **Status** | Designed — not yet implemented |
+| **Inputs** | strategy_object, decision rationale, research brief, brand memory snapshot |
+| **Outputs** | `decision_trace.json` — signals_used, rationale, rejected_alternatives, confidence, assumptions, next_test_recommendation |
+| **Dependencies** | Decision Engine (#26), Research Engine (#25) |
+| **Pipeline Position** | Pre-generation step 11 — after Strategy Object Builder, before Creative Director Agent (#1) |
+| **Key Detail** | Attached to every Review Packet. No "random asset selection" reasoning allowed |
+
+### Social Publishing Layer ★ NEW
+
+#### Module #27 — Social Publishing Engine
+| Field | Value |
+|-------|-------|
+| **Purpose** | Automate the "last mile" — publish approved content to connected social accounts |
+| **Category** | Delivery / Publishing |
+| **Doc** | `engines/SOCIAL_PUBLISHING_ENGINE.md` |
+| **Status** | Designed — not yet implemented |
+| **Inputs** | Approved production exports, platform targets, scheduling config, connected accounts |
+| **Outputs** | Publish status per platform, scheduled post IDs, failure handling, publish audit trail |
+| **Dependencies** | Delivery Packaging, Post-Production (#17) |
+| **Pipeline Position** | Post-delivery — after Delivery Packaging, before Performance Feedback (#22) |
+| **Key Detail** | Initial: Meta Graph API (Instagram, Facebook), TikTok API (planned). Architecture placeholder for LinkedIn/X |
 
 ### Workflows
 
@@ -506,79 +611,90 @@ Brandflow is an **AI-powered social media operating system** that transforms bus
 
 ---
 
-## SECTION D — Pre-Generation Pipeline Order
+## SECTION D — Pre-Generation Pipeline Order (Enterprise-Upgraded)
 
-The exact ordered flow from user intent to generation trigger:
+The canonical 15-step research-backed pre-generation flow:
 
 ```
 Step 1:  User Intent Capture
          └─ User submits brief (brand, product, offer, audience, platform, duration, tone, assets)
          └─ System loads brand profile (colors, fonts, voice_profile, assets)
-         └─ System loads initiative context (campaign track, content pillar)
 
-Step 2:  Strategy Engine (#21) → Plan Object Creation
+Step 2:  Initiative Context Loading
+         └─ Load initiative context (campaign track, content pillar, plan_object_ref)
+         └─ Budget Governance pre-flight check
+         └─ Capacity check / queue management
+
+Step 3:  Brand Memory Retrieval ★ NEW
+         └─ Query Brand Memory Engine for brand_id
+         └─ Return: approved/rejected hooks, winning formats, do_not_use patterns,
+            voice preferences, visual style preferences, approval_acceptance_rate,
+            revision_patterns, asset reuse candidates, campaign history
+
+Step 4:  Category Intelligence Cache Check ★ NEW
+         └─ Check cache for vertical + platform + region
+         └─ If fresh (within freshness window) → return cached intelligence
+         └─ If stale → flag for fresh research in step 5
+
+Step 5:  Research & Competitor Intelligence Engine (#25) ★ NEW
+         └─ Competitor discovery and creative pattern extraction
+         └─ Category norms, premium signals, trend signals
+         └─ Visual cliché avoidance, audience expectation summaries
+         └─ Output: internal_intelligence_brief.json with confidence_score
+         └─ Update Category Intelligence Cache with fresh data
+
+Step 6:  Strategy Engine (#21) → Plan Object Creation
          └─ Translates intent into plan_object (ref: PLAN_OBJECT_SCHEMA.md)
+         └─ Consumes brand memory + intelligence brief for informed planning
          └─ Sets routing: family, platform, format, aspect_ratio
          └─ Sets generation_config: tier, provider_route, voice_config, music_config
-         └─ Sets variant_config: hook_variants, aspect_ratio_variants, localization_targets
 
-Step 3:  Budget Governance Pre-Flight Check
-         └─ Validates plan cost_estimate against brand spend caps
-         └─ Checks burn_rate_daily_usd and projected_exhaustion_date
-         └─ If blocked → status: blocked_budget (plan paused until budget increased)
-
-Step 4:  Capacity Check / Queue Management
-         └─ Validates provider availability via Provider Routing (#9) health checks
-         └─ Assigns queue_position and estimated_start
-         └─ If backpressure → queue with priority scoring
-
-Step 5:  Stage 0 — Creative Direction (#23) [MANDATORY for F1-F5, F7, F8]
+Step 7:  Creative Direction Engine (#23) [MANDATORY for F1-F5, F7, F8]
          └─ Intake: brand, product, offer, audience, platform, duration, tone, constraints, assets, style
          └─ Reasoning: ad_angle selection, hook_logic from Hook Library (#11)
-         └─ Output: scene_architecture[] with purpose (hook/build/offer/CTA), timing, camera_motion presets
-         └─ Output: offer_emphasis (overlay timing, verbal mention, visual callout)
-         └─ Output: emotional_arc (intrigue → desire → urgency → action)
-         └─ Family-specific adaptation applied (F1=authenticity, F2=script-first, F3=product-hero, F5=narrative)
-
-Step 6:  Asset Analysis (#4)
-         └─ Vision model scoring of all reference images and uploaded assets
-         └─ Quality scores, subject classification, composition analysis
-         └─ Usability flags (resolution, cropping suggestions)
-
-Step 7:  Brand Voice DNA Injection (#12)
-         └─ Load brand_voice_profile from brand_profiles.voice_profile JSONB
-         └─ Inject tone, vocabulary, sentence patterns, emoji usage into generation prompts
+         └─ Output: scene_architecture[], offer_emphasis, emotional_arc
+         └─ Family-specific adaptation (F1=authenticity, F2=script-first, F3=product-hero, F5=narrative)
 
 Step 8:  Hook Library Query (#11)
          └─ Query ranked hooks by industry, platform, content format
+         └─ Filter by brand memory (exclude rejected, boost approved)
+         └─ Cross-reference competitor patterns (prefer unused hooks)
          └─ Apply brand voice weighting
-         └─ Return top-N hook options with performance scores
 
-Step 9:  SEALCaM Prompt Construction (#5)
-         └─ Convert creative direction + scene architecture into structured SEALCaM scenes
-         └─ Map camera_motion objects to provider-specific prompt syntax via translation layer
-         └─ Include character descriptors from Character Consistency (#13)
+Step 9:  Decision Engine (#26) ★ NEW
+         └─ Consume: user intent, initiative context, brand memory, category intelligence,
+            intelligence brief, performance signals, brand voice profile
+         └─ Choose: angle, creative_family, hook_type, tone_profile, platform_priority,
+            cta_strategy, testing_plan, asset_selection_strategy
+         └─ Output: strategy_object.json with confidence_score
+         └─ Boundary: per-request creative decisioning (vs Strategy Engine = campaign planning)
 
-Step 10: Creative Director Agent (#1)
-         └─ AGENT framework reasoning over all upstream outputs
+Step 10: Strategy Object Builder ★ NEW
+         └─ Transform strategy_object into family-specific generation instructions
+         └─ Prompt scaffolding, asset selection packaging, scene architecture alignment
+         └─ Format/platform constraint injection, variant planning handoff
+
+Step 11: Trust & Explainability Engine ★ NEW
+         └─ Generate decision_trace.json
+         └─ Include: signals_used, rationale, rejected_alternatives, confidence,
+            assumptions, next_test_recommendation
+         └─ Attach to downstream Review Packet
+
+Step 12: Creative Director Agent (#1)
+         └─ AGENT framework reasoning over strategy_object + decision_trace
          └─ Generate final creative plan with scene descriptions, prompt strategy, generation params
-         └─ Integrate hook selection, camera presets, brand voice constraints
+         └─ SEALCaM prompt construction (#5) + Brand Voice DNA injection (#12)
 
-Step 11: Plan Review Gate (#2) — Checkpoint 1
-         └─ Present plan to user: creative direction, cost estimate, risk assessment, budget check
+Step 13: Plan Review Gate (#2) — Checkpoint 1
+         └─ Present plan to user: creative direction, cost estimate, risk assessment,
+            decision_trace (why this angle), confidence score, alternatives considered
          └─ User decision: approve / reject / request revision
 
-Step 12: [Revision Loop via #3 if rejected]
-         └─ Revision Agent takes rejection reason + reviewer feedback
-         └─ Adjusts plan parameters, re-runs relevant upstream steps
-         └─ Returns to Plan Review Gate
+Step 14: Provider & Tier Routing (#9)
+         └─ Resolve final provider + model based on plan tier, capabilities, health
+         └─ Set fallback_provider, camera capability matrix check
 
-Step 13: Provider & Tier Routing (#9)
-         └─ Resolve final provider + model based on plan tier, required capabilities, health
-         └─ Set fallback_provider for automated failover
-         └─ Camera capability matrix check (does selected provider support required camera_motion?)
-
-Step 14: Generation Trigger
+Step 15: Generation Trigger
          └─ All pre-generation steps complete
          └─ Job status: generating
          └─ Provider API calls begin
@@ -654,19 +770,31 @@ Step 11: Delivery Packaging
          └─ Branded thumbnails
          └─ Download URLs generated
 
-Step 12: Performance Signal Collection (#22) [ASYNC, post-delivery]
+Step 12: Social Publishing (#27) [OPTIONAL] ★ NEW
+         └─ Publish to connected social accounts (Meta Graph API, TikTok)
+         └─ Queue scheduled posts
+         └─ Platform-specific packaging
+         └─ Publish status tracking + failure handling
+         └─ Publish audit trail
+
+Step 13: Performance & Preference Signal Collection (#22) [ASYNC, post-delivery]
          └─ T+24h: Initial engagement metrics (views, likes, comments)
          └─ T+48h: Engagement velocity (growth rate, share ratio)
          └─ T+7d: Medium-term performance (saves, click-through)
          └─ T+30d: Long-term performance (conversion correlation)
+         └─ Approval/rejection learning: track patterns per brand
+         └─ Variant winner tracking: which A/B variant performed best
 
-Step 13: Feedback Signal Distribution
+Step 14: Feedback Signal Distribution + Brand Memory Update ★ EXPANDED
          └─ Hook weight updates → Hook Library (#11)
          └─ Template priority updates → Template Library
          └─ Family routing adjustments → Provider Routing (#9)
          └─ Strategy rebalancing signals → Strategy Engine (#21)
+         └─ Decision confidence updates → Decision Engine (#26)
+         └─ Preference + rejection patterns → Brand Memory Engine
+         └─ Auto-flag do_not_use patterns (5+ rejections)
 
-Step 14: Audit Trail Logging (Layer 3)
+Step 15: Audit Trail Logging (Layer 3)
          └─ All decisions affecting money, access, or content delivery → audit_log
          └─ Immutable, append-only, 7-year retention
          └─ GDPR Article 15/17 support
@@ -676,27 +804,42 @@ Step 14: Audit Trail Logging (Layer 3)
 
 ## SECTION F — Memory/State Architecture
 
-### Database Tables
+### Database Tables (32 tables — formalized in `docs/db/BRANDFLOW_SQL_SCHEMA.md`)
 
 | Table | Source Doc | Purpose | Key Fields |
 |-------|-----------|---------|------------|
 | `plan_objects` | `PLAN_OBJECT_SCHEMA.md` | Central initiative contract | plan_id, brand_id, version, status, intent, routing, generation_config, variant_config, cost_estimate, budget_check, capacity_check, risk_assessment, dependencies, latency_tier |
 | `plan_versions` | `PLAN_OBJECT_SCHEMA.md` | Immutable version snapshots | plan_id, version, changed_fields, previous_values, changed_by, reason |
-| `plan_dependencies` | `PLAN_OBJECT_SCHEMA.md` | DAG-style blocking/informing relationships | plan_id, depends_on_plan_id, dependency_type (blocks/informs), status |
+| `plan_dependencies` | `PLAN_OBJECT_SCHEMA.md` | DAG-style blocking/informing relationships | plan_id, depends_on_plan_id, dependency_type, status |
 | `jobs` | `PIPELINE_CONTRACTS.md` | Job execution records | job_id, brand_id, family, status, brief, created_at, completed_at |
-| `job_stages` | `PIPELINE_CONTRACTS.md` | **Billing source of truth** — per-stage cost tracking | job_id, stage, cost (JSONB: provider, model, cost_usd, tier) |
+| `job_stages` | `PIPELINE_CONTRACTS.md` | **Billing source of truth** | job_id, stage, cost (JSONB: provider, model, cost_usd, tier) |
 | `artifacts` | `PIPELINE_CONTRACTS.md` | Generated asset metadata | artifact_id, job_id, family, type, storage_url, metadata |
-| `touchpoint_events` | `PIPELINE_CONTRACTS.md` | Layer 0 raw observability signals | job_id, stage, module_id, provider_id, action, tier, status, cost_usd, latency_ms, metadata (max 1KB) |
-| `event_bus` | `OBSERVABILITY_CONTRACTS.md` | Layer 1 correlation & replay | correlation_id, parent_event_id, sequence_num, job_id, module_id, event_type, context (max 512 bytes) |
-| `audit_log` | `OBSERVABILITY_CONTRACTS.md` | Layer 3 immutable compliance trail | actor_type, actor_id, action, resource_type, resource_id, reason, change_summary, ip_address (7-year retention, append-only) |
-| `performance_signals` | `engines/PERFORMANCE_FEEDBACK_ENGINE.md` | Post-publish engagement metrics | plan_id, platform, metrics (likes, comments, shares, views), collected_at |
-| `feedback_signals` | `engines/PERFORMANCE_FEEDBACK_ENGINE.md` | Derived optimization signals | target_module, signal_type, weight_delta, confidence |
-| `provider_status` | `engines/PROVIDER_ROUTING_POLICY.md` | Provider health tracking | provider_id, status, last_check, failure_count, p95_latency_ms |
-| `forecast_runs` | `engines/STRATEGY_ENGINE.md` | Dry-run simulation results | brand_id, scenario, estimated_cost, capacity_risk, sla_risk |
-| `plan_templates` | `engines/STRATEGY_ENGINE.md` | Reusable campaign blueprints | template_id, vertical, family_mix, schedule_pattern |
-| `hooks` | `pipelines/HOOK_LIBRARY_ENGINE_DESIGN.md` | Performance-ranked hook patterns | hook_id, style, text, industry, platform, performance_score |
-| `brand_profiles` | `engines/BRAND_VOICE_DNA_ENGINE.md` | Brand identity + voice | brand_id, name, colors, fonts, industry, voice_profile (JSONB) |
-| `voice_generations` | `engines/VOICE_MANAGEMENT_ENGINE.md` | Per-TTS/dub/clone call cost detail | voice_id, job_id, mode, cost_usd, quality_score |
+| `touchpoint_events` | `PIPELINE_CONTRACTS.md` | Layer 0 raw observability | job_id, stage, module_id, provider_id, action, tier, status, cost_usd, latency_ms |
+| `event_bus` | `OBSERVABILITY_CONTRACTS.md` | Layer 1 correlation & replay | correlation_id, parent_event_id, sequence_num, job_id, module_id, event_type |
+| `audit_log` | `OBSERVABILITY_CONTRACTS.md` | Layer 3 immutable compliance | actor_type, actor_id, action, resource_type, resource_id, reason, change_summary (7-year retention) |
+| `performance_signals` | `PERFORMANCE_FEEDBACK_ENGINE.md` | Post-publish engagement metrics | plan_id, platform, metrics, collected_at |
+| `feedback_signals` | `PERFORMANCE_FEEDBACK_ENGINE.md` | Derived optimization signals | target_module, signal_type, weight_delta, confidence |
+| `provider_status` | `PROVIDER_ROUTING_POLICY.md` | Provider health tracking | provider_id, status, last_check, failure_count, p95_latency_ms |
+| `forecast_runs` | `STRATEGY_ENGINE.md` | Dry-run simulation results | brand_id, scenario, estimated_cost, capacity_risk, sla_risk |
+| `plan_templates` | `STRATEGY_ENGINE.md` | Reusable campaign blueprints | template_id, vertical, family_mix, schedule_pattern |
+| `hooks` | `HOOK_LIBRARY_ENGINE_DESIGN.md` | Performance-ranked hook patterns | hook_id, style, text, industry, platform, performance_score |
+| `brand_profiles` | `BRAND_VOICE_DNA_ENGINE.md` | Brand identity + voice | brand_id, name, colors, fonts, industry, voice_profile (JSONB) |
+| `voice_generations` | `VOICE_MANAGEMENT_ENGINE.md` | Per-TTS/dub/clone call cost | voice_id, job_id, mode, cost_usd, quality_score |
+| `brand_memory` | `BRAND_MEMORY_ENGINE.md` ★ NEW | Long-term brand learning | brand_id, approved_hooks, rejected_hooks, winning_formats, do_not_use_patterns |
+| `asset_memory` | `BRAND_MEMORY_ENGINE.md` ★ NEW | Asset reuse tracking | brand_id, artifact_id, usage_count, performance_score, reuse_eligible |
+| `preference_memory` | `BRAND_MEMORY_ENGINE.md` ★ NEW | User preference patterns | brand_id, preference_type, preference_value, confidence, learned_from |
+| `creative_history` | `BRAND_MEMORY_ENGINE.md` ★ NEW | Campaign/creative history | brand_id, initiative_id, angle_used, family_used, outcome |
+| `do_not_use_registry` | `BRAND_MEMORY_ENGINE.md` ★ NEW | Auto-flagged patterns | brand_id, pattern_type, pattern_value, rejection_count, flagged_at |
+| `category_intelligence_cache` | `CATEGORY_INTELLIGENCE_CACHE.md` ★ NEW | Cached vertical intelligence | vertical, platform, region, intelligence_data, freshness_window, confidence_score |
+| `intelligence_briefs` | `RESEARCH_ENGINE.md` ★ NEW | Research output storage | brief_id, brand_id, initiative_id, brief_data, confidence_score |
+| `competitor_profiles` | `RESEARCH_ENGINE.md` ★ NEW | Competitor tracking | competitor_id, brand_id, vertical, creative_patterns, last_updated |
+| `decision_traces` | `DECISION_ENGINE.md` ★ NEW | Decision explainability | trace_id, initiative_id, signals_used, rationale, rejected_alternatives, confidence |
+| `strategy_objects` | `DECISION_ENGINE.md` ★ NEW | Per-request creative decisions | strategy_id, initiative_id, angle, creative_family, hook_type, confidence_score |
+| `review_packets` | `REVIEW_PACKET_ENGINE.md` ★ EXPANDED | Structured approval artifacts | packet_id, job_id, decision_trace_ref, strategy_angle, alternatives, confidence |
+| `user_preference_memory` | `PERFORMANCE_FEEDBACK_ENGINE.md` ★ NEW | Approval/rejection learning | brand_id, user_id, preference_type, value, confidence |
+| `social_publish_log` | `SOCIAL_PUBLISHING_ENGINE.md` ★ NEW | Publish status tracking | publish_id, artifact_id, platform, status, scheduled_at, published_at |
+| `social_accounts` | `SOCIAL_PUBLISHING_ENGINE.md` ★ NEW | Connected social accounts | account_id, brand_id, platform, credentials_ref, status |
+| `variant_results` | `PERFORMANCE_FEEDBACK_ENGINE.md` ★ NEW | A/B test winner tracking | variant_id, campaign_id, variant_type, winner, metrics |
 
 ### Materialized Views (Pre-Computed Dashboards)
 
@@ -759,97 +902,80 @@ Step 14: Audit Trail Logging (Layer 3)
 
 ---
 
-## SECTION H — Current Gaps / Structural Weaknesses
+## SECTION H — Current Gaps / Structural Weaknesses (Post-Enterprise Upgrade)
 
-### Critical Gaps
+### ✅ Gaps Resolved by Enterprise Upgrade
+
+| # | Former Gap | Resolution |
+|---|-----------|------------|
+| 3 | No research/competitor intelligence engine | ✅ **Module #25** — Research & Competitor Intelligence Engine created |
+| 5 | No memory/learning persistence layer | ✅ **Brand Memory Engine** + 5 memory tables created |
+| 8 | No social publishing integration | ✅ **Module #27** — Social Publishing Engine created |
+| 9 | Duplicate planning logic #21/#23 | ✅ **Clear boundary defined**: Strategy Engine = campaign planning (weekly), Decision Engine (#26) = per-request creative decisioning |
+| 10 | No user preference learning | ✅ **Performance Feedback #22 expanded** with approval/rejection learning, user_preference_memory table |
+| 11 | No A/B test result ingestion | ✅ **variant_results table** + variant winner tracking added to #22 |
+| 13 | No trust/explainability layer | ✅ **Trust & Explainability Engine** + decision_trace.json created |
+| 14 | Weak research integration | ✅ **Research Engine #25** + Category Intelligence Cache + deep_search architecture |
+| 15-20 | Missing SQL CREATE statements | ✅ **32-table schema** formalized in `docs/db/BRANDFLOW_SQL_SCHEMA.md` |
+
+### Remaining Critical Gaps
 
 | # | Gap | Severity | Impact |
 |---|-----|----------|--------|
-| 1 | **All 24 modules are documentation-only** — zero implementation exists | 🔴 Critical | No functionality is operational |
-| 2 | **Creative Direction Engine (#23) has no reasoning logic** — spec exists but no ad angle, hook selection, or scene architecture code | 🔴 Critical | Biggest commercial gap — system is a prompt rewriter, not a creative strategist |
-| 3 | **No research/competitor intelligence engine** — mentioned in FEATURE_GAPS.md but no module number assigned | 🔴 Critical | Users create content in a vacuum with no market context |
-| 4 | **F9 Image Template missing from PIPELINE_CONTRACTS.md** — F9 referenced in pricing but has no formal family contract | 🟡 High | Inconsistency between pricing and technical architecture |
+| 1 | **All 27 modules + 4 layers are documentation-only** — zero implementation exists | 🔴 Critical | No functionality is operational |
+| 2 | **Creative Direction Engine (#23) has no reasoning logic** — spec exists but no code | 🔴 Critical | Biggest commercial gap |
 
-### Structural Weaknesses
+### Remaining Structural Weaknesses
 
 | # | Weakness | Severity | Detail |
 |---|----------|----------|--------|
-| 5 | **No memory/learning persistence layer** | 🟡 High | Performance Feedback (#22) collects signals but no long-term brand learning memory exists — system doesn't accumulate knowledge about what works for each brand |
-| 6 | **Camera motion is still text-hint dependent** | 🟡 High | Structured camera vocabulary defined but providers interpret natural language; no guaranteed execution fidelity |
-| 7 | **Character consistency ~85%** | 🟡 High | No provider-native identity embeddings available; text descriptors + end-frame passthrough is the best current approach |
-| 8 | **No social publishing integration** | 🟡 High | Delivery stops at export — no Meta/TikTok API push; users must manually post |
-| 9 | **Duplicate planning logic between #21 and #23** | 🟡 Medium | Strategy Engine and Creative Direction both perform "intake" with overlapping schemas; unclear boundary |
-| 10 | **No user preference learning** | 🟡 Medium | System doesn't learn from approval/rejection patterns to improve future suggestions |
-| 11 | **No A/B test result ingestion** | 🟡 Medium | Campaign Multiplication generates variants but no closed-loop measurement of which variant won |
-| 12 | **Hook Library requires manual/Firecrawl seeding** | 🟡 Medium | No automated platform API scraping; hook performance data depends on external enrichment |
-| 13 | **No explicit trust/explainability layer** | 🟡 Medium | No module explains "why this angle was chosen" to users beyond Plan Review Gate display |
-| 14 | **Weak research integration** | 🟡 Medium | No deep_search, no category intelligence, no market research module; content generation has no external market awareness |
-
-### Schema/Contract Gaps
-
-| # | Gap | Location |
-|---|-----|----------|
-| 15 | No `jobs` table CREATE statement in any doc — referenced but never defined | `PIPELINE_CONTRACTS.md` |
-| 16 | No `brand_profiles` table CREATE statement — referenced in Brand Voice DNA but schema not formalized | `engines/BRAND_VOICE_DNA_ENGINE.md` |
-| 17 | No `artifacts` table CREATE statement — contract defined as JSON but no SQL | `PIPELINE_CONTRACTS.md` |
-| 18 | `performance_signals` and `feedback_signals` tables referenced but no CREATE statements | `engines/PERFORMANCE_FEEDBACK_ENGINE.md` |
-| 19 | `voice_generations` table referenced but no CREATE statement | `engines/VOICE_MANAGEMENT_ENGINE.md` |
-| 20 | `hooks` table referenced but no CREATE statement | `pipelines/HOOK_LIBRARY_ENGINE_DESIGN.md` |
+| 4 | **Camera motion is still text-hint dependent** | 🟡 High | Structured vocabulary defined but providers interpret natural language |
+| 6 | **Character consistency ~85%** | 🟡 High | No provider-native identity embeddings |
+| 7 | **Hook Library requires manual/Firecrawl seeding** | 🟡 Medium | No automated platform API scraping |
+| 8 | **F9 Image Template contract incomplete** | 🟡 Medium | Added to PIPELINE_CONTRACTS but engine module list needs validation |
 
 ---
 
-## SECTION I — Recommended Insertion Points for Enterprise Upgrade
+## SECTION I — Implementation Priority (Post-Upgrade)
 
-> **Note**: This section identifies WHERE new capabilities should be inserted. It does NOT redesign the architecture.
+> **Note**: The enterprise architecture upgrade is complete at the documentation level. This section now identifies implementation priority.
 
-### New Module Insertion Points
+### Phase 1 — Foundation (Weeks 1-4)
+Build the core tables and infrastructure that everything depends on.
 
-| Capability | Recommended Position | Insertion Point | Suggested Module # |
-|-----------|---------------------|----------------|-------------------|
-| **Research/Competitor Intelligence** | Between Strategy Engine (#21) and Creative Direction (#23) | After plan_object creation, before creative reasoning | #25 |
-| **Market/Category Intelligence** | Alongside Research module | Feeds into Creative Direction for competitive positioning | Part of #25 |
-| **Social Publishing** | After Delivery, before Performance Feedback | Automates posting to connected social accounts | #26 |
-| **User Preference Learning** | Extension of Performance Feedback (#22) | Ingests approval/rejection patterns to personalize suggestions | Extend #22 |
-| **A/B Test Result Ingestion** | Extension of Performance Feedback (#22) | Connects variant outcomes back to Campaign Multiplication decisions | Extend #22 |
+| Priority | Component | Reason |
+|----------|-----------|--------|
+| P0 | Supabase schema deployment (32 tables) | Everything depends on persistence |
+| P0 | Brand Profile + Brand Memory tables | Every family needs brand context |
+| P0 | Jobs + Job Stages tables | Billing and orchestration core |
 
-### Layer Insertion Points
+### Phase 2 — Intelligence Stack (Weeks 5-8)
+Build the research-backed pre-generation flow.
 
-| New Layer | Between | Purpose |
-|-----------|---------|---------|
-| **Research & Intelligence** | Strategy (L6) and Intelligence (L5) | External market awareness, competitor monitoring, trend detection |
-| **Trust & Explainability** | Alongside Approval (L2) | "Why this angle" explanations, confidence scores, alternative options shown |
-| **Brand Memory** | Between Learning (L0) and Strategy (L6) | Long-term brand knowledge accumulation, preference patterns, historical performance |
+| Priority | Component | Reason |
+|----------|-----------|--------|
+| P1 | Creative Direction Engine (#23) reasoning logic | Biggest commercial gap |
+| P1 | Decision Engine (#26) | Per-request strategic decisioning |
+| P1 | Brand Memory Engine | Long-term learning loop |
+| P1 | Strategy Object Builder | Families consume structured objects |
 
-### Pre-Generation Flow Insertion Points
+### Phase 3 — Research & Trust (Weeks 9-12)
+Add market awareness and explainability.
 
-```
-Current:  Intent → Strategy (#21) → Budget → Capacity → Creative Direction (#23) → ...
-Upgraded: Intent → Strategy (#21) → Budget → Capacity → [RESEARCH (#25)] → Creative Direction (#23) → ...
-                                                         ↑
-                                                    Insert here: competitor analysis,
-                                                    trend signals, category intelligence
-```
+| Priority | Component | Reason |
+|----------|-----------|--------|
+| P2 | Research Engine (#25) | External market context |
+| P2 | Category Intelligence Cache | Reduce research latency |
+| P2 | Trust & Explainability Engine | Decision traces for review packets |
+| P2 | Performance Feedback expansion (#22) | Closed-loop learning |
 
-### Post-Generation Flow Insertion Points
+### Phase 4 — Delivery & Publishing (Weeks 13-16)
+Close the last-mile gap.
 
-```
-Current:  ... → Delivery → Performance Feedback (#22)
-Upgraded: ... → Delivery → [SOCIAL PUBLISHING (#26)] → Performance Feedback (#22) → [BRAND MEMORY UPDATE]
-                            ↑                                                        ↑
-                       Insert here: auto-post                               Insert here: accumulate
-                       to connected accounts                                long-term brand learning
-```
-
-### Missing SQL Schema Priority
-
-To make the architecture implementation-ready, these CREATE statements should be formalized:
-
-1. `jobs` table (core — everything references it)
-2. `brand_profiles` table (core — every family uses it)
-3. `artifacts` table (core — all generated content)
-4. `hooks` table (Hook Library)
-5. `voice_generations` table (Voice Management)
-6. `performance_signals` + `feedback_signals` tables (Performance Feedback)
+| Priority | Component | Reason |
+|----------|-----------|--------|
+| P3 | Social Publishing Engine (#27) | Automate posting |
+| P3 | Review Packet explainability | Trust-building approvals |
 
 ---
 
@@ -857,14 +983,22 @@ To make the architecture implementation-ready, these CREATE statements should be
 
 | Document | Purpose |
 |----------|---------|
-| `ENGINE_MODULE_REGISTRY.md` | Master index of 24 engine modules |
-| `PIPELINE_CONTRACTS.md` | Family contracts, shared patterns, cost tracking |
+| `ENGINE_MODULE_REGISTRY.md` | Master index of 27 engine modules + 4 architectural layers |
+| `PIPELINE_CONTRACTS.md` | Family contracts, shared patterns, cost tracking, F9 contract |
 | `PLAN_OBJECT_SCHEMA.md` | Plan object schema with versioning, budget, capacity, dependencies, SLA |
 | `OBSERVABILITY_CONTRACTS.md` | 3-layer observability: Event Bus, Metrics, Audit Trail |
 | `BRANDFLOW_PRICING_STRATEGY.md` | Tier pricing tied to pipeline costs |
-| `BRANDFLOW_FEATURE_GAPS.md` | Feature expansion roadmap (7 gaps) |
+| `BRANDFLOW_FEATURE_GAPS.md` | Feature expansion roadmap |
 | `engines/BUDGET_GOVERNANCE.md` | Spend caps, burn rate, tier downgrade |
 | `BRANDFLOW_MVP_EXECUTION_ROADMAP.md` | MVP execution sequence |
 | `BRANDFLOW_UX_FLOW_AUDIT.md` | UX flow audit |
+| `db/BRANDFLOW_SQL_SCHEMA.md` | 32-table SQL schema (enterprise upgrade) |
+| `engines/RESEARCH_COMPETITOR_INTELLIGENCE_ENGINE.md` | Module #25 spec |
+| `engines/DECISION_ENGINE.md` | Module #26 spec |
+| `engines/SOCIAL_PUBLISHING_ENGINE.md` | Module #27 spec |
+| `engines/BRAND_MEMORY_ENGINE.md` | Brand memory layer spec |
+| `engines/CATEGORY_INTELLIGENCE_CACHE.md` | Category cache layer spec |
+| `engines/STRATEGY_OBJECT_BUILDER.md` | Strategy object builder spec |
+| `engines/TRUST_EXPLAINABILITY_ENGINE.md` | Trust/explainability layer spec |
 | Individual engine docs (`engines/*.md`) | Per-module detailed specifications |
 | Individual pipeline docs (`pipelines/*.md`) | Per-family pipeline specifications |
