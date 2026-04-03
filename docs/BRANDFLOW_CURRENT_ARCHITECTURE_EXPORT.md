@@ -356,27 +356,28 @@ Brandflow is an **AI-powered social media operating system** that transforms bus
 #### Module #21 — Strategy Engine
 | Field | Value |
 |-------|-------|
-| **Purpose** | Transform business intent into executable plan objects with scheduling, budgeting, and capacity planning |
+| **Purpose** | Transform business intent into executable plan objects with scheduling, budgeting, and capacity planning. **Scope: campaign/system-level planning** (weekly/campaign frequency) |
 | **Category** | Strategy / Planning |
 | **Doc** | `engines/STRATEGY_ENGINE.md` |
 | **Status** | Designed — not yet implemented |
 | **Inputs** | Brand profile, campaign objectives, budget constraints, content calendar, trend signals |
 | **Outputs** | Plan objects (ref: PLAN_OBJECT_SCHEMA.md), weekly schedule, campaign tracks, trend injections |
-| **Dependencies** | Budget Governance doc, Performance Feedback (#22) for optimization signals |
-| **Pipeline Position** | Entry point — first module invoked; produces plan objects consumed by all downstream |
+| **Dependencies** | Budget Governance doc, Performance Feedback (#22), Brand Memory Engine |
+| **Pipeline Position** | Pre-generation step 6 — after Research Engine (#25), before Creative Direction (#23) |
 | **Key Detail** | Enterprise planning governance: budget & spend caps, configurable approval chains, plan versioning & diff, capacity planning & queue management, SLA & deadline enforcement, forecasting & what-if, plan templates & playbooks, dependency tracking (DAG), schedule conflict resolution, cross-brand portfolio view |
 
-#### Module #22 — Performance Feedback Engine
+#### Module #22 — Performance & Preference Feedback Engine
 | Field | Value |
 |-------|-------|
-| **Purpose** | Closed-loop learning — ingest performance signals, update hook weights, template priorities, provider routing |
+| **Purpose** | Full closed-loop learning — engagement feedback, approval/rejection learning, variant winner tracking, template success, family routing optimization, user preference learning |
 | **Category** | Learning / Optimization |
 | **Doc** | `engines/PERFORMANCE_FEEDBACK_ENGINE.md` |
 | **Status** | Designed — not yet implemented |
-| **Inputs** | Post-publish engagement metrics (T+24h, T+48h, T+7d, T+30d), platform analytics |
-| **Outputs** | Hook weight updates → Hook Library (#11), template priority updates → Template Library, family routing adjustments → Provider Routing (#9), strategy rebalancing signals → Strategy Engine (#21) |
-| **Dependencies** | Social platform APIs (planned), plan objects for correlation |
+| **Inputs** | Post-publish engagement metrics (T+24h, T+48h, T+7d, T+30d), platform analytics, approval/rejection events, variant A/B results |
+| **Outputs** | Hook weight updates → Hook Library (#11), template priority updates → Template Library, family routing adjustments → Provider Routing (#9), strategy rebalancing signals → Strategy Engine (#21), preference updates → Brand Memory Engine, decision confidence updates → Decision Engine (#26) |
+| **Dependencies** | Social platform APIs (planned), Social Publishing (#27), plan objects for correlation |
 | **Pipeline Position** | Post-delivery — asynchronous signal collection and weight updates |
+| **Key Detail** | Extended signals: approval_acceptance_rate, revision_patterns, hook_win_rate, asset_reuse_success, format_preference, user_preference_confidence. Feeds Brand Memory Engine for long-term learning |
 
 ### Premium Cinematic Layer
 
