@@ -88,9 +88,10 @@ function resolveTier(job):
 | Priority | Provider | Model | Families |
 |----------|----------|-------|----------|
 | Primary | Kie AI | Veo3 / Veo3_fast | F1, F3, F5, F7 |
-| Fallback 1 | BytePlus | Seedance 1.0 | F3, F5 |
-| Fallback 2 | Runway | Gen-4 | F1, F5, F7 |
-| Fallback 3 | Pika | Pika 2.2 | F1, F5, F7 |
+| Fallback 1 | Higgsfield | Higgsfield Diffusion | F1, F5, F7 |
+| Fallback 2 | BytePlus | Seedance 1.0 | F3, F5 |
+| Fallback 3 | Runway | Gen-4 | F1, F5, F7 |
+| Fallback 4 | Pika | Pika 2.2 | F1, F5, F7 |
 
 ### Image Generation
 
