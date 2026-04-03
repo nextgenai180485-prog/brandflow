@@ -45,9 +45,12 @@ The enterprise engine layer consists of 27 shared modules, 3 architectural layer
 | 19 | Review Packet Engine | `engines/REVIEW_PACKET_ENGINE.md` | Cross-family | Designed |
 | 20 | Voice Management Engine | `engines/VOICE_MANAGEMENT_ENGINE.md` | Cross-family | Designed |
 | 21 | Strategy Engine | `engines/STRATEGY_ENGINE.md` | Cross-family | Designed |
-| 22 | Performance Feedback Engine | `engines/PERFORMANCE_FEEDBACK_ENGINE.md` | Cross-family | Designed |
+| 22 | Performance & Preference Feedback Engine | `engines/PERFORMANCE_FEEDBACK_ENGINE.md` | Cross-family | Designed |
 | 23 | Creative Direction Engine | `engines/CREATIVE_DIRECTION_ENGINE.md` | Cross-family (mandatory Stage 1) | Designed |
 | 24 | Camera Motion & Transition Engine | `engines/CAMERA_MOTION_ENGINE.md` | F1, F3, F5, F7, F8 | Designed |
+| 25 | Research & Competitor Intelligence Engine | `engines/RESEARCH_COMPETITOR_INTELLIGENCE_ENGINE.md` | Cross-family | Designed |
+| 26 | Decision Engine | `engines/DECISION_ENGINE.md` | Cross-family | Designed |
+| 27 | Social Publishing Engine | `engines/SOCIAL_PUBLISHING_ENGINE.md` | Distribution | Designed |
 
 ### Workflows
 
