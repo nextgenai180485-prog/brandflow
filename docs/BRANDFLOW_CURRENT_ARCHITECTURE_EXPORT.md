@@ -1,10 +1,11 @@
 # Brandflow Current Architecture Export
 
-> **Status**: Snapshot — implementation-ready reference  
+> **Status**: Enterprise-upgraded — implementation-ready reference  
 > **Last updated**: 2026-04-03  
-> **Purpose**: Complete system architecture export for enterprise upgrade review  
-> **Module count**: 24 engines + 1 workflow (W6)  
-> **Family count**: 9 generation families (F1–F9)
+> **Purpose**: Complete system architecture — post-enterprise intelligence upgrade  
+> **Module count**: 27 engines + 4 architectural layers + 1 workflow (W6)  
+> **Family count**: 9 generation families (F1–F9)  
+> **Schema count**: 32 tables formalized in `docs/db/BRANDFLOW_SQL_SCHEMA.md`
 
 ---
 
