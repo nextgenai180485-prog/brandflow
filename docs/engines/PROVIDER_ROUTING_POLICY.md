@@ -202,6 +202,21 @@ function resolveTier(job):
         "gpt4o_image": { "status": "healthy", "latency_p95_ms": 1800 },
         "suno_generate": { "status": "healthy", "latency_p95_ms": 5000 }
       }
+    },
+    {
+      "provider_id": "higgsfield",
+      "display_name": "Higgsfield",
+      "status": "healthy",
+      "latency_p95_ms": 3200,
+      "last_checked": "2026-04-03T10:00:00Z",
+      "error_count_1h": 0,
+      "error_count_24h": 0,
+      "consecutive_failures": 0,
+      "failover_active": false,
+      "endpoints": {
+        "video_generate": { "status": "healthy", "latency_p95_ms": 3200 },
+        "i2v_generate": { "status": "healthy", "latency_p95_ms": 3800 }
+      }
     }
   ]
 }
