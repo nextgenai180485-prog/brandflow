@@ -1,171 +1,133 @@
 
 
-# Premium Enterprise-Grade Cinematic System — Phased Plan
+# Plan: Export Complete Brandflow Architecture Document
 
-## Current State
+## What This Delivers
 
-The F5 Cinematic Ad pipeline uses freeform `transition_prompt` text ("SLOW movement") for camera control. SEALCaM has a `Camera` field but it's a text string, not structured. No motion intensity parameter exists. No transition type schema. Creative Direction Engine (#23) is spec-only. Character Consistency works ~85% via text descriptors + end-frame passthrough.
+A single comprehensive markdown file (`docs/BRANDFLOW_CURRENT_ARCHITECTURE_EXPORT.md`) containing the full current system architecture across all 10 requested sections, plus an update to `docs/ENGINE_MODULE_REGISTRY.md` to cross-reference this export.
 
----
+## Document Structure
 
-## Phase 1 — Camera Motion Vocabulary Engine (New Module #24)
+### SECTION A — Top-Level Architecture Summary
+- Product thesis (AI social media operating system, approval-first)
+- 9 generation families (F1–F9)
+- 24 engine modules + 1 workflow (W6)
+- 6 core enterprise workflows
+- 4-layer observability stack
+- Hybrid orchestration model (Edge Functions + Python workers)
+- Trust-based review-safe delivery architecture
 
-**Create**: `docs/engines/CAMERA_MOTION_ENGINE.md`
+### SECTION B — Engine/Module Registry (24 modules)
+For each of the 24 modules: name, one-line purpose, category/layer, doc file, implementation status (all are "Designed — not yet implemented"), inputs, outputs, dependencies, and pipeline position.
 
-Define a structured camera motion vocabulary replacing freeform text:
+Modules grouped by layer:
+- **Foundation**: #9 Provider Routing, #10 Re-entry Controller, #2 Plan Review Gate
+- **Intelligence**: #1 Creative Director Agent, #4 Asset Analyzer, #5 SEALCaM, #3 Revision Agent, #11 Hook Library, #12 Brand Voice DNA
+- **Media**: #7 Music Engine, #8 Assembly Engine, #6 Core Elements Generator, #13 Character Consistency, #14 Template Image Composer, #15 Motion Variant Selector, #16 UGC Voiceover
+- **Delivery**: #17 Delivery & Post-Production
+- **Localization**: #18 Localization & Cultural Adaptation
+- **Approval & Scaling**: #19 Review Packet Engine, #20 Voice Management
+- **Strategy & Learning**: #21 Strategy Engine, #22 Performance Feedback Engine
+- **Premium Cinematic**: #23 Creative Direction Engine, #24 Camera Motion & Transition Engine
 
-```text
-camera_motion: {
-  move_type: STATIC | DOLLY_IN | DOLLY_OUT | PAN_LEFT | PAN_RIGHT |
-             TILT_UP | TILT_DOWN | CRANE_UP | CRANE_DOWN |
-             TRACKING_LEFT | TRACKING_RIGHT | ORBIT_CW | ORBIT_CCW |
-             HANDHELD | ZOOM_IN | ZOOM_OUT | RACK_FOCUS
-  intensity: 0.0–1.0        // replaces hardcoded "SLOW"
-  speed_curve: LINEAR | EASE_IN | EASE_OUT | EASE_IN_OUT
-  start_angle_deg: number   // optional, e.g. 0
-  end_angle_deg: number     // optional, e.g. 45
-  focus_pull: {              // optional
-    from: FOREGROUND | MIDGROUND | BACKGROUND
-    to: FOREGROUND | MIDGROUND | BACKGROUND
-    at_seconds: number
-  }
-}
-```
+### SECTION C — Workflow/Family Registry (9 families + 1 workflow)
+For each family (F1–F9) and W6: one-line purpose, engine modules consumed, current state, and gaps. Sourced from PIPELINE_CONTRACTS.md and individual pipeline docs.
 
-**Provider translation layer** — map structured params to provider-specific prompt syntax:
-- **Veo3**: Natural language with intensity keywords ("very slow dolly forward")
-- **Kling 2.6**: Motion control parameters where API supports them
-- **Runway Gen-4**: Camera motion presets + intensity
+### SECTION D — Pre-Generation Pipeline Order
+Exact ordered flow:
+1. User intent → Strategy Engine (#21) produces plan_object
+2. Budget governance pre-flight check
+3. Capacity check / queue management
+4. **Stage 0: Creative Direction (#23)** — intake, angle selection, hook logic, scene architecture
+5. Asset analysis (#4) — vision model scoring of reference images
+6. SEALCaM prompt construction (#5)
+7. Brand Voice DNA injection (#12)
+8. Hook Library query (#11)
+9. Creative Director Agent (#1) — AGENT framework reasoning
+10. Plan Review Gate (#2) — user approval checkpoint
+11. [Revision loop via #3 if rejected]
+12. Provider & Tier Routing (#9) — resolve provider + tier
+13. Generation trigger
 
-**Update files**:
-- `docs/pipelines/SEALCAM_FRAMEWORK.md` — Replace `camera: string` with structured `camera_motion` object in the `SEALCaMScene` interface
-- `docs/pipelines/CINEMATIC_AD_PIPELINE.md` — Replace `transition_prompt` with `camera_motion` + `transition` objects in Scene Schema
-- `docs/engines/PROVIDER_ROUTING_POLICY.md` — Add camera capability matrix per provider
+### SECTION E — Post-Generation Pipeline Order
+1. Assembly Engine (#8) — FFmpeg stitching with transitions
+2. Character Consistency validation (#13) — scene-chain scoring
+3. Post-Production (#17) — subtitles, watermark, audio polish, enhancement, thumbnails, export
+4. Review Packet (#19) — structured approval artifact
+5. Plan Review Gate (#2) — user approval of final output
+6. [Revision loop if rejected]
+7. Production unlock on approval
+8. Localization (#18) — optional, per target market
+9. Campaign Multiplication (W6) — variants, cutdowns, hook swaps
+10. Delivery packaging — multi-format exports
+11. Performance signal collection (#22) — T+24h, T+48h, T+7d, T+30d
+12. Feedback signals → Hook Library, Template Library, Provider Routing, Strategy Engine
+13. Audit Trail logging (Layer 3)
 
----
+### SECTION F — Memory/State Architecture
+All database tables documented across specs:
+- `plan_objects`, `plan_versions`, `plan_dependencies` (Plan Object Schema)
+- `jobs`, `job_stages` (Pipeline Contracts — billing source of truth)
+- `artifacts` (asset storage metadata)
+- `touchpoint_events` (Layer 0 observability)
+- `event_bus` (Layer 1 correlation)
+- `audit_log` (Layer 3 immutable compliance)
+- `performance_signals`, `feedback_signals` (Performance Feedback #22)
+- `provider_status` (Provider Routing #9)
+- `forecast_runs`, `plan_templates` (Strategy Engine #21)
+- `hooks` table (Hook Library #11)
+- `brand_profiles.voice_profile` JSONB (Brand Voice DNA #12)
+- Materialized views: `mv_provider_health`, `mv_module_performance`, `mv_brand_analytics`, `mv_family_throughput`
+- Supabase Storage for all generated artifacts
 
-## Phase 2 — Scene Transition Schema
+### SECTION G — Integration Architecture
+All external systems:
+- **Supabase**: Database, auth, storage, edge functions, task queue
+- **Kie AI**: Veo3, Kling 2.6, GPT-4o Image, Suno V5 (primary video/music)
+- **BytePlus**: Seedance 1.0, SeedEdit 3.0, Seedream 5.0, VOD (subtitles/watermark/enhancement)
+- **WaveSpeed AI**: Kling 2.6 Pro, nano-banana-pro (image)
+- **ElevenLabs**: TTS, voice cloning, dubbing
+- **Fal.ai**: Sync Labs Lipsync, ByteDance LatentSync, Whisper, FFmpeg API
+- **Runway**: Gen-4 (video fallback)
+- **Pika**: Pika 2.2 (video fallback)
+- **Suno/Udio**: Music generation
+- **Firecrawl**: Web scraping for Brand Voice DNA + Hook Library
+- **Lovable AI Gateway**: Gemini for vision analysis + content generation
+- **OpenAI**: GPT-4o Vision (fallback), DALL-E 3 (fallback)
+- **FFmpeg**: Assembly, transitions, audio polish, export
+- **Meta Graph API**: Planned for social publishing
+- **Google Trends / TikTok Creative Center**: Trend signals for Strategy Engine
 
-**Add to**: `docs/engines/CAMERA_MOTION_ENGINE.md` (same module)
+### SECTION H — Current Gaps / Structural Weaknesses
+Identified from cross-referencing all docs:
+1. **All 24 modules are documentation-only** — zero implementation exists
+2. **No research/competitor intelligence engine** — mentioned in FEATURE_GAPS.md but no module number
+3. **No memory/learning persistence layer** — performance feedback collects signals but no long-term brand learning memory
+4. **Creative Direction Engine (#23) has no execution logic** — spec exists, reasoning code does not
+5. **Camera motion is still text-hint dependent** on all providers
+6. **Character consistency ~85%** — no provider-native identity embeddings
+7. **No social publishing integration** — delivery stops at export, no Meta/TikTok API push
+8. **No user preference learning** — system doesn't learn from approval/rejection patterns
+9. **No A/B test result ingestion** — Campaign Multiplication generates variants but no closed-loop measurement
+10. **Hook Library requires manual/Firecrawl seeding** — no automated platform API scraping
+11. **Duplicate planning logic** — Strategy Engine (#21) and Creative Direction (#23) both do "intake" with overlapping schemas
+12. **Missing F9 Image Template in PIPELINE_CONTRACTS** — F9 mentioned in pricing but not in family contracts
+13. **No explicit trust/explainability layer** — no module explains "why this angle was chosen" to users beyond the Plan Review Gate display
+14. **Weak research integration** — no deep_search, no category intelligence, no market research module
 
-```text
-scene_transition: {
-  type: CUT | DISSOLVE | CROSS_DISSOLVE | MATCH_CUT |
-        WHIP_PAN | FADE_TO_BLACK | FADE_FROM_BLACK |
-        WIPE | MORPH | JUMP_CUT
-  duration_ms: number          // 0 for CUT, 500-2000 for dissolves
-  direction: LEFT | RIGHT | UP | DOWN   // for WIPE/WHIP_PAN only
-}
-```
+### SECTION I — Recommended Insertion Points for Enterprise Upgrade
+Document insertion points without redesigning:
+- Research/Intelligence layer: between Strategy Engine and Creative Direction
+- Memory/Learning layer: between Performance Feedback and Strategy Engine
+- Trust/Explainability layer: alongside Plan Review Gate
+- Competitor Intelligence: as Module #25
+- Social Publishing: as Module #26
+- User Preference Learning: extend Performance Feedback #22
 
-**Interpolation control** (start/end frame bridging):
-```text
-interpolation: {
-  style: LINEAR | SMOOTH | DRAMATIC | DREAMY
-  mid_keyframe_hint: string    // optional text hint for mid-scene
-  easing: EASE_IN | EASE_OUT | EASE_IN_OUT | LINEAR
-}
-```
-
-**Update**: F5 scene output schema replaces `transition_prompt: string` with:
-```text
-{
-  camera_motion: { ... },
-  scene_transition: { ... },
-  interpolation: { ... }
-}
-```
-
----
-
-## Phase 3 — Creative Direction Engine (#23) Full Spec
-
-**Create**: `docs/engines/CREATIVE_DIRECTION_ENGINE.md`
-
-This is the commercial moat. All video families (F1-F5) pass through this before any generation.
-
-**Intake schema** (business inputs):
-- brand, product/service, offer, audience, platform(s), duration, tone, compliance constraints, reference assets, visual style
-
-**Reasoning outputs**:
-- `ad_angle`: The strategic positioning (e.g., "transformation story", "social proof", "urgency")
-- `hook_logic`: Selected from Hook Library (#11) with data-driven ranking, includes opening 3s strategy
-- `scene_architecture[]`: Ordered scenes with purpose (hook, build, offer, CTA), timing, and camera_motion presets
-- `offer_emphasis`: Where and how the offer appears (overlay timing, verbal mention, visual callout)
-- `emotional_arc`: Tension curve mapped to scenes (intrigue → desire → urgency → action)
-
-**Per-family adaptations**:
-| Family | Adaptation |
-|--------|-----------|
-| F1 UGC | Authenticity bias, single-character, testimonial angles |
-| F2 Spokesperson | Script-first, talking-head framing, authority angles |
-| F3 Product | Product hero shots, feature demonstration arcs |
-| F5 Cinematic | Multi-scene narrative, dramatic camera, brand storytelling |
-
-**Update files**:
-- `docs/ENGINE_MODULE_REGISTRY.md` — Add Module #23 and #24
-- `docs/PIPELINE_CONTRACTS.md` — Add Stage 1 Creative Direction as mandatory first step for F1-F5
-- All family pipeline docs (F1-F5) — Reference #23 as first stage
-
----
-
-## Phase 4 — Character Consistency Hardening
-
-**Update**: `docs/engines/CHARACTER_CONSISTENCY_ENGINE.md`
-
-Close the ~85% → ~95% gap:
-
-- **Structured appearance locking**: Convert canonical descriptors to per-provider optimized constraint prompts (not just text injection)
-- **Scene-chain validation**: After each scene generates, run a consistency scoring pass. If score < threshold (0.85), auto-regenerate with strengthened descriptors
-- **End-frame quality gate**: Validate end-frame matches canonical descriptor before passing to next scene
-- **Provider-specific identity hints**: Map character descriptors to provider-native features when available (e.g., Kling character reference, Veo3 identity tokens)
-
----
-
-## Phase 5 — Integration + Pipeline Contract Updates
-
-Stitch everything together across the system:
-
-1. **Update `docs/PIPELINE_CONTRACTS.md`**:
-   - New Job Stage Flow: `creative_direction → asset_analysis → planning → plan_review → [revision_loop] → generation → assembly → post_production → [localization] → delivery`
-   - Add Module #23 and #24 to all video family engine module lists
-
-2. **Update `docs/pipelines/CINEMATIC_AD_PIPELINE.md`**:
-   - Replace Stage 3 Scene Planning output schema with structured camera_motion + scene_transition objects
-   - Add Creative Direction as new Stage 1 (shift existing stages)
-   - Update Stage 5 video generation to pass structured camera params through provider translation layer
-
-3. **Update all video family pipeline docs** (F1, F2, F3, F5, F7, F8):
-   - Reference Module #23 Creative Direction as mandatory first stage
-   - Reference Module #24 Camera Motion where applicable (F3, F5, F7, F8)
-
-4. **Update `docs/pipelines/SEALCAM_FRAMEWORK.md`**:
-   - Replace `camera: string` in TypeScript interface with structured `CameraMotion` type
-   - Add `SceneTransition` and `Interpolation` types
-   - Update `buildSEALCaMPrompt()` to translate structured camera to provider-specific text
-
-5. **Update `docs/ENGINE_MODULE_REGISTRY.md`**:
-   - Add Module #23 Creative Direction Engine
-   - Add Module #24 Camera Motion & Transition Engine
-   - Update module count to 24
-
----
-
-## Files Changed Summary
+## Files Changed
 
 | File | Action |
 |------|--------|
-| `docs/engines/CAMERA_MOTION_ENGINE.md` | **Create** — Camera vocabulary, transition schema, provider translation |
-| `docs/engines/CREATIVE_DIRECTION_ENGINE.md` | **Create** — Full intake/reasoning/output spec |
-| `docs/ENGINE_MODULE_REGISTRY.md` | **Update** — Add modules #23, #24 |
-| `docs/PIPELINE_CONTRACTS.md` | **Update** — New stage flow, new modules in family lists |
-| `docs/pipelines/CINEMATIC_AD_PIPELINE.md` | **Update** — Structured camera/transition in scene schema |
-| `docs/pipelines/SEALCAM_FRAMEWORK.md` | **Update** — Structured types replace string camera field |
-| `docs/engines/CHARACTER_CONSISTENCY_ENGINE.md` | **Update** — Hardening: validation gates, provider-specific hints |
-| `docs/engines/PROVIDER_ROUTING_POLICY.md` | **Update** — Camera capability matrix |
-| `docs/pipelines/UGC_VIDEO_PIPELINE.md` | **Update** — Reference #23 |
-| `docs/pipelines/AI_SPOKESPERSON_PIPELINE.md` | **Update** — Reference #23 |
-| `docs/pipelines/PRODUCT_VIDEOGRAPHY_PIPELINE.md` | **Update** — Reference #23, #24 |
-| `docs/pipelines/AD_CREATOR_PIPELINE.md` | **Update** — Reference #23, #24 |
-| `docs/pipelines/CREATIVE_CLONER_PIPELINE.md` | **Update** — Reference #23, #24 |
+| `docs/BRANDFLOW_CURRENT_ARCHITECTURE_EXPORT.md` | **Create** — Full 10-section architecture export |
+| `docs/ENGINE_MODULE_REGISTRY.md` | **Update** — Add cross-reference to the export doc in Supporting Docs table |
 
