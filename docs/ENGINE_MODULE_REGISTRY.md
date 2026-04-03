@@ -1,9 +1,9 @@
 # Engine Module Registry — Brandflow Enterprise Engine Layer
 
 > **Status**: Design reference — master index of all shared engine modules  
-> **Last updated**: 2026-04-02  
-> **Module count**: 24 modules + 1 workflow  
-> **Consolidation note**: Merged Prompt Schema Normalizer into SEALCaM (#5) and Tier Router + Provider Routing into a unified Provider & Tier Routing Engine (#9). Added Module #17 for post-production finishing, Module #18 for localization & cultural adaptation, Module #19 for review packets, Module #20 for voice management, Module #21 for strategy planning, Module #22 for performance feedback, Module #23 for creative direction, and Module #24 for camera motion & transitions.
+> **Last updated**: 2026-04-03  
+> **Module count**: 27 modules + 1 workflow + 3 architectural layers  
+> **Consolidation note**: Merged Prompt Schema Normalizer into SEALCaM (#5) and Tier Router + Provider Routing into a unified Provider & Tier Routing Engine (#9). Modules #17–#24 added in remediation phases. Modules #25–#27 and 3 architectural layers (Category Intelligence Cache, Strategy Object Builder, Brand Memory Engine, Trust & Explainability Engine) added in enterprise intelligence upgrade.
 
 ---
 
