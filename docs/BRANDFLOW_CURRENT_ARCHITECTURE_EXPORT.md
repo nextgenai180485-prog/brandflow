@@ -16,7 +16,7 @@
 Brandflow is an **AI-powered social media operating system** that transforms business intent into production-ready creative assets across 9 generation families. The architecture is built on three pillars:
 
 1. **Approval-first delivery** — Nothing reaches production without human review via structured Review Packets
-2. **Enterprise-grade orchestration** — 24 shared engine modules provide consistent quality, cost governance, and compliance across all families
+2. **Enterprise-grade orchestration** — 27 engine modules + 4 architectural layers provide consistent quality, cost governance, and compliance across all families
 3. **Closed-loop learning** — Performance signals feed back into hook selection, provider routing, and strategy planning
 
 ### Architecture Layers
