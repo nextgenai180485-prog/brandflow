@@ -1,17 +1,17 @@
-# Module #22 — Performance Feedback Engine
+# Module #22 — Performance & Preference Feedback Engine
 
 > **Status**: Design reference  
-> **Last updated**: 2026-03-31  
+> **Last updated**: 2026-04-03  
 > **Owner**: Cross-family  
-> **Depends on**: Module #21 (Strategy Engine), Module #11 (Hook Library), Module #9 (Provider & Tier Routing)
+> **Depends on**: Module #21 (Strategy Engine), Module #11 (Hook Library), Module #9 (Provider & Tier Routing), Module #26 (Decision Engine), Brand Memory Engine
 
 ---
 
 ## Purpose
 
-Close the learning loop. Every asset Brandflow produces should feed performance data back into the system so that future content improves automatically. Without this engine, Brandflow generates blind — no learning, no optimization, no compounding value.
+Close the learning loop. Every asset Brandflow produces should feed performance data AND user preference signals back into the system so that future content improves automatically. Without this engine, Brandflow generates blind — no learning, no optimization, no compounding value.
 
-The Performance Feedback Engine ingests engagement metrics, scores variant effectiveness, and emits adjustment signals that retune Hook Library weights, Template Library priorities, family routing preferences, and Strategy Engine pillar distributions.
+The Performance & Preference Feedback Engine ingests engagement metrics, approval/rejection patterns, variant outcomes, and user preference signals. It emits adjustment signals that retune Hook Library weights, Template Library priorities, family routing preferences, Strategy Engine pillar distributions, Decision Engine confidence, and Brand Memory.
 
 ---
 
@@ -19,12 +19,17 @@ The Performance Feedback Engine ingests engagement metrics, scores variant effec
 
 | Responsibility | Description |
 |----------------|-------------|
-| Engagement Metric Ingestion | Pull post-publish performance data from connected platforms |
+| Engagement Metric Ingestion | Pull post-publish performance data from connected platforms via Social Publishing Engine (#27) |
 | Variant Performance Scoring | Rank A/B variants and multiplication outputs by effectiveness |
 | Hook Effectiveness Tracking | Score which hook styles drive engagement per platform/vertical |
 | Template Success Weighting | Track which templates produce high-performing assets |
 | Provider Output Quality Tracking | Score provider outputs by downstream engagement (not just generation quality) |
 | Strategy Adjustment Signals | Emit rebalancing signals to Strategy Engine (#21) |
+| Approval/Rejection Learning | Track approval_acceptance_rate, revision_patterns, and rejection reasons per brand |
+| Variant Winner Loop | Identify which A/B variant won and feed winner data back to Campaign Multiplication |
+| User Preference Learning | Detect format, visual style, hook, and tone preferences from approval/rejection patterns |
+| Family Routing Feedback | Track which families produce highest-approved content per brand/vertical |
+| Asset Reuse Success Tracking | Monitor whether reused assets maintain engagement vs. fresh generation |
 
 ---
 
