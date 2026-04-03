@@ -1,17 +1,17 @@
-# Module #22 — Performance Feedback Engine
+# Module #22 — Performance & Preference Feedback Engine
 
 > **Status**: Design reference  
-> **Last updated**: 2026-03-31  
+> **Last updated**: 2026-04-03  
 > **Owner**: Cross-family  
-> **Depends on**: Module #21 (Strategy Engine), Module #11 (Hook Library), Module #9 (Provider & Tier Routing)
+> **Depends on**: Module #21 (Strategy Engine), Module #11 (Hook Library), Module #9 (Provider & Tier Routing), Module #26 (Decision Engine), Brand Memory Engine
 
 ---
 
 ## Purpose
 
-Close the learning loop. Every asset Brandflow produces should feed performance data back into the system so that future content improves automatically. Without this engine, Brandflow generates blind — no learning, no optimization, no compounding value.
+Close the learning loop. Every asset Brandflow produces should feed performance data AND user preference signals back into the system so that future content improves automatically. Without this engine, Brandflow generates blind — no learning, no optimization, no compounding value.
 
-The Performance Feedback Engine ingests engagement metrics, scores variant effectiveness, and emits adjustment signals that retune Hook Library weights, Template Library priorities, family routing preferences, and Strategy Engine pillar distributions.
+The Performance & Preference Feedback Engine ingests engagement metrics, approval/rejection patterns, variant outcomes, and user preference signals. It emits adjustment signals that retune Hook Library weights, Template Library priorities, family routing preferences, Strategy Engine pillar distributions, Decision Engine confidence, and Brand Memory.
 
 ---
 
@@ -19,12 +19,17 @@ The Performance Feedback Engine ingests engagement metrics, scores variant effec
 
 | Responsibility | Description |
 |----------------|-------------|
-| Engagement Metric Ingestion | Pull post-publish performance data from connected platforms |
+| Engagement Metric Ingestion | Pull post-publish performance data from connected platforms via Social Publishing Engine (#27) |
 | Variant Performance Scoring | Rank A/B variants and multiplication outputs by effectiveness |
 | Hook Effectiveness Tracking | Score which hook styles drive engagement per platform/vertical |
 | Template Success Weighting | Track which templates produce high-performing assets |
 | Provider Output Quality Tracking | Score provider outputs by downstream engagement (not just generation quality) |
 | Strategy Adjustment Signals | Emit rebalancing signals to Strategy Engine (#21) |
+| Approval/Rejection Learning | Track approval_acceptance_rate, revision_patterns, and rejection reasons per brand |
+| Variant Winner Loop | Identify which A/B variant won and feed winner data back to Campaign Multiplication |
+| User Preference Learning | Detect format, visual style, hook, and tone preferences from approval/rejection patterns |
+| Family Routing Feedback | Track which families produce highest-approved content per brand/vertical |
+| Asset Reuse Success Tracking | Monitor whether reused assets maintain engagement vs. fresh generation |
 
 ---
 
@@ -193,12 +198,71 @@ conversion_signal = weighted_sum(
       "current_weight": 0.20,
       "recommended_weight": 0.28,
       "reason": "Pillar 'behind-the-scenes' consistently outperforms 'product-spotlight' by 2.1x"
-    },
+    }
+  ]
+}
+```
+
+### 5. Decision Engine Signals → Module #26
+
+```json
+{
+  "signal_type": "decision_confidence_update",
+  "target": "decision_engine",
+  "updates": [
     {
-      "platform": "linkedin",
-      "current_distribution": 0.10,
-      "recommended_distribution": 0.05,
-      "reason": "LinkedIn engagement below vertical benchmark for 4 consecutive weeks"
+      "brand_id": "uuid",
+      "angle_type": "transformation",
+      "current_confidence": 0.75,
+      "new_confidence": 0.87,
+      "evidence": {
+        "approval_rate": 0.82,
+        "engagement_rate": 0.045,
+        "sample_size": 12
+      }
+    }
+  ]
+}
+```
+
+### 6. Preference Updates → Brand Memory Engine
+
+```json
+{
+  "signal_type": "preference_update",
+  "target": "brand_memory",
+  "updates": [
+    {
+      "brand_id": "uuid",
+      "preference_type": "hook_style",
+      "preferred": ["question", "before_after"],
+      "avoided": ["urgency"],
+      "confidence": 0.82,
+      "evidence": {
+        "approved_count": 18,
+        "rejected_count": 5,
+        "sample_size": 23
+      }
+    }
+  ]
+}
+```
+
+### 7. Approval Pattern Signals → Brand Memory Engine
+
+```json
+{
+  "signal_type": "approval_pattern",
+  "target": "brand_memory",
+  "updates": [
+    {
+      "brand_id": "uuid",
+      "approval_acceptance_rate": 0.78,
+      "avg_revision_rounds": 1.2,
+      "common_revision_reasons": ["tone too formal", "CTA too aggressive"],
+      "hook_win_rate": { "question": 0.85, "before_after": 0.80, "urgency": 0.40 },
+      "format_preference": { "reel": 0.90, "carousel": 0.85, "static": 0.70 },
+      "asset_reuse_success_rate": 0.72
     }
   ]
 }
@@ -286,7 +350,10 @@ Signals are only emitted when statistical confidence is sufficient:
 | #14 Template Image Composer | Receives template_priority_updates for template scoring |
 | #9 Provider & Tier Routing | Receives family_routing_adjustments for platform-family preference |
 | #21 Strategy Engine | Receives strategy_rebalance signals for pillar and platform redistribution |
-| #19 Review Packet Engine | Performance history attached to review packets for context |
+| #19 Review Packet Engine | Performance history attached to review packets for context; approval/rejection signals ingested |
+| #26 Decision Engine | Receives decision_confidence_updates for angle/hook/family selection calibration |
+| #27 Social Publishing Engine | Provides publish metadata (post_id, published_at) for metric collection triggers |
+| Brand Memory Engine | Receives preference_updates and approval_pattern signals for long-term brand learning |
 | W6 Campaign Multiplication | Variant rank data informs which variants to prioritize in future campaigns |
 
 ---

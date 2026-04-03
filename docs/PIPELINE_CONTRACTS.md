@@ -1,8 +1,8 @@
 # Pipeline Contracts — Standardized Input/Output Reference
 
-> **Status**: Design reference — master contract for all 8 pipeline families  
-> **Last updated**: 2026-04-02  
-> **Engine count**: 24 modules + 1 workflow — see ENGINE_MODULE_REGISTRY.md
+> **Status**: Design reference — master contract for all 9 pipeline families  
+> **Last updated**: 2026-04-03  
+> **Engine count**: 27 modules + 3 architectural layers + 1 workflow — see ENGINE_MODULE_REGISTRY.md
 
 ---
 
@@ -94,6 +94,16 @@ Each pipeline family has a standardized contract defining its inputs, outputs, a
 | **Engine Modules** | **Creative Direction (#23)**, Asset Analyzer (reference pattern), Creative Director Agent, Plan Review Gate, Revision Agent, SEALCaM (reference pattern), Core Elements Board, Hook Library, Music Engine, Assembly Engine, Re-entry Controller, Provider & Tier Routing, Character Consistency, Brand Voice DNA, **Camera Motion & Transition (#24)** |
 | **Doc** | `pipelines/CREATIVE_CLONER_PIPELINE.md` |
 
+### F9 — Image Template Engine
+
+| Field | Value |
+|-------|-------|
+| **Input** | Template ID, slot values (text, images, colors), brand profile |
+| **Output** | Template-driven composed image(s) |
+| **Primary Deliverable** | PNG/JPG image file(s) |
+| **Engine Modules** | **Creative Direction (#23)**, Template-Driven Image Composer (#14), Brand Voice DNA (#12), Provider & Tier Routing (#9), Re-entry Controller (#10) |
+| **Doc** | `pipelines/IMAGE_TEMPLATE_ENGINE_DESIGN.md`, `docs/ux/IMAGE_TEMPLATE_UX_FLOW.md` |
+
 ---
 
 ## Shared Contract Patterns
@@ -102,8 +112,10 @@ Each pipeline family has a standardized contract defining its inputs, outputs, a
 
 Every family follows this abstract stage flow:
 ```
-creative_direction → asset_analysis → planning → plan_review → [revision_loop] → generation → assembly → post_production → [localization] → delivery
+intent_capture → initiative_context → brand_memory → category_intelligence → research (#25) → strategy (#21) → creative_direction (#23) → hook_query (#11) → decision (#26) → strategy_object_build → trust_trace → creative_director (#1) → plan_review (#2) → [revision_loop] → provider_routing (#9) → generation → assembly → post_production → [localization] → delivery → [social_publishing (#27)] → performance_feedback (#22) → brand_memory_update
 ```
+
+**Pre-Generation Intelligence Stack**: Before any generation occurs, the system runs through: User Intent → Initiative Context Loading → Brand Memory Retrieval → Category Intelligence Cache Check → Research & Competitor Intelligence (#25) → Strategy Engine (#21) → Creative Direction (#23) → Hook Library Query (#11) → Decision Engine (#26) → Strategy Object Builder → Trust & Explainability Engine → Creative Director Agent (#1) → Plan Review Gate (#2) → Provider Routing (#9) → Generation Trigger.
 
 **Stage 0 — Creative Direction (Module #23)**: Mandatory for all video families (F1–F5, F7, F8). Transforms business inputs into a strategic creative brief containing ad angle, hook logic, scene architecture with camera presets (Module #24), offer emphasis, and emotional arc. Output feeds into Plan Review Gate for user approval before any generation.
 
@@ -116,7 +128,7 @@ All generated artifacts are stored in Supabase Storage with metadata in the `art
 {
   "artifact_id": "uuid",
   "job_id": "uuid",
-  "family": "F1|F2|F3|F4|F5|F6|F7|F8",
+  "family": "F1|F2|F3|F4|F5|F6|F7|F8|F9",
   "type": "video|image|audio|text",
   "storage_url": "https://...",
   "metadata": { "duration": 30, "aspect_ratio": "9:16", "file_size_kb": 5200 }

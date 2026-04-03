@@ -1,15 +1,15 @@
 # Engine Module Registry — Brandflow Enterprise Engine Layer
 
 > **Status**: Design reference — master index of all shared engine modules  
-> **Last updated**: 2026-04-02  
-> **Module count**: 24 modules + 1 workflow  
-> **Consolidation note**: Merged Prompt Schema Normalizer into SEALCaM (#5) and Tier Router + Provider Routing into a unified Provider & Tier Routing Engine (#9). Added Module #17 for post-production finishing, Module #18 for localization & cultural adaptation, Module #19 for review packets, Module #20 for voice management, Module #21 for strategy planning, Module #22 for performance feedback, Module #23 for creative direction, and Module #24 for camera motion & transitions.
+> **Last updated**: 2026-04-03  
+> **Module count**: 27 modules + 1 workflow + 3 architectural layers  
+> **Consolidation note**: Merged Prompt Schema Normalizer into SEALCaM (#5) and Tier Router + Provider Routing into a unified Provider & Tier Routing Engine (#9). Modules #17–#24 added in remediation phases. Modules #25–#27 and 3 architectural layers (Category Intelligence Cache, Strategy Object Builder, Brand Memory Engine, Trust & Explainability Engine) added in enterprise intelligence upgrade.
 
 ---
 
 ## Overview
 
-The enterprise engine layer consists of 24 shared modules that sit between family-specific orchestration logic and provider adapters. Each module is documented in its own design doc and adopted across multiple pipeline families.
+The enterprise engine layer consists of 27 shared modules, 3 architectural layers, and 1 workflow that sit between family-specific orchestration logic and provider adapters. Each module is documented in its own design doc and adopted across multiple pipeline families.
 
 ---
 
@@ -45,9 +45,12 @@ The enterprise engine layer consists of 24 shared modules that sit between famil
 | 19 | Review Packet Engine | `engines/REVIEW_PACKET_ENGINE.md` | Cross-family | Designed |
 | 20 | Voice Management Engine | `engines/VOICE_MANAGEMENT_ENGINE.md` | Cross-family | Designed |
 | 21 | Strategy Engine | `engines/STRATEGY_ENGINE.md` | Cross-family | Designed |
-| 22 | Performance Feedback Engine | `engines/PERFORMANCE_FEEDBACK_ENGINE.md` | Cross-family | Designed |
+| 22 | Performance & Preference Feedback Engine | `engines/PERFORMANCE_FEEDBACK_ENGINE.md` | Cross-family | Designed |
 | 23 | Creative Direction Engine | `engines/CREATIVE_DIRECTION_ENGINE.md` | Cross-family (mandatory Stage 1) | Designed |
 | 24 | Camera Motion & Transition Engine | `engines/CAMERA_MOTION_ENGINE.md` | F1, F3, F5, F7, F8 | Designed |
+| 25 | Research & Competitor Intelligence Engine | `engines/RESEARCH_COMPETITOR_INTELLIGENCE_ENGINE.md` | Cross-family | Designed |
+| 26 | Decision Engine | `engines/DECISION_ENGINE.md` | Cross-family | Designed |
+| 27 | Social Publishing Engine | `engines/SOCIAL_PUBLISHING_ENGINE.md` | Distribution | Designed |
 
 ### Workflows
 
@@ -62,6 +65,15 @@ The enterprise engine layer consists of 24 shared modules that sit between famil
 | 14 (old) | Provider Routing Layer | **#9 Provider & Tier Routing Engine** | Provider fallback + quality tier = single routing decision |
 | 18 (old) | Prompt Schema Normalizer | **#5 SEALCaM Prompt Builder** | F7 normalization is a SEALCaM compliance rule, not a separate engine |
 
+### Architectural Layers (not numbered — cross-cutting)
+
+| Layer | Doc Path | Purpose |
+|-------|----------|---------|
+| Category Intelligence Cache | `engines/CATEGORY_INTELLIGENCE_CACHE.md` | Cached vertical/category intelligence for cost/latency reduction |
+| Strategy Object Builder | `engines/STRATEGY_OBJECT_BUILDER.md` | Transform Decision Engine output into family-specific generation instructions |
+| Brand Memory Engine | `engines/BRAND_MEMORY_ENGINE.md` | Long-term brand-specific learning: approvals, preferences, do-not-use patterns |
+| Trust & Explainability Engine | `engines/TRUST_EXPLAINABILITY_ENGINE.md` | Decision trace generation for transparent, evidence-backed recommendations |
+
 ### Supporting Docs
 
 | Doc | Purpose |
@@ -72,6 +84,7 @@ The enterprise engine layer consists of 24 shared modules that sit between famil
 | `engines/BUDGET_GOVERNANCE.md` | Per-brand spend caps, campaign allocations, burn rate tracking, tier downgrade suggestions |
 | `OBSERVABILITY_CONTRACTS.md` | 3-layer observability: Event Bus, Metrics Aggregation, Audit Trail |
 | `BRANDFLOW_CURRENT_ARCHITECTURE_EXPORT.md` | Complete system architecture snapshot for enterprise upgrade review |
+| `db/BRANDFLOW_SQL_SCHEMA.md` | Complete database schema — 32 tables, single Supabase backend |
 
 ### Enterprise Planning Governance (cross-cutting capabilities)
 
@@ -115,9 +128,12 @@ The enterprise engine layer consists of 24 shared modules that sit between famil
 | 19. Review Packet | ✅ | ✅ | ✅ | ✅ | ✅ | — | ✅ | ✅ |
 | 20. Voice Management | ✅ | ✅ | opt | — | ✅ | — | opt | ✅ |
 | 21. Strategy Engine | ✅ | ✅ | ✅ | ✅ | ✅ | — | ✅ | ✅ |
-| 22. Performance Feedback | ✅ | ✅ | ✅ | ✅ | ✅ | — | ✅ | ✅ |
+| 22. Performance & Preference Feedback | ✅ | ✅ | ✅ | ✅ | ✅ | — | ✅ | ✅ |
 | 23. Creative Direction | ✅ | ✅ | ✅ | ✅ | ✅ | — | ✅ | ✅ |
 | 24. Camera Motion & Transition | ✅ | — | ✅ | — | ✅ | — | ✅ | ✅ |
+| 25. Research & Competitor Intel | ✅ | ✅ | ✅ | ✅ | ✅ | — | ✅ | ✅ |
+| 26. Decision Engine | ✅ | ✅ | ✅ | ✅ | ✅ | — | ✅ | ✅ |
+| 27. Social Publishing | ✅ | ✅ | ✅ | ✅ | ✅ | — | ✅ | ✅ |
 
 ---
 
@@ -157,11 +173,22 @@ Phase F — Approval & Scaling
   ├── 20. Voice Management Engine
   └── W6. Campaign Multiplication Workflow
 
-Phase G — Strategy & Learning
-  ├── 21. Strategy Engine
-  └── 22. Performance Feedback Engine
+Phase G — Intelligence & Decisioning
+  ├── 25. Research & Competitor Intelligence Engine
+  ├── 26. Decision Engine
+  ├── Category Intelligence Cache (layer)
+  ├── Strategy Object Builder (layer)
+  └── Brand Memory Engine (layer)
 
-Phase H — Premium Cinematic (enterprise-grade)
-  ├── 23. Creative Direction Engine (mandatory Stage 1 for all video families)
+Phase H — Strategy & Learning
+  ├── 21. Strategy Engine
+  ├── 22. Performance & Preference Feedback Engine
+  └── Trust & Explainability Engine (layer)
+
+Phase I — Premium Cinematic (enterprise-grade)
+  ├── 23. Creative Direction Engine (mandatory Stage 0 for all video families)
   └── 24. Camera Motion & Transition Engine
+
+Phase J — Distribution
+  └── 27. Social Publishing Engine
 ```

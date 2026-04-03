@@ -1,9 +1,9 @@
 # Module #19 — Review Packet Engine
 
 > **Status**: Design reference  
-> **Last updated**: 2026-03-31  
+> **Last updated**: 2026-04-03  
 > **Owner**: Cross-family  
-> **Depends on**: Module #17 (Delivery & Post-Production), Module #9 (Provider & Tier Routing)
+> **Depends on**: Module #17 (Delivery & Post-Production), Module #9 (Provider & Tier Routing), Trust & Explainability Engine
 
 ---
 
@@ -99,6 +99,19 @@ Without this engine, approvals are ad-hoc: reviewers get raw links, no context, 
     "risk_level": "low | medium | high",
     "latency_tier": "fast | standard | quality",
     "total_generation_time_s": "number"
+  },
+
+  "explainability": {
+    "decision_trace_id": "uuid",
+    "strategy_angle": "string — selected angle from Decision Engine #26",
+    "why_chosen": "string — one-paragraph explanation of creative direction rationale",
+    "competitor_context_summary": "string — key competitive insights from Research Engine #25",
+    "confidence_score": "number (0-1)",
+    "assumptions": ["string"],
+    "alternatives_considered": [
+      { "alternative": "string", "why_not": "string" }
+    ],
+    "recommended_next_test": "string"
   },
 
   "version_history": [
@@ -242,6 +255,10 @@ Send notifications via configured channels. Start expiry countdown.
 | #1 Creative Director Agent | Provides caption options |
 | #12 Brand Voice DNA | Provides voice alignment score |
 | #13 Character Consistency | Provides consistency score |
+| #26 Decision Engine | Provides strategy_object for explainability context |
+| Trust & Explainability Engine | Provides decision_trace for transparent review |
+| #25 Research Engine | Provides competitor/category context summary |
+| Brand Memory Engine | Approval/rejection decisions feed back as memory updates |
 
 ---
 
