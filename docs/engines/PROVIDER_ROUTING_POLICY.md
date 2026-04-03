@@ -40,7 +40,7 @@ Generation Request
 └─────────────────────────────────────┘
   │
   ▼
-Provider Adapter (Kie AI / Runway / WaveSpeed / etc.)
+Provider Adapter (Kie AI / Higgsfield / Runway / WaveSpeed / etc.)
 ```
 
 ---
