@@ -9,6 +9,7 @@ import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Dashboard from "./pages/Dashboard";
+import CampaignDetails from "./pages/CampaignDetails";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
@@ -31,6 +32,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <Dashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/campaigns/:id"
+              element={
+                <ProtectedRoute>
+                  <CampaignDetails />
                 </ProtectedRoute>
               }
             />

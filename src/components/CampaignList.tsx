@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -29,6 +30,8 @@ const statusLabel: Record<CampaignStatus, string> = {
 };
 
 const CampaignList = ({ campaigns }: CampaignListProps) => {
+  const navigate = useNavigate();
+
   return (
     <div className="border rounded-lg">
       <Table>
@@ -41,7 +44,11 @@ const CampaignList = ({ campaigns }: CampaignListProps) => {
         </TableHeader>
         <TableBody>
           {campaigns.map((campaign) => (
-            <TableRow key={campaign.id} className="cursor-pointer">
+            <TableRow
+              key={campaign.id}
+              className="cursor-pointer"
+              onClick={() => navigate(`/dashboard/campaigns/${campaign.id}`)}
+            >
               <TableCell className="font-medium">{campaign.title}</TableCell>
               <TableCell>
                 <Badge variant={statusVariant[campaign.status]}>
