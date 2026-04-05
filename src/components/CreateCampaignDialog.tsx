@@ -142,7 +142,7 @@ const CreateCampaignDialog = ({
             <Label htmlFor="campaign-title">Campaign Name</Label>
             <Input
               id="campaign-title"
-              placeholder='e.g. "Mother\'s Day Botox Promo"'
+              placeholder={'e.g. "Mother\'s Day Botox Promo"'}
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               autoFocus
