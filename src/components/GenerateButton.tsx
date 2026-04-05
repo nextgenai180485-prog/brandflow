@@ -19,28 +19,65 @@ const GenerateButton = ({ campaignId, onGenerated, disabled }: GenerateButtonPro
     if (!user || generating) return;
     setGenerating(true);
 
+    // Fetch the user's brand palette for generation context
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("brand_colors, brand_palette, brand_voice_tone, business_name")
+      .eq("id", user.id)
+      .single();
+
+    const palette = (profile as any)?.brand_palette;
+    const brandColors = (profile as any)?.brand_colors;
+
+    // Extract vibrant mixer colors (steps 300-500) for generation prompts
+    const vibrantMixers: string[] = [];
+    if (palette?.primary) {
+      for (const step of palette.primary) {
+        if ([300, 400, 500].includes(step.step)) {
+          vibrantMixers.push(step.hex);
+        }
+      }
+    }
+
+    // Build brand color directive for AI prompts
+    const colorDirective = vibrantMixers.length > 0
+      ? `Use brand colors: ${vibrantMixers.join(", ")} as the primary color palette. Mix these vibrant brand tones for visual consistency.`
+      : brandColors?.primary
+        ? `Use ${brandColors.primary} as the primary brand color.`
+        : "";
+
+    const brandContext = [
+      profile?.business_name ? `Brand: ${profile.business_name}` : "",
+      profile?.brand_voice_tone ? `Tone: ${profile.brand_voice_tone}` : "",
+      colorDirective,
+    ].filter(Boolean).join(". ");
+
     // Set campaign to generating
     await supabase
       .from("campaigns")
       .update({ status: "generating" })
       .eq("id", campaignId);
 
-    // Simulate AI generation with a 2-second delay
+    // Simulate AI generation with brand-aware context
     setTimeout(async () => {
-      // Create 3 stub generated assets
+      const primaryHex = brandColors?.primary || "#D35400";
+      const accentHex = brandColors?.accent || "#2C3E50";
+
       const stubAssets = [
         {
           campaign_id: campaignId,
           profile_id: user.id,
           asset_type: "image",
-          content_url: "https://placehold.co/1080x1080/F8F5F1/1A1A1A?text=Generated+Image",
+          content_url: `https://placehold.co/1080x1080/${primaryHex.replace("#", "")}/${accentHex.replace("#", "")}?text=Brand+Image`,
+          content_text: brandContext ? `[Generation context: ${brandContext}]` : null,
           status: "pending_review",
         },
         {
           campaign_id: campaignId,
           profile_id: user.id,
           asset_type: "video",
-          content_url: "https://placehold.co/1080x1920/F8F5F1/1A1A1A?text=Generated+Video",
+          content_url: `https://placehold.co/1080x1920/${primaryHex.replace("#", "")}/${accentHex.replace("#", "")}?text=Brand+Video`,
+          content_text: brandContext ? `[Generation context: ${brandContext}]` : null,
           status: "pending_review",
         },
         {
@@ -55,7 +92,6 @@ const GenerateButton = ({ campaignId, onGenerated, disabled }: GenerateButtonPro
 
       await supabase.from("generated_assets").insert(stubAssets);
 
-      // Update campaign to review
       await supabase
         .from("campaigns")
         .update({ status: "review" })
