@@ -142,7 +142,7 @@ const CreateCampaignDialog = ({
             <Label htmlFor="campaign-title">Campaign Name</Label>
             <Input
               id="campaign-title"
-              placeholder={'e.g. "Mother\'s Day Botox Promo"'}
+              placeholder={'e.g. "Mother\'s Day Botox Promo" or "Summer Filler Special"'}
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               autoFocus
@@ -159,7 +159,7 @@ const CreateCampaignDialog = ({
             </Label>
             <Textarea
               id="campaign-instructions"
-              placeholder="Describe your campaign goals, target audience, or any specific instructions…"
+              placeholder="e.g. Promote our new lip filler package to women 25–45 in the metro area…"
               value={instructions}
               onChange={(e) => setInstructions(e.target.value)}
               rows={3}
@@ -196,6 +196,7 @@ const CreateCampaignDialog = ({
                   }}
                 />
               </label>
+              <p className="text-xs text-muted-foreground mt-1">Recommended size: 1080×1080px</p>
             ) : (
               <div className="flex items-center gap-3 rounded-lg border border-border px-4 py-3">
                 {uploading ? (

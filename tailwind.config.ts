@@ -14,6 +14,9 @@ export default {
     },
     extend: {
       colors: {
+        cream: "#F8F5F1",
+        dark: "#1A1A1A",
+        brand: "#D35400",
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
