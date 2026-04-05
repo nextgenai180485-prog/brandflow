@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import BrandPalettePreview from "./BrandPalettePreview";
 
 interface BrandColors {
   primary: string;
@@ -96,6 +97,16 @@ const BrandIdentity = ({ colors, onColorsChange, uploadedAssets, onAssetsChange 
               </div>
             </div>
           ))}
+        </div>
+
+        {/* Generated OKLCH Palette */}
+        <div className="space-y-3 pt-2">
+          <Label className="text-xs text-muted-foreground block">
+            Generated Color Scales <span className="text-[10px] ml-1">(OKLCH engine)</span>
+          </Label>
+          <BrandPalettePreview seedHex={colors.primary} label="primary" />
+          <BrandPalettePreview seedHex={colors.secondary} label="secondary" />
+          <BrandPalettePreview seedHex={colors.accent} label="accent" />
         </div>
 
         {/* Presets */}
