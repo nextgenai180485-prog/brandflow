@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { generateFullBrandPalette, injectFullBrandPalette } from "@/lib/colorEngine";
+import { generateFullBrandPalette, injectFullBrandPalette, type BrandPalette } from "@/lib/colorEngine";
 import BusinessBasics from "@/components/onboarding/BusinessBasics";
 import BrandIdentity from "@/components/onboarding/BrandIdentity";
 import BrandVoice from "@/components/onboarding/BrandVoice";
@@ -33,10 +33,12 @@ const Onboarding = () => {
   const [keywords, setKeywords] = useState<string[]>([]);
   const [sampleText, setSampleText] = useState("");
 
-  // Inject OKLCH brand tokens whenever colors change
+  // Generate and inject OKLCH brand tokens whenever colors change
+  const [palette, setPalette] = useState<BrandPalette | null>(null);
   useEffect(() => {
-    const palette = generateFullBrandPalette(colors);
-    injectFullBrandPalette(palette);
+    const p = generateFullBrandPalette(colors);
+    setPalette(p);
+    injectFullBrandPalette(p);
   }, [colors]);
 
   // Load existing profile data
