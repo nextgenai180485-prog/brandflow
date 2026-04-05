@@ -10,6 +10,7 @@ import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Dashboard from "./pages/Dashboard";
 import CampaignDetails from "./pages/CampaignDetails";
+import CalendarView from "./pages/CalendarView";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
@@ -40,6 +41,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <CampaignDetails />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/calendar"
+              element={
+                <ProtectedRoute>
+                  <CalendarView />
                 </ProtectedRoute>
               }
             />

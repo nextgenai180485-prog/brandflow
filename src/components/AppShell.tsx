@@ -1,5 +1,5 @@
 import { useAuth } from "@/hooks/useAuth";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -9,9 +9,15 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { LogOut, ChevronDown } from "lucide-react";
 
+const navItems = [
+  { label: "Campaigns", path: "/dashboard" },
+  { label: "Calendar", path: "/calendar" },
+];
+
 const AppShell = ({ children }: { children: React.ReactNode }) => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const initials = user?.user_metadata?.first_name
     ? `${(user.user_metadata.first_name as string)[0]}${(user.user_metadata.last_name as string)?.[0] ?? ""}`
@@ -26,9 +32,29 @@ const AppShell = ({ children }: { children: React.ReactNode }) => {
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-sm">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
-          <span className="text-xl font-semibold tracking-tight text-foreground">
-            Brandflow
-          </span>
+          <div className="flex items-center gap-8">
+            <span
+              className="text-xl font-semibold tracking-tight text-foreground cursor-pointer"
+              onClick={() => navigate("/dashboard")}
+            >
+              Brandflow
+            </span>
+            <nav className="hidden md:flex items-center gap-1">
+              {navItems.map((item) => (
+                <button
+                  key={item.path}
+                  onClick={() => navigate(item.path)}
+                  className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                    location.pathname === item.path || (item.path === "/dashboard" && location.pathname.startsWith("/dashboard"))
+                      ? "bg-accent text-foreground"
+                      : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+                  }`}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </nav>
+          </div>
 
           <DropdownMenu>
             <DropdownMenuTrigger className="flex items-center gap-2 rounded-full p-1 pr-3 transition-colors hover:bg-accent focus:outline-none">
