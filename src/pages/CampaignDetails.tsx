@@ -1,11 +1,14 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, ImageIcon, VideoIcon, FileText } from "lucide-react";
+import { ArrowLeft, Send } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
 import AppShell from "@/components/AppShell";
 import GenerateButton from "@/components/GenerateButton";
+import AssetCard from "@/components/AssetCard";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Campaign, GeneratedAsset, CampaignStatus } from "@/types/campaigns";
 
@@ -14,12 +17,6 @@ const statusConfig: Record<CampaignStatus, { label: string; variant: "secondary"
   generating: { label: "Generating", variant: "outline", className: "animate-pulse border-blue-300 text-blue-700 bg-blue-50" },
   review: { label: "In Review", variant: "default", className: "bg-amber-100 text-amber-800 border-amber-200 hover:bg-amber-100" },
   approved: { label: "Approved", variant: "default", className: "bg-emerald-100 text-emerald-800 border-emerald-200 hover:bg-emerald-100" },
-};
-
-const assetIcon = (type: string) => {
-  if (type === "image") return <ImageIcon className="w-5 h-5 text-muted-foreground" />;
-  if (type === "video") return <VideoIcon className="w-5 h-5 text-muted-foreground" />;
-  return <FileText className="w-5 h-5 text-muted-foreground" />;
 };
 
 const CampaignDetails = () => {
@@ -37,7 +34,20 @@ const CampaignDetails = () => {
       supabase.from("generated_assets").select("*").eq("campaign_id", id).order("created_at", { ascending: false }),
     ]);
     if (campaignRes.data) setCampaign(campaignRes.data as Campaign);
-    if (assetsRes.data) setAssets(assetsRes.data as GeneratedAsset[]);
+    if (assetsRes.data) {
+      const newAssets = assetsRes.data as GeneratedAsset[];
+      setAssets(newAssets);
+
+      // Auto-transition: if all assets approved → campaign approved
+      if (newAssets.length > 0 && newAssets.every((a) => a.status === "approved")) {
+        const currentCampaign = campaignRes.data as Campaign;
+        if (currentCampaign && currentCampaign.status === "review") {
+          await supabase.from("campaigns").update({ status: "approved" }).eq("id", id);
+          setCampaign({ ...currentCampaign, status: "approved" });
+          toast.success("All assets approved! Campaign is ready to publish.");
+        }
+      }
+    }
     setLoading(false);
   }, [user, id]);
 
@@ -45,11 +55,12 @@ const CampaignDetails = () => {
     fetchData();
   }, [fetchData]);
 
-  // Split: source uploads vs generated content
-  // Source assets are ones uploaded during campaign creation (before generation)
-  // Generated assets appear after the generate button is clicked
   const sourceAssets = assets.filter((a) => a.content_url && !a.content_url.includes("placehold"));
   const generatedAssets = assets.filter((a) => a.content_url?.includes("placehold") || a.asset_type === "copy");
+
+  const handlePublish = () => {
+    toast.success("Campaign published! (Publishing pipeline coming soon)");
+  };
 
   if (loading) {
     return (
@@ -93,7 +104,18 @@ const CampaignDetails = () => {
         {/* Header */}
         <div className="flex items-start justify-between mb-10">
           <h1 className="text-3xl font-semibold text-foreground">{campaign.title}</h1>
-          <Badge variant={status.variant} className={status.className}>{status.label}</Badge>
+          <div className="flex items-center gap-3">
+            <Badge variant={status.variant} className={status.className}>{status.label}</Badge>
+            <Button
+              size="sm"
+              onClick={handlePublish}
+              disabled={campaign.status !== "approved"}
+              className="gap-2"
+            >
+              <Send className="w-3.5 h-3.5" />
+              Publish All Approved
+            </Button>
+          </div>
         </div>
 
         {/* Two-column layout */}
@@ -128,7 +150,7 @@ const CampaignDetails = () => {
             )}
           </div>
 
-          {/* Right: Generated Content — white card with shadow */}
+          {/* Right: Generated Content */}
           <div className="bg-card rounded-xl shadow-lg p-8 space-y-6">
             <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">Generated Content</h2>
 
@@ -140,20 +162,7 @@ const CampaignDetails = () => {
             ) : generatedAssets.length > 0 ? (
               <div className="space-y-4">
                 {generatedAssets.map((asset) => (
-                  <div key={asset.id} className="rounded-lg border border-border bg-background p-4">
-                    <div className="flex items-center gap-2 mb-3">
-                      {assetIcon(asset.asset_type)}
-                      <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{asset.asset_type}</span>
-                      <Badge variant="secondary" className="ml-auto text-xs">{asset.status.replace("_", " ")}</Badge>
-                    </div>
-                    {asset.asset_type === "copy" && asset.content_text ? (
-                      <p className="text-sm text-foreground leading-relaxed">{asset.content_text}</p>
-                    ) : asset.content_url ? (
-                      <img src={asset.content_url} alt={`Generated ${asset.asset_type}`} className="w-full rounded-md max-h-48 object-cover" />
-                    ) : (
-                      <Skeleton className="h-32 w-full rounded-md" />
-                    )}
-                  </div>
+                  <AssetCard key={asset.id} asset={asset} onStatusChange={fetchData} />
                 ))}
               </div>
             ) : (
