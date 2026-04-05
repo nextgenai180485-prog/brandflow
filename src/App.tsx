@@ -44,6 +44,14 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
+            <Route
+              path="/calendar"
+              element={
+                <ProtectedRoute>
+                  <CalendarView />
+                </ProtectedRoute>
+              }
+            />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
