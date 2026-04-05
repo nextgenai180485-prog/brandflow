@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import AppShell from "@/components/AppShell";
 import EmptyCampaigns from "@/components/EmptyCampaigns";
 import CampaignList from "@/components/CampaignList";
+import CreateCampaignDialog from "@/components/CreateCampaignDialog";
 import { Button } from "@/components/ui/button";
 import type { Campaign } from "@/types/campaigns";
 
@@ -12,28 +13,24 @@ const Dashboard = () => {
   const { user } = useAuth();
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
+  const [dialogOpen, setDialogOpen] = useState(false);
 
-  useEffect(() => {
+  const fetchCampaigns = useCallback(async () => {
     if (!user) return;
+    const { data, error } = await supabase
+      .from("campaigns")
+      .select("*")
+      .order("created_at", { ascending: false });
 
-    const fetchCampaigns = async () => {
-      const { data, error } = await supabase
-        .from("campaigns")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      if (!error && data) {
-        setCampaigns(data as Campaign[]);
-      }
-      setLoading(false);
-    };
-
-    fetchCampaigns();
+    if (!error && data) {
+      setCampaigns(data as Campaign[]);
+    }
+    setLoading(false);
   }, [user]);
 
-  const handleCreateClick = () => {
-    // Placeholder — will be wired in a future phase
-  };
+  useEffect(() => {
+    fetchCampaigns();
+  }, [fetchCampaigns]);
 
   return (
     <AppShell>
@@ -46,7 +43,7 @@ const Dashboard = () => {
             </p>
           </div>
           {campaigns.length > 0 && (
-            <Button onClick={handleCreateClick}>
+            <Button onClick={() => setDialogOpen(true)}>
               <Plus className="w-4 h-4 mr-2" />
               New Campaign
             </Button>
@@ -58,11 +55,17 @@ const Dashboard = () => {
             <div className="w-6 h-6 border-2 border-foreground border-t-transparent rounded-full animate-spin" />
           </div>
         ) : campaigns.length === 0 ? (
-          <EmptyCampaigns onCreateClick={handleCreateClick} />
+          <EmptyCampaigns onCreateClick={() => setDialogOpen(true)} />
         ) : (
           <CampaignList campaigns={campaigns} />
         )}
       </div>
+
+      <CreateCampaignDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        onCreated={fetchCampaigns}
+      />
     </AppShell>
   );
 };
