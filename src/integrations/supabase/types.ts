@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      brand_assets: {
+        Row: {
+          asset_type: string
+          created_at: string
+          file_name: string
+          file_url: string
+          id: string
+          profile_id: string
+        }
+        Insert: {
+          asset_type: string
+          created_at?: string
+          file_name: string
+          file_url: string
+          id?: string
+          profile_id: string
+        }
+        Update: {
+          asset_type?: string
+          created_at?: string
+          file_name?: string
+          file_url?: string
+          id?: string
+          profile_id?: string
+        }
+        Relationships: []
+      }
       campaigns: {
         Row: {
           created_at: string
@@ -111,28 +138,52 @@ export type Database = {
       }
       profiles: {
         Row: {
+          brand_colors: Json | null
+          brand_voice_keywords: string[] | null
+          brand_voice_tone: string | null
           business_name: string | null
           created_at: string
           first_name: string | null
           id: string
+          industry: string | null
           last_name: string | null
+          onboarding_completed: boolean
+          onboarding_step: number
+          target_audience: string | null
           updated_at: string
+          website_url: string | null
         }
         Insert: {
+          brand_colors?: Json | null
+          brand_voice_keywords?: string[] | null
+          brand_voice_tone?: string | null
           business_name?: string | null
           created_at?: string
           first_name?: string | null
           id: string
+          industry?: string | null
           last_name?: string | null
+          onboarding_completed?: boolean
+          onboarding_step?: number
+          target_audience?: string | null
           updated_at?: string
+          website_url?: string | null
         }
         Update: {
+          brand_colors?: Json | null
+          brand_voice_keywords?: string[] | null
+          brand_voice_tone?: string | null
           business_name?: string | null
           created_at?: string
           first_name?: string | null
           id?: string
+          industry?: string | null
           last_name?: string | null
+          onboarding_completed?: boolean
+          onboarding_step?: number
+          target_audience?: string | null
           updated_at?: string
+          website_url?: string | null
         }
         Relationships: []
       }
