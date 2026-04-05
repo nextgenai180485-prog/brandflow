@@ -73,6 +73,16 @@ const Onboarding = () => {
     load();
   }, [user]);
 
+  const serializePalette = () => {
+    if (!palette) return {};
+    return {
+      primary: palette.primary.steps.map(s => ({ step: s.step, hex: s.hex, role: s.role })),
+      secondary: palette.secondary.steps.map(s => ({ step: s.step, hex: s.hex, role: s.role })),
+      accent: palette.accent.steps.map(s => ({ step: s.step, hex: s.hex, role: s.role })),
+      tokens: palette.primary.tokens,
+    };
+  };
+
   const saveProgress = async (nextStep: number) => {
     if (!user) return;
     await supabase.from("profiles").update({
@@ -81,6 +91,7 @@ const Onboarding = () => {
       industry: business.industry,
       target_audience: business.target_audience,
       brand_colors: colors,
+      brand_palette: serializePalette(),
       brand_voice_tone: tone,
       brand_voice_keywords: keywords,
       onboarding_step: nextStep,
@@ -124,6 +135,7 @@ const Onboarding = () => {
       industry: business.industry,
       target_audience: business.target_audience,
       brand_colors: colors,
+      brand_palette: serializePalette(),
       brand_voice_tone: tone,
       brand_voice_keywords: keywords,
       onboarding_completed: true,
