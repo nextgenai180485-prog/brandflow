@@ -1,64 +1,104 @@
 
+# Phase 3 — Onboarding & Brand Intake Wizard
 
-# Plan: Enterprise-Grade Architecture Upgrade — Completed + Post-Upgrade Execution
+## Overview
+Multi-step onboarding wizard that captures brand identity in under 3 minutes. Users complete it once after signup, then land on the dashboard ready to generate.
 
-## Status: ✅ Phase 1 COMPLETED (2026-04-03) | Phase 2 IN PROGRESS
+---
 
-## Phase 1 — Enterprise Architecture Upgrade (COMPLETED)
+## Step 1: Database Schema Expansion
 
-Upgraded Brandflow from a 24-module documentation-only architecture into a 27-module + 4 architectural layer enterprise-grade, research-backed creative operating system.
+Add columns to `profiles` table + create new `brand_assets` table:
 
-### What Was Delivered
+**profiles** (new columns):
+- `website_url` (text) — business website for future Firecrawl scraping
+- `industry` (text) — vertical selector (default: medspa)
+- `brand_colors` (jsonb) — primary/secondary/accent hex values
+- `brand_voice_tone` (text) — e.g. "Warm & Professional", "Bold & Edgy"
+- `brand_voice_keywords` (text[]) — words that define the brand voice
+- `target_audience` (text) — ideal customer description
+- `onboarding_completed` (boolean, default false) — gates dashboard access
+- `onboarding_step` (int, default 0) — tracks wizard progress for resume
 
-- **Module #25** — Research & Competitor Intelligence Engine
-- **Module #26** — Decision Engine
-- **Module #27** — Social Publishing Engine
-- **Brand Memory Engine** — Long-term brand-specific intelligence
-- **Category Intelligence Cache** — Vertical/category heuristics
-- **Strategy Object Builder** — Family-specific generation instructions
-- **Trust & Explainability Engine** — Decision tracing and transparency
-- **32-table SQL schema** — Formalized in `docs/db/BRANDFLOW_SQL_SCHEMA.md`
-- **15-step canonical pre-generation flow**
-- **Higgsfield** added as video provider in routing chain
+**brand_assets** (new table):
+- `id` (uuid, PK)
+- `profile_id` (uuid, FK → profiles)
+- `asset_type` (text) — 'logo' | 'product_photo' | 'brand_photo' | 'style_reference'
+- `file_url` (text) — Supabase Storage URL
+- `file_name` (text)
+- `created_at` (timestamptz)
 
-## Phase 2 — Post-Upgrade Execution (COMPLETED 2026-04-03)
+RLS: Users can only CRUD their own brand_assets.
 
-### Step 1: Sync Architecture Export ✅
-- `docs/BRANDFLOW_CURRENT_ARCHITECTURE_EXPORT.md` fully synced with 27+4 system
-- Higgsfield added to integration matrix and provider routing table
-- All "24 module" references corrected to "27 modules + 4 architectural layers"
+---
 
-### Step 2: Implementation Priority Document ✅
-- Created `docs/BRANDFLOW_IMPLEMENTATION_PRIORITIES.md`
-- Tier 1 (Trust-Critical): Creative Direction, Decision Engine, Brand Memory, Strategy Object Builder, Trust Engine
-- Tier 2 (Learning-Critical): Performance Feedback, preference learning, Category Intelligence Cache
-- Tier 3 (Scale-Critical): Social Publishing, Campaign Multiplication, Localization
-- User-facing flow compression: Understand → Decide → Create → Finish → Publish → Learn
+## Step 2: Onboarding Wizard UI (4 Steps)
 
-### Step 3: Brand Memory Auto-Detection ✅
-- Created `docs/engines/BRAND_MEMORY_AUTO_DETECTION.md`
-- 6 auto-detection domains: brand-user association, asset ownership, approved styles, performance history, campaign context, do-not-use patterns
-- Confidence scoring model (0.30 tentative → 0.90 established)
-- Memory loading sequence with <200ms target latency
-- Auto-flag lifecycle: Detected → Flagged (soft) → Confirmed (hard) → Permanent
+Route: `/onboarding` — protected, shown after signup if `onboarding_completed = false`.
 
-### Step 4: Strategy Object as System Spine ✅
-- Updated `docs/PLAN_OBJECT_SCHEMA.md` with full Strategy Object Schema
-- System spine principle: every request must produce strategy_object + rationale + confidence + alternatives + traceable sources
-- No family may operate without strategy_object.json
-- Transformation chain: Decision Engine → Strategy Object → Strategy Object Builder → Family Instructions
+### Step 1 of 4 — Business Basics
+- Business name (pre-filled from signup)
+- Website URL (optional)
+- Industry dropdown (Medspa pre-selected, with Medical Spa, Dental, Wellness, Fitness, Beauty, Other)
+- Target audience textarea
 
-## Files Created/Updated in Phase 2
+### Step 2 of 4 — Brand Identity
+- Brand color picker (primary, secondary, accent) with preset palettes
+- Logo upload (to `campaign_assets` bucket)
+- Style reference uploads (up to 3 images)
 
-| File | Action |
-|------|--------|
-| `docs/BRANDFLOW_IMPLEMENTATION_PRIORITIES.md` | **Created** — Tiered implementation roadmap |
-| `docs/engines/BRAND_MEMORY_AUTO_DETECTION.md` | **Created** — Auto-detection logic design |
-| `docs/PLAN_OBJECT_SCHEMA.md` | **Updated** — Strategy Object as system spine |
-| `docs/BRANDFLOW_CURRENT_ARCHITECTURE_EXPORT.md` | **Updated** — Higgsfield in provider routing |
-| `.lovable/plan.md` | **Updated** — Reflect Phase 2 completion |
+### Step 3 of 4 — Brand Voice
+- Tone selector: grid of 6 preset cards (Warm & Professional, Bold & Edgy, Luxurious & Refined, Friendly & Casual, Clinical & Trustworthy, Playful & Fun)
+- Brand keywords input (tag-style, up to 10)
+- Optional: paste example caption or bio text
 
-## Next Steps
-- Begin Tier 1 implementation (Creative Direction Engine #23 reasoning logic)
-- Deploy 32-table Supabase schema
-- Build Decision Engine (#26) core logic
+### Step 4 of 4 — Review & Launch
+- Summary card showing all inputs
+- Edit buttons to jump back to any step
+- "Launch Brandflow" CTA → sets `onboarding_completed = true`
+- Redirects to `/dashboard`
+
+### UX Details
+- Progress bar at top (Step 1 of 4)
+- Each step auto-saves on "Next" (persist `onboarding_step`)
+- User can close and resume from where they left off
+- Skip buttons on optional fields (website, style refs)
+- Apple-level clean design: generous whitespace, Inter font, cream/dark palette
+
+---
+
+## Step 3: Protected Route Logic Update
+
+- After login, check `profiles.onboarding_completed`
+- If `false` → redirect to `/onboarding`
+- If `true` → proceed to `/dashboard`
+- `/onboarding` accessible anytime from settings for editing
+
+---
+
+## Step 4: Future-Proofing (Not built now, architecture-ready)
+
+- `website_url` field is stored for future Firecrawl integration (zero-input onboarding)
+- `brand_voice_tone` + `brand_voice_keywords` map directly to Brand Voice DNA Engine input
+- `brand_assets` table supports the Core Elements Board (F6) composite generation
+- `brand_colors` feeds into template customization and image generation prompts
+
+---
+
+## Build Order
+
+1. **Migration** — Extend profiles + create brand_assets table with RLS
+2. **OnboardingWizard component** — 4-step form with progress bar
+3. **Individual step components** — BusinessBasics, BrandIdentity, BrandVoice, ReviewLaunch
+4. **Route protection update** — Gate dashboard behind onboarding completion
+5. **Polish** — Animations, auto-save, resume logic
+
+---
+
+## Success Criteria
+
+- New user signs up → lands on onboarding wizard (not empty dashboard)
+- Completes all 4 steps in under 3 minutes
+- Can close browser and resume from last step
+- After completion, never sees onboarding again (unless from settings)
+- All brand data persisted and queryable for future generation prompts
