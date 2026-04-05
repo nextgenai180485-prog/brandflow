@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import AppShell from "@/components/AppShell";
 import GenerateButton from "@/components/GenerateButton";
 import AssetCard from "@/components/AssetCard";
+import ScheduleModal from "@/components/ScheduleModal";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -17,6 +18,8 @@ const statusConfig: Record<CampaignStatus, { label: string; variant: "secondary"
   generating: { label: "Generating", variant: "outline", className: "animate-pulse border-blue-300 text-blue-700 bg-blue-50" },
   review: { label: "In Review", variant: "default", className: "bg-amber-100 text-amber-800 border-amber-200 hover:bg-amber-100" },
   approved: { label: "Approved", variant: "default", className: "bg-emerald-100 text-emerald-800 border-emerald-200 hover:bg-emerald-100" },
+  scheduled: { label: "Scheduled", variant: "default", className: "bg-violet-100 text-violet-800 border-violet-200 hover:bg-violet-100" },
+  published: { label: "Published", variant: "default", className: "bg-sky-100 text-sky-800 border-sky-200 hover:bg-sky-100" },
 };
 
 const CampaignDetails = () => {
@@ -26,6 +29,7 @@ const CampaignDetails = () => {
   const [campaign, setCampaign] = useState<Campaign | null>(null);
   const [assets, setAssets] = useState<GeneratedAsset[]>([]);
   const [loading, setLoading] = useState(true);
+  const [scheduleOpen, setScheduleOpen] = useState(false);
 
   const fetchData = useCallback(async () => {
     if (!user || !id) return;
@@ -38,12 +42,12 @@ const CampaignDetails = () => {
       const newAssets = assetsRes.data as GeneratedAsset[];
       setAssets(newAssets);
 
-      // Auto-transition: if all assets approved → campaign approved
+      // Auto-transition: all assets approved → campaign approved
       if (newAssets.length > 0 && newAssets.every((a) => a.status === "approved")) {
         const currentCampaign = campaignRes.data as Campaign;
         if (currentCampaign && currentCampaign.status === "review") {
           await supabase.from("campaigns").update({ status: "approved" }).eq("id", id);
-          setCampaign({ ...currentCampaign, status: "approved" });
+          setCampaign({ ...currentCampaign, status: "approved" } as Campaign);
           toast.success("All assets approved! Campaign is ready to publish.");
         }
       }
@@ -57,10 +61,6 @@ const CampaignDetails = () => {
 
   const sourceAssets = assets.filter((a) => a.content_url && !a.content_url.includes("placehold"));
   const generatedAssets = assets.filter((a) => a.content_url?.includes("placehold") || a.asset_type === "copy");
-
-  const handlePublish = () => {
-    toast.success("Campaign published! (Publishing pipeline coming soon)");
-  };
 
   if (loading) {
     return (
@@ -108,7 +108,7 @@ const CampaignDetails = () => {
             <Badge variant={status.variant} className={status.className}>{status.label}</Badge>
             <Button
               size="sm"
-              onClick={handlePublish}
+              onClick={() => setScheduleOpen(true)}
               disabled={campaign.status !== "approved"}
               className="gap-2"
             >
@@ -173,6 +173,13 @@ const CampaignDetails = () => {
           </div>
         </div>
       </div>
+
+      <ScheduleModal
+        open={scheduleOpen}
+        onOpenChange={setScheduleOpen}
+        campaignId={campaign.id}
+        onScheduled={fetchData}
+      />
     </AppShell>
   );
 };
