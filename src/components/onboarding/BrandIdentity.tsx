@@ -21,14 +21,6 @@ interface Props {
   onAssetsChange: (assets: { url: string; name: string; type: string }[]) => void;
 }
 
-const presetPalettes: BrandColors[] = [
-  { primary: "#D35400", secondary: "#F8F5F1", accent: "#2C3E50" },
-  { primary: "#8E44AD", secondary: "#FAF0F5", accent: "#2C3E50" },
-  { primary: "#27AE60", secondary: "#F0FAF4", accent: "#1A1A1A" },
-  { primary: "#2980B9", secondary: "#F0F5FA", accent: "#1A1A1A" },
-  { primary: "#E74C3C", secondary: "#FFF5F5", accent: "#2C3E50" },
-  { primary: "#1A1A1A", secondary: "#F8F5F1", accent: "#D35400" },
-];
 
 const BrandIdentity = ({ colors, onColorsChange, uploadedAssets, onAssetsChange }: Props) => {
   const { user } = useAuth();
@@ -109,23 +101,6 @@ const BrandIdentity = ({ colors, onColorsChange, uploadedAssets, onAssetsChange 
           <BrandPalettePreview seedHex={colors.accent} label="accent" />
         </div>
 
-        {/* Presets */}
-        <div>
-          <Label className="text-xs text-muted-foreground mb-2 block">Quick presets</Label>
-          <div className="flex gap-3 flex-wrap">
-            {presetPalettes.map((p, i) => (
-              <button
-                key={i}
-                onClick={() => onColorsChange(p)}
-                className="flex rounded-lg overflow-hidden border border-border hover:ring-2 hover:ring-ring transition-all"
-              >
-                <div className="w-6 h-8" style={{ backgroundColor: p.primary }} />
-                <div className="w-6 h-8" style={{ backgroundColor: p.secondary }} />
-                <div className="w-6 h-8" style={{ backgroundColor: p.accent }} />
-              </button>
-            ))}
-          </div>
-        </div>
       </div>
 
       {/* Asset Upload */}
