@@ -1,104 +1,48 @@
 
-# Phase 3 — Onboarding & Brand Intake Wizard
+## Phase 1: Campaign Feed Card Component
 
-## Overview
-Multi-step onboarding wizard that captures brand identity in under 3 minutes. Users complete it once after signup, then land on the dashboard ready to generate.
+**Goal:** Build the atomic `AssetFeedCard` component that replaces the current `AssetCard`.
 
----
+- **Header:** Campaign icon/thumbnail, campaign title, truncated ID, status badge, kebab menu
+- **Body:** Full-width generated image/video preview (like an Instagram post)
+- **Caption Block:** AI-generated caption below the image with `✨ AI Caption` tag, italic text, accept/reject/re-roll buttons
+- **Footer:** Metric row (asset type icon, creation date, status)
+- **Responsive:** Full-bleed on mobile, rounded cards on desktop
 
-## Step 1: Database Schema Expansion
+## Phase 2: Adaptive Feed Grid Layout
 
-Add columns to `profiles` table + create new `brand_assets` table:
+**Goal:** Replace the current two-column CampaignDetails layout with a responsive feed.
 
-**profiles** (new columns):
-- `website_url` (text) — business website for future Firecrawl scraping
-- `industry` (text) — vertical selector (default: medspa)
-- `brand_colors` (jsonb) — primary/secondary/accent hex values
-- `brand_voice_tone` (text) — e.g. "Warm & Professional", "Bold & Edgy"
-- `brand_voice_keywords` (text[]) — words that define the brand voice
-- `target_audience` (text) — ideal customer description
-- `onboarding_completed` (boolean, default false) — gates dashboard access
-- `onboarding_step` (int, default 0) — tracks wizard progress for resume
+- **Desktop (lg+):** 2-column grid of cards
+- **Tablet (md):** 2-column grid
+- **Mobile (<md):** Single-column full-width feed (Instagram-style)
+- Campaign header stays at top: back arrow, title (text-3xl), status badge
+- "Generate" button pinned in header area
 
-**brand_assets** (new table):
-- `id` (uuid, PK)
-- `profile_id` (uuid, FK → profiles)
-- `asset_type` (text) — 'logo' | 'product_photo' | 'brand_photo' | 'style_reference'
-- `file_url` (text) — Supabase Storage URL
-- `file_name` (text)
-- `created_at` (timestamptz)
+## Phase 3: Caption Data Model
 
-RLS: Users can only CRUD their own brand_assets.
+**Goal:** Wire captions into the existing `generated_assets` table.
 
----
+- Use the existing `content_text` field on image/video assets to store the AI-generated caption
+- Update `GenerateButton` to include a caption in `content_text` for every image/video asset it creates
+- No migration needed — `content_text` column already exists
 
-## Step 2: Onboarding Wizard UI (4 Steps)
+## Phase 4: Accept/Reject Per-Asset (Caption + Visual)
 
-Route: `/onboarding` — protected, shown after signup if `onboarding_completed = false`.
+**Goal:** Approval actions directly on each feed card.
 
-### Step 1 of 4 — Business Basics
-- Business name (pre-filled from signup)
-- Website URL (optional)
-- Industry dropdown (Medspa pre-selected, with Medical Spa, Dental, Wellness, Fitness, Beauty, Other)
-- Target audience textarea
+- Accept → marks asset `approved` (emerald badge, caption confirmed)
+- Reject → marks asset `rejected` (red badge, shows regenerate)
+- Re-roll caption → triggers caption-only regeneration (updates `content_text`)
+- Edit caption → inline editable textarea on click
+- Campaign auto-transitions when all assets approved
 
-### Step 2 of 4 — Brand Identity
-- Brand color picker (primary, secondary, accent) with preset palettes
-- Logo upload (to `campaign_assets` bucket)
-- Style reference uploads (up to 3 images)
+## Phase 5: Mobile Polish
 
-### Step 3 of 4 — Brand Voice
-- Tone selector: grid of 6 preset cards (Warm & Professional, Bold & Edgy, Luxurious & Refined, Friendly & Casual, Clinical & Trustworthy, Playful & Fun)
-- Brand keywords input (tag-style, up to 10)
-- Optional: paste example caption or bio text
+**Goal:** Thumb-friendly, production-ready mobile experience.
 
-### Step 4 of 4 — Review & Launch
-- Summary card showing all inputs
-- Edit buttons to jump back to any step
-- "Launch Brandflow" CTA → sets `onboarding_completed = true`
-- Redirects to `/dashboard`
-
-### UX Details
-- Progress bar at top (Step 1 of 4)
-- Each step auto-saves on "Next" (persist `onboarding_step`)
-- User can close and resume from where they left off
-- Skip buttons on optional fields (website, style refs)
-- Apple-level clean design: generous whitespace, Inter font, cream/dark palette
-
----
-
-## Step 3: Protected Route Logic Update
-
-- After login, check `profiles.onboarding_completed`
-- If `false` → redirect to `/onboarding`
-- If `true` → proceed to `/dashboard`
-- `/onboarding` accessible anytime from settings for editing
-
----
-
-## Step 4: Future-Proofing (Not built now, architecture-ready)
-
-- `website_url` field is stored for future Firecrawl integration (zero-input onboarding)
-- `brand_voice_tone` + `brand_voice_keywords` map directly to Brand Voice DNA Engine input
-- `brand_assets` table supports the Core Elements Board (F6) composite generation
-- `brand_colors` feeds into template customization and image generation prompts
-
----
-
-## Build Order
-
-1. **Migration** — Extend profiles + create brand_assets table with RLS
-2. **OnboardingWizard component** — 4-step form with progress bar
-3. **Individual step components** — BusinessBasics, BrandIdentity, BrandVoice, ReviewLaunch
-4. **Route protection update** — Gate dashboard behind onboarding completion
-5. **Polish** — Animations, auto-save, resume logic
-
----
-
-## Success Criteria
-
-- New user signs up → lands on onboarding wizard (not empty dashboard)
-- Completes all 4 steps in under 3 minutes
-- Can close browser and resume from last step
-- After completion, never sees onboarding again (unless from settings)
-- All brand data persisted and queryable for future generation prompts
+- Full-width cards with no horizontal margins on mobile
+- Accept/Reject buttons become large tappable targets (min h-12)
+- Caption text scrollable if >3 lines on mobile
+- Sticky "Generate" button at bottom on mobile
+- Test at 375px, 390px, 414px viewports

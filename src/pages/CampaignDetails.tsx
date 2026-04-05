@@ -1,25 +1,25 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Send } from "lucide-react";
+import { ArrowLeft, Send, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import AppShell from "@/components/AppShell";
 import GenerateButton from "@/components/GenerateButton";
-import AssetCard from "@/components/AssetCard";
+import AssetFeedCard from "@/components/AssetFeedCard";
 import ScheduleModal from "@/components/ScheduleModal";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Campaign, GeneratedAsset, CampaignStatus } from "@/types/campaigns";
 
-const statusConfig: Record<CampaignStatus, { label: string; variant: "secondary" | "default" | "outline" | "destructive"; className?: string }> = {
-  draft: { label: "Draft", variant: "secondary" },
-  generating: { label: "Generating", variant: "outline", className: "animate-pulse border-blue-300 text-blue-700 bg-blue-50" },
-  review: { label: "In Review", variant: "default", className: "bg-amber-100 text-amber-800 border-amber-200 hover:bg-amber-100" },
-  approved: { label: "Approved", variant: "default", className: "bg-emerald-100 text-emerald-800 border-emerald-200 hover:bg-emerald-100" },
-  scheduled: { label: "Scheduled", variant: "default", className: "bg-violet-100 text-violet-800 border-violet-200 hover:bg-violet-100" },
-  published: { label: "Published", variant: "default", className: "bg-sky-100 text-sky-800 border-sky-200 hover:bg-sky-100" },
+const statusConfig: Record<CampaignStatus, { label: string; className: string }> = {
+  draft: { label: "Draft", className: "bg-secondary text-secondary-foreground" },
+  generating: { label: "Generating", className: "animate-pulse bg-blue-50 text-blue-700 border-blue-200" },
+  review: { label: "In Review", className: "bg-amber-100 text-amber-800 border-amber-200" },
+  approved: { label: "Approved", className: "bg-emerald-100 text-emerald-800 border-emerald-200" },
+  scheduled: { label: "Scheduled", className: "bg-violet-100 text-violet-800 border-violet-200" },
+  published: { label: "Published", className: "bg-sky-100 text-sky-800 border-sky-200" },
 };
 
 const CampaignDetails = () => {
@@ -65,12 +65,12 @@ const CampaignDetails = () => {
   if (loading) {
     return (
       <AppShell>
-        <div className="max-w-5xl mx-auto py-12 px-4 md:px-8">
+        <div className="max-w-3xl mx-auto py-8 px-4 sm:px-6">
           <Skeleton className="h-8 w-48 mb-4" />
-          <Skeleton className="h-6 w-24 mb-10" />
-          <div className="grid md:grid-cols-2 gap-10">
-            <Skeleton className="h-64" />
-            <Skeleton className="h-64" />
+          <Skeleton className="h-6 w-24 mb-8" />
+          <div className="space-y-6">
+            <Skeleton className="h-[400px] rounded-2xl" />
+            <Skeleton className="h-[400px] rounded-2xl" />
           </div>
         </div>
       </AppShell>
@@ -80,7 +80,7 @@ const CampaignDetails = () => {
   if (!campaign) {
     return (
       <AppShell>
-        <div className="max-w-5xl mx-auto py-12 px-4 md:px-8">
+        <div className="max-w-3xl mx-auto py-8 px-4 sm:px-6">
           <button onClick={() => navigate("/dashboard")} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-8">
             <ArrowLeft className="w-4 h-4" />
             Back to Campaigns
@@ -95,19 +95,40 @@ const CampaignDetails = () => {
 
   return (
     <AppShell>
-      <div className="max-w-5xl mx-auto py-12 px-4 md:px-8">
-        <button onClick={() => navigate("/dashboard")} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-8">
+      <div className="max-w-3xl mx-auto py-6 px-4 sm:px-6 lg:py-10">
+        {/* Back nav */}
+        <button
+          onClick={() => navigate("/dashboard")}
+          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6"
+        >
           <ArrowLeft className="w-4 h-4" />
           Back to Campaigns
         </button>
 
-        {/* Header */}
-        <div className="flex items-start justify-between mb-10">
-          <h1 className="text-3xl font-semibold text-foreground">{campaign.title}</h1>
-          <div className="flex items-center gap-3">
-            <Badge variant={status.variant} className={status.className}>{status.label}</Badge>
+        {/* Campaign Header Card */}
+        <div className="bg-card rounded-2xl border border-border p-5 sm:p-8 mb-6 shadow-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="min-w-0">
+              <h1 className="text-2xl sm:text-3xl font-semibold text-foreground truncate">{campaign.title}</h1>
+              <p className="text-xs text-muted-foreground font-mono mt-1">ID: {campaign.id.slice(0, 12)}…</p>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <Badge variant="outline" className={status.className}>{status.label}</Badge>
+            </div>
+          </div>
+
+          {campaign.instructions && (
+            <p className="text-sm text-muted-foreground mt-4 leading-relaxed">{campaign.instructions}</p>
+          )}
+
+          {/* Action bar */}
+          <div className="flex flex-col sm:flex-row gap-2 mt-6 pt-4 border-t border-border/50">
+            {campaign.status === "draft" && (
+              <GenerateButton campaignId={campaign.id} onGenerated={fetchData} />
+            )}
             <Button
               size="sm"
+              variant="outline"
               onClick={() => setScheduleOpen(true)}
               disabled={campaign.status !== "approved"}
               className="gap-2"
@@ -118,60 +139,61 @@ const CampaignDetails = () => {
           </div>
         </div>
 
-        {/* Two-column layout */}
-        <div className="grid md:grid-cols-2 gap-10">
-          {/* Left: Source & Instructions */}
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide mb-3">Instructions</h2>
-              {campaign.instructions ? (
-                <p className="text-foreground leading-relaxed">{campaign.instructions}</p>
-              ) : (
-                <p className="text-muted-foreground italic">No instructions provided.</p>
-              )}
-            </div>
-
-            {sourceAssets.length > 0 && (
-              <div>
-                <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide mb-3">Uploaded Assets</h2>
-                <div className="space-y-3">
-                  {sourceAssets.map((asset) => (
-                    <div key={asset.id} className="rounded-lg border border-border overflow-hidden bg-card">
-                      {asset.asset_type === "image" && asset.content_url && (
-                        <img src={asset.content_url} alt="Source asset" className="w-full h-auto object-cover max-h-72" />
-                      )}
-                      {asset.asset_type === "video" && asset.content_url && (
-                        <video src={asset.content_url} controls className="w-full max-h-72" />
-                      )}
-                    </div>
-                  ))}
+        {/* Source assets — compact row */}
+        {sourceAssets.length > 0 && (
+          <div className="mb-6">
+            <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-3 px-1">Uploaded Assets</h2>
+            <div className="flex gap-3 overflow-x-auto pb-2">
+              {sourceAssets.map((asset) => (
+                <div key={asset.id} className="shrink-0 w-20 h-20 rounded-xl border border-border overflow-hidden bg-card">
+                  {asset.asset_type === "image" && asset.content_url && (
+                    <img src={asset.content_url} alt="Source" className="w-full h-full object-cover" />
+                  )}
+                  {asset.asset_type === "video" && asset.content_url && (
+                    <video src={asset.content_url} className="w-full h-full object-cover" />
+                  )}
                 </div>
-              </div>
-            )}
+              ))}
+            </div>
           </div>
+        )}
 
-          {/* Right: Generated Content */}
-          <div className="bg-card rounded-xl shadow-lg p-8 space-y-6">
-            <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">Generated Content</h2>
-
-            {campaign.status === "draft" && generatedAssets.length === 0 ? (
-              <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-border py-16">
-                <p className="text-muted-foreground mb-6 text-sm">Ready to create content for this campaign.</p>
-                <GenerateButton campaignId={campaign.id} onGenerated={fetchData} />
-              </div>
-            ) : generatedAssets.length > 0 ? (
-              <div className="space-y-4">
-                {generatedAssets.map((asset) => (
-                  <AssetCard key={asset.id} asset={asset} onStatusChange={fetchData} />
-                ))}
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-border py-16">
-                <p className="text-muted-foreground text-sm">Generating content…</p>
-              </div>
-            )}
-          </div>
+        {/* Feed Section Label */}
+        <div className="flex items-center gap-2 mb-4 px-1">
+          <Sparkles className="w-4 h-4 text-brand" />
+          <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Generated Content Feed</h2>
+          {generatedAssets.length > 0 && (
+            <span className="text-[10px] text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">
+              {generatedAssets.length} item{generatedAssets.length !== 1 ? "s" : ""}
+            </span>
+          )}
         </div>
+
+        {/* Feed Grid — responsive */}
+        {generatedAssets.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+            {generatedAssets.map((asset) => (
+              <AssetFeedCard
+                key={asset.id}
+                asset={asset}
+                onStatusChange={fetchData}
+                campaignTitle={campaign.title}
+              />
+            ))}
+          </div>
+        ) : campaign.status === "draft" ? (
+          <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-border bg-card py-16 sm:py-20">
+            <p className="text-muted-foreground mb-6 text-sm text-center px-4">
+              Ready to create content for this campaign.
+            </p>
+            <GenerateButton campaignId={campaign.id} onGenerated={fetchData} />
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-border bg-card py-16">
+            <div className="w-8 h-8 border-2 border-foreground border-t-transparent rounded-full animate-spin mb-4" />
+            <p className="text-muted-foreground text-sm">Generating content…</p>
+          </div>
+        )}
       </div>
 
       <ScheduleModal
