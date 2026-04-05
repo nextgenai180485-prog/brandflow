@@ -69,7 +69,7 @@ const GenerateButton = ({ campaignId, onGenerated, disabled }: GenerateButtonPro
           profile_id: user.id,
           asset_type: "image",
           content_url: `https://placehold.co/1080x1080/${primaryHex.replace("#", "")}/${accentHex.replace("#", "")}?text=Brand+Image`,
-          content_text: brandContext ? `[Generation context: ${brandContext}]` : null,
+          content_text: "✨ Transform your look this season! Book your complimentary consultation today and discover our exclusive treatment packages. Limited spots available. #MedSpa #Beauty #SelfCare",
           status: "pending_review",
         },
         {
@@ -77,7 +77,7 @@ const GenerateButton = ({ campaignId, onGenerated, disabled }: GenerateButtonPro
           profile_id: user.id,
           asset_type: "video",
           content_url: `https://placehold.co/1080x1920/${primaryHex.replace("#", "")}/${accentHex.replace("#", "")}?text=Brand+Video`,
-          content_text: brandContext ? `[Generation context: ${brandContext}]` : null,
+          content_text: "🌟 Your transformation journey starts now. Watch how our expert team delivers results you'll love. Book today — link in bio. #GlowUp #BeautyGoals #Wellness",
           status: "pending_review",
         },
         {
@@ -85,7 +85,7 @@ const GenerateButton = ({ campaignId, onGenerated, disabled }: GenerateButtonPro
           profile_id: user.id,
           asset_type: "copy",
           content_text:
-            "✨ Transform your look this season! Book your complimentary consultation today and discover our exclusive treatment packages. Limited spots available. #MedSpa #Beauty #SelfCare",
+            "💫 Radiance redefined. Experience the difference our personalized treatment plans can make. DM us for a free consultation. #MedSpa #SkinCare #Confidence",
           status: "pending_review",
         },
       ];
