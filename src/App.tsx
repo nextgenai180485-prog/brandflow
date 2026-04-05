@@ -10,6 +10,7 @@ import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Dashboard from "./pages/Dashboard";
 import CampaignDetails from "./pages/CampaignDetails";
+import CalendarView from "./pages/CalendarView";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
