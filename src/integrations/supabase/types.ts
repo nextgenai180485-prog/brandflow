@@ -139,6 +139,7 @@ export type Database = {
       profiles: {
         Row: {
           brand_colors: Json | null
+          brand_palette: Json | null
           brand_voice_keywords: string[] | null
           brand_voice_tone: string | null
           business_name: string | null
@@ -155,6 +156,7 @@ export type Database = {
         }
         Insert: {
           brand_colors?: Json | null
+          brand_palette?: Json | null
           brand_voice_keywords?: string[] | null
           brand_voice_tone?: string | null
           business_name?: string | null
@@ -171,6 +173,7 @@ export type Database = {
         }
         Update: {
           brand_colors?: Json | null
+          brand_palette?: Json | null
           brand_voice_keywords?: string[] | null
           brand_voice_tone?: string | null
           business_name?: string | null
