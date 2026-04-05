@@ -142,7 +142,7 @@ const CreateCampaignDialog = ({
             <Label htmlFor="campaign-title">Campaign Name</Label>
             <Input
               id="campaign-title"
-              placeholder={'e.g. "Mother\'s Day Botox Promo"'}
+              placeholder={'e.g. "Mother\'s Day Botox Promo" or "Summer Filler Special"'}
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               autoFocus
@@ -159,7 +159,7 @@ const CreateCampaignDialog = ({
             </Label>
             <Textarea
               id="campaign-instructions"
-              placeholder="Describe your campaign goals, target audience, or any specific instructions…"
+              placeholder="e.g. Promote our new lip filler package to women 25–45 in the metro area…"
               value={instructions}
               onChange={(e) => setInstructions(e.target.value)}
               rows={3}
@@ -177,25 +177,28 @@ const CreateCampaignDialog = ({
             </Label>
 
             {!file ? (
-              <label
-                onDragOver={(e) => e.preventDefault()}
-                onDrop={handleDrop}
-                className="flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border py-8 cursor-pointer transition-colors hover:border-foreground/30 hover:bg-secondary/50"
-              >
-                <Upload className="w-5 h-5 text-muted-foreground" />
-                <span className="text-sm text-muted-foreground">
-                  Drag &amp; drop or click to browse
-                </span>
-                <input
-                  type="file"
-                  className="hidden"
-                  accept="image/*,video/*"
-                  onChange={(e) => {
-                    const f = e.target.files?.[0];
-                    if (f) handleFileSelect(f);
-                  }}
-                />
-              </label>
+              <>
+                <label
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={handleDrop}
+                  className="flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border py-8 cursor-pointer transition-colors hover:border-foreground/30 hover:bg-secondary/50"
+                >
+                  <Upload className="w-5 h-5 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">
+                    Drag &amp; drop or click to browse
+                  </span>
+                  <input
+                    type="file"
+                    className="hidden"
+                    accept="image/*,video/*"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f) handleFileSelect(f);
+                    }}
+                  />
+                </label>
+                <p className="text-xs text-muted-foreground mt-1">Recommended size: 1080×1080px</p>
+              </>
             ) : (
               <div className="flex items-center gap-3 rounded-lg border border-border px-4 py-3">
                 {uploading ? (

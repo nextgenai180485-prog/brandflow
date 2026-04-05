@@ -14,8 +14,11 @@ const EmptyCampaigns = ({ onCreateClick }: EmptyCampaignsProps) => {
       <h2 className="text-xl font-semibold text-foreground mb-2">
         No campaigns yet
       </h2>
-      <p className="text-sm text-muted-foreground mb-8 max-w-sm text-center">
+      <p className="text-sm text-muted-foreground mb-2 max-w-sm text-center">
         Create your first campaign to start generating social media content with AI.
+      </p>
+      <p className="text-xs text-muted-foreground mb-8 max-w-sm text-center">
+        Your first campaign will bring a fresh look to your Instagram feed.
       </p>
       <Button onClick={onCreateClick} size="lg">
         Create New Campaign
