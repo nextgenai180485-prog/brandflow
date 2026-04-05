@@ -177,26 +177,28 @@ const CreateCampaignDialog = ({
             </Label>
 
             {!file ? (
-              <label
-                onDragOver={(e) => e.preventDefault()}
-                onDrop={handleDrop}
-                className="flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border py-8 cursor-pointer transition-colors hover:border-foreground/30 hover:bg-secondary/50"
-              >
-                <Upload className="w-5 h-5 text-muted-foreground" />
-                <span className="text-sm text-muted-foreground">
-                  Drag &amp; drop or click to browse
-                </span>
-                <input
-                  type="file"
-                  className="hidden"
-                  accept="image/*,video/*"
-                  onChange={(e) => {
-                    const f = e.target.files?.[0];
-                    if (f) handleFileSelect(f);
-                  }}
-                />
-              </label>
-              <p className="text-xs text-muted-foreground mt-1">Recommended size: 1080×1080px</p>
+              <>
+                <label
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={handleDrop}
+                  className="flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border py-8 cursor-pointer transition-colors hover:border-foreground/30 hover:bg-secondary/50"
+                >
+                  <Upload className="w-5 h-5 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">
+                    Drag &amp; drop or click to browse
+                  </span>
+                  <input
+                    type="file"
+                    className="hidden"
+                    accept="image/*,video/*"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f) handleFileSelect(f);
+                    }}
+                  />
+                </label>
+                <p className="text-xs text-muted-foreground mt-1">Recommended size: 1080×1080px</p>
+              </>
             ) : (
               <div className="flex items-center gap-3 rounded-lg border border-border px-4 py-3">
                 {uploading ? (
