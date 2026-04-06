@@ -758,6 +758,18 @@ async function processAssetsInBackground(
 ) {
   const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
+  // ── Load matching image templates for this brand's vertical ──
+  const industry = (brandContext?.industry || "general").toLowerCase();
+  const { data: imageTemplates } = await supabase
+    .from("image_templates")
+    .select("*")
+    .eq("is_active", true)
+    .or(`vertical.eq.${industry},vertical.eq.general`)
+    .order("usage_count", { ascending: false })
+    .limit(5);
+
+  console.log(`[Image Templates] Loaded ${imageTemplates?.length || 0} templates for vertical: ${industry}`);
+
   for (let i = 0; i < assets.length; i++) {
     const asset = assets[i];
     const placeholderId = placeholderIds[i];
@@ -774,7 +786,16 @@ async function processAssetsInBackground(
       let generatedPrompt = "";
 
       if (assetType === "image" || assetType === "carousel") {
-        generatedPrompt = buildImagePrompt(platform, format, brandContext || {}, intelligenceBrief || {}, decisionWinner);
+        // Find best matching template for this platform/format combo
+        const matchedTemplate = imageTemplates?.find(
+          (t: any) => (t.platform === platform || !t.platform) && (t.format === format || !t.format)
+        ) || imageTemplates?.[0] || null;
+
+        if (matchedTemplate) {
+          console.log(`[Image Templates] Using template: "${matchedTemplate.style_name}" for ${platform}/${format}`);
+        }
+
+        generatedPrompt = buildImagePrompt(platform, format, brandContext || {}, intelligenceBrief || {}, decisionWinner, matchedTemplate);
         console.log(`[Generate] ${assetType} for ${platform}/${format} via Replicate Seedream 5`);
         const result = await generateImage(generatedPrompt, width || 1080, height || 1080);
         contentUrl = result.url;
