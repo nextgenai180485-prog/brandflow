@@ -50,6 +50,13 @@ const CampaignDetails = () => {
   const [researchLoading, setResearchLoading] = useState(false);
   const [researchApproved, setResearchApproved] = useState(false);
 
+  // Streaming state
+  const [streamPhases, setStreamPhases] = useState<StreamPhase[]>([]);
+  const [streamColors, setStreamColors] = useState<{ hex: string; source: string }[]>([]);
+  const [streamPages, setStreamPages] = useState<string[]>([]);
+  const [streamAssets, setStreamAssets] = useState<any>(null);
+  const [isStreaming, setIsStreaming] = useState(false);
+
   const fetchData = useCallback(async () => {
     if (!user || !id) return;
     const [cRes, aRes, rRes] = await Promise.all([
