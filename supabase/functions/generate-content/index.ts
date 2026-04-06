@@ -7,10 +7,68 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const KIE_BASE = "https://api.kie.ai/api/v1/jobs";
+
+// ── Kie AI Unified Task Helper ───────────────────────────────
+async function kieCreateTask(apiKey: string, model: string, input: Record<string, unknown>): Promise<string> {
+  const response = await fetch(`${KIE_BASE}/createTask`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ model, input }),
+  });
+
+  if (!response.ok) {
+    const err = await response.text();
+    throw new Error(`Kie AI createTask failed [${response.status}]: ${err}`);
+  }
+
+  const data = await response.json();
+  if (data.code !== 200) {
+    throw new Error(`Kie AI createTask error: ${data.msg || JSON.stringify(data)}`);
+  }
+  return data.data.taskId;
+}
+
+async function kiePollTask(apiKey: string, taskId: string, maxAttempts = 90, intervalMs = 3000): Promise<any> {
+  for (let i = 0; i < maxAttempts; i++) {
+    await new Promise((r) => setTimeout(r, intervalMs));
+    const response = await fetch(`${KIE_BASE}/recordInfo?taskId=${taskId}`, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+    });
+
+    if (!response.ok) {
+      const err = await response.text();
+      console.error(`Kie AI poll error [${response.status}]:`, err);
+      continue;
+    }
+
+    const data = await response.json();
+    const state = data.data?.state;
+
+    if (state === "success") {
+      const resultJson = data.data.resultJson;
+      const parsed = typeof resultJson === "string" ? JSON.parse(resultJson) : resultJson;
+      return {
+        urls: parsed.resultUrls || [],
+        costTime: data.data.costTime || 0,
+        lastFrameUrl: parsed.lastFrameUrl || null,
+      };
+    }
+
+    if (state === "fail") {
+      throw new Error(`Kie AI task failed: ${data.data.failMsg || "Unknown error"}`);
+    }
+    // else waiting/queuing/generating — continue polling
+  }
+  throw new Error("Kie AI task timed out after polling");
+}
+
 // ── Provider Router ──────────────────────────────────────────
 interface RouteResult {
   provider: string;
-  endpoint: string;
   model: string;
   estimatedCost: number;
 }
@@ -18,119 +76,147 @@ interface RouteResult {
 function routeProvider(assetType: string): RouteResult {
   switch (assetType) {
     case "image":
-      return {
-        provider: "kie_ai",
-        endpoint: "https://api.kie.ai/v2/image/generate",
-        model: "gpt-4o-image",
-        estimatedCost: 0.04,
-      };
-    case "video":
-      return {
-        provider: "fal_ai",
-        endpoint: "https://queue.fal.run/fal-ai/kling-video/v2/master/image-to-video",
-        model: "kling-2.6",
-        estimatedCost: 0.25,
-      };
     case "carousel":
       return {
         provider: "kie_ai",
-        endpoint: "https://api.kie.ai/v2/image/generate",
-        model: "gpt-4o-image",
-        estimatedCost: 0.08, // Multiple images
+        model: "seedream/4.5-text-to-image",
+        estimatedCost: assetType === "carousel" ? 0.12 : 0.04,
+      };
+    case "video":
+      return {
+        provider: "kie_ai",
+        model: "bytedance/seedance-2",
+        estimatedCost: 0.30,
       };
     case "copy":
       return {
         provider: "lovable_ai",
-        endpoint: "https://ai.gateway.lovable.dev/v1/chat/completions",
         model: "google/gemini-3-flash-preview",
         estimatedCost: 0.002,
       };
     default:
       return {
         provider: "lovable_ai",
-        endpoint: "https://ai.gateway.lovable.dev/v1/chat/completions",
         model: "google/gemini-3-flash-preview",
         estimatedCost: 0.002,
       };
   }
 }
 
-// ── Image Generation via Kie AI ──────────────────────────────
+// ── Aspect Ratio Mapping ─────────────────────────────────────
+function mapAspectRatioForSeedream(width: number, height: number): string {
+  const ratio = width / height;
+  if (ratio > 2.0) return "21:9";
+  if (ratio > 1.6) return "16:9";
+  if (ratio > 1.2) return "4:3";
+  if (ratio > 0.9) return "1:1";
+  if (ratio > 0.7) return "3:4";
+  if (ratio > 0.5) return "9:16";
+  return "9:16";
+}
+
+function mapAspectRatioForSeedance(width: number, height: number): string {
+  const ratio = width / height;
+  if (ratio > 2.0) return "21:9";
+  if (ratio > 1.6) return "16:9";
+  if (ratio > 1.2) return "4:3";
+  if (ratio > 0.9) return "1:1";
+  if (ratio > 0.7) return "3:4";
+  return "9:16";
+}
+
+// ── Image Generation via Kie AI Seedream 4.5 ────────────────
 async function generateImage(
   prompt: string,
   width: number,
   height: number
-): Promise<{ url: string; provider: string; cost: number }> {
+): Promise<{ url: string; provider: string; cost: number; timeMs: number }> {
   const KIE_AI_API_KEY = Deno.env.get("KIE_AI_API_KEY")!;
+  const aspectRatio = mapAspectRatioForSeedream(width, height);
 
-  // Kie AI GPT-4o Image generation
-  const response = await fetch("https://api.kie.ai/v2/image/generate", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${KIE_AI_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
+  console.log(`[Seedream 4.5] Creating task, aspect: ${aspectRatio}`);
+
+  try {
+    const taskId = await kieCreateTask(KIE_AI_API_KEY, "seedream/4.5-text-to-image", {
       prompt,
-      model: "gpt-image-1",
-      size: width >= height ? "1536x1024" : "1024x1536",
-      quality: "low",
-      n: 1,
-    }),
-  });
+      aspect_ratio: aspectRatio,
+      quality: "basic", // "basic" = 2K, "high" = 4K
+    });
 
-  if (!response.ok) {
-    const err = await response.text();
-    console.error("Kie AI image error:", response.status, err);
+    console.log(`[Seedream 4.5] Task created: ${taskId}, polling...`);
+    const result = await kiePollTask(KIE_AI_API_KEY, taskId, 60, 3000);
 
-    // Fallback to FAL AI
-    return await generateImageFallback(prompt, width, height);
-  }
-
-  const data = await response.json();
-  const imageData = data.data?.[0];
-  
-  if (imageData?.url) {
-    return { url: imageData.url, provider: "kie_ai", cost: 0.04 };
-  }
-  
-  if (imageData?.b64_json) {
-    // Upload base64 to Supabase Storage
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
-    const fileName = `generated/${crypto.randomUUID()}.png`;
-    const binaryData = Uint8Array.from(atob(imageData.b64_json), (c) => c.charCodeAt(0));
-    
-    const { error: uploadError } = await supabase.storage
-      .from("campaign_assets")
-      .upload(fileName, binaryData, { contentType: "image/png" });
-
-    if (uploadError) {
-      console.error("Upload error:", uploadError);
-      throw new Error("Failed to upload generated image");
+    if (!result.urls || result.urls.length === 0) {
+      throw new Error("Seedream returned no image URLs");
     }
 
-    const { data: urlData } = supabase.storage
-      .from("campaign_assets")
-      .getPublicUrl(fileName);
-
-    return { url: urlData.publicUrl, provider: "kie_ai", cost: 0.04 };
+    return {
+      url: result.urls[0],
+      provider: "kie_ai_seedream_4.5",
+      cost: 0.04,
+      timeMs: result.costTime,
+    };
+  } catch (e) {
+    console.error("[Seedream 4.5] Failed, trying fallback:", e);
+    return await generateImageFallback(prompt, width, height);
   }
-
-  throw new Error("No image data returned");
 }
 
+// ── Video Generation via Kie AI Seedance 2.0 ─────────────────
+async function generateVideo(
+  prompt: string,
+  width: number,
+  height: number
+): Promise<{ url: string; provider: string; cost: number; timeMs: number }> {
+  const KIE_AI_API_KEY = Deno.env.get("KIE_AI_API_KEY")!;
+  const aspectRatio = mapAspectRatioForSeedance(width, height);
+
+  console.log(`[Seedance 2.0] Creating video task, aspect: ${aspectRatio}`);
+
+  try {
+    const taskId = await kieCreateTask(KIE_AI_API_KEY, "bytedance/seedance-2", {
+      prompt,
+      aspect_ratio: aspectRatio,
+      resolution: "720p",
+      duration: 8,
+      generate_audio: false,
+      web_search: false,
+    });
+
+    console.log(`[Seedance 2.0] Task created: ${taskId}, polling...`);
+    // Video takes longer — poll up to 5 minutes
+    const result = await kiePollTask(KIE_AI_API_KEY, taskId, 100, 3000);
+
+    if (!result.urls || result.urls.length === 0) {
+      throw new Error("Seedance returned no video URLs");
+    }
+
+    return {
+      url: result.urls[0],
+      provider: "kie_ai_seedance_2.0",
+      cost: 0.30,
+      timeMs: result.costTime,
+    };
+  } catch (e) {
+    console.error("[Seedance 2.0] Failed, trying image fallback:", e);
+    // Fallback: generate a still image if video fails
+    const fallback = await generateImage(prompt, width, height);
+    return { ...fallback, provider: fallback.provider + "_video_fallback" };
+  }
+}
+
+// ── Fallback: FAL AI ─────────────────────────────────────────
 async function generateImageFallback(
   prompt: string,
   width: number,
   height: number
-): Promise<{ url: string; provider: string; cost: number }> {
+): Promise<{ url: string; provider: string; cost: number; timeMs: number }> {
   const FAL_AI_API_KEY = Deno.env.get("FAL_AI_API_KEY");
-  if (!FAL_AI_API_KEY) throw new Error("No fallback provider available");
+  if (!FAL_AI_API_KEY) {
+    return await generateImageReplicate(prompt, width, height);
+  }
 
-  // FAL AI flux model
+  const startTime = Date.now();
   const response = await fetch("https://queue.fal.run/fal-ai/flux/schnell", {
     method: "POST",
     headers: {
@@ -147,15 +233,12 @@ async function generateImageFallback(
   if (!response.ok) {
     const err = await response.text();
     console.error("FAL AI fallback error:", response.status, err);
-    // Last resort: Replicate
     return await generateImageReplicate(prompt, width, height);
   }
 
   const data = await response.json();
-  
-  // FAL returns a request_url for polling
+
   if (data.request_url) {
-    // Poll for result
     const resultUrl = data.response_url || data.request_url;
     for (let i = 0; i < 30; i++) {
       await new Promise((r) => setTimeout(r, 2000));
@@ -165,10 +248,10 @@ async function generateImageFallback(
       if (pollResp.ok) {
         const pollData = await pollResp.json();
         if (pollData.images?.[0]?.url) {
-          return { url: pollData.images[0].url, provider: "fal_ai", cost: 0.03 };
+          return { url: pollData.images[0].url, provider: "fal_ai", cost: 0.03, timeMs: Date.now() - startTime };
         }
         if (pollData.status === "COMPLETED" && pollData.output?.images?.[0]?.url) {
-          return { url: pollData.output.images[0].url, provider: "fal_ai", cost: 0.03 };
+          return { url: pollData.output.images[0].url, provider: "fal_ai", cost: 0.03, timeMs: Date.now() - startTime };
         }
       }
     }
@@ -176,20 +259,22 @@ async function generateImageFallback(
   }
 
   if (data.images?.[0]?.url) {
-    return { url: data.images[0].url, provider: "fal_ai", cost: 0.03 };
+    return { url: data.images[0].url, provider: "fal_ai", cost: 0.03, timeMs: Date.now() - startTime };
   }
 
   throw new Error("FAL AI returned no images");
 }
 
+// ── Fallback: Replicate ──────────────────────────────────────
 async function generateImageReplicate(
   prompt: string,
   width: number,
   height: number
-): Promise<{ url: string; provider: string; cost: number }> {
+): Promise<{ url: string; provider: string; cost: number; timeMs: number }> {
   const REPLICATE_API_KEY = Deno.env.get("REPLICATE_API_KEY");
-  if (!REPLICATE_API_KEY) throw new Error("No Replicate fallback available");
+  if (!REPLICATE_API_KEY) throw new Error("No fallback provider available");
 
+  const startTime = Date.now();
   const response = await fetch("https://api.replicate.com/v1/predictions", {
     method: "POST",
     headers: {
@@ -214,7 +299,6 @@ async function generateImageReplicate(
 
   const prediction = await response.json();
 
-  // Poll for completion
   for (let i = 0; i < 60; i++) {
     await new Promise((r) => setTimeout(r, 2000));
     const pollResp = await fetch(`https://api.replicate.com/v1/predictions/${prediction.id}`, {
@@ -222,7 +306,7 @@ async function generateImageReplicate(
     });
     const pollData = await pollResp.json();
     if (pollData.status === "succeeded" && pollData.output?.[0]) {
-      return { url: pollData.output[0], provider: "replicate", cost: 0.05 };
+      return { url: pollData.output[0], provider: "replicate", cost: 0.05, timeMs: Date.now() - startTime };
     }
     if (pollData.status === "failed") {
       throw new Error("Replicate generation failed");
@@ -312,6 +396,30 @@ function buildImagePrompt(
   return prompt;
 }
 
+// ── Video Prompt Builder ─────────────────────────────────────
+function buildVideoPrompt(
+  platform: string,
+  format: string,
+  brandContext: any,
+  intelligenceBrief: any
+): string {
+  const baseStyle = intelligenceBrief?.visual_direction || "cinematic, smooth motion, professional";
+  const angles = intelligenceBrief?.content_angles || [];
+  const angle = angles[Math.floor(Math.random() * Math.max(angles.length, 1))] || "brand experience showcase";
+
+  let prompt = `Professional ${brandContext.industry || "beauty"} marketing video for ${platform} ${format}. `;
+  prompt += `Brand: "${brandContext.businessName || "luxury studio"}". `;
+  prompt += `Style: ${baseStyle}. `;
+  prompt += `Concept: ${angle}. `;
+  prompt += `Smooth camera movement, high production value, aspirational feel. `;
+
+  if (format === "reel" || format === "story") {
+    prompt += `Vertical video optimized for mobile viewing. Dynamic pacing. `;
+  }
+
+  return prompt;
+}
+
 // ── Main Handler ─────────────────────────────────────────────
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -369,24 +477,27 @@ serve(async (req) => {
         let contentUrl: string | null = null;
         let actualProvider = route.provider;
         let actualCost = route.estimatedCost;
+        let generationTimeMs = 0;
 
         // Generate visual asset
         if (assetType === "image" || assetType === "carousel") {
           const prompt = buildImagePrompt(platform, format, brandContext || {}, intelligenceBrief || {});
-          console.log(`Generating ${assetType} for ${platform}/${format}:`, prompt.substring(0, 100));
-          
+          console.log(`[Generate] ${assetType} for ${platform}/${format} via Seedream 4.5`);
+
           const result = await generateImage(prompt, width || 1080, height || 1080);
           contentUrl = result.url;
           actualProvider = result.provider;
           actualCost = result.cost;
+          generationTimeMs = result.timeMs;
         } else if (assetType === "video") {
-          // For MVP, generate a still image as video thumbnail
-          // Full video generation will use Kie AI Veo3 in next phase
-          const prompt = buildImagePrompt(platform, format, brandContext || {}, intelligenceBrief || {});
-          const result = await generateImage(prompt, width || 1080, height || 1920);
+          const prompt = buildVideoPrompt(platform, format, brandContext || {}, intelligenceBrief || {});
+          console.log(`[Generate] video for ${platform}/${format} via Seedance 2.0`);
+
+          const result = await generateVideo(prompt, width || 1080, height || 1920);
           contentUrl = result.url;
-          actualProvider = result.provider + "_still";
+          actualProvider = result.provider;
           actualCost = result.cost;
+          generationTimeMs = result.timeMs;
         }
 
         // Generate caption
@@ -397,7 +508,9 @@ serve(async (req) => {
           intelligenceBrief || {}
         );
 
-        const generationTimeMs = Date.now() - startTime;
+        if (!generationTimeMs) {
+          generationTimeMs = Date.now() - startTime;
+        }
 
         // Save to database
         const { data: savedAsset, error: saveError } = await supabase
@@ -428,8 +541,7 @@ serve(async (req) => {
         }
       } catch (e) {
         console.error(`Generation error for ${platform}/${format}:`, e);
-        
-        // Insert a failed placeholder so user sees the error
+
         await supabase.from("generated_assets").insert({
           campaign_id: campaignId,
           profile_id: userId,
