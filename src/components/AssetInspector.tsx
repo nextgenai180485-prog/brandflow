@@ -340,10 +340,11 @@ const AssetInspector = ({
   );
 
   if (isMobile) {
+    const isTallFormat = nativeAspect === "9 / 16";
     return (
       <Drawer open={open} onOpenChange={onOpenChange}>
-        <DrawerContent className="max-h-[85vh]">
-          <div className="overflow-y-auto max-h-[80vh] pb-6">
+        <DrawerContent className={isTallFormat ? "max-h-[95vh]" : "max-h-[85vh]"}>
+          <div className={`overflow-y-auto pb-6 ${isTallFormat ? "max-h-[92vh]" : "max-h-[80vh]"}`}>
             {content}
           </div>
         </DrawerContent>
