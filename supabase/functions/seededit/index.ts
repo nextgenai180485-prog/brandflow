@@ -1,10 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 serve(async (req) => {
@@ -21,12 +21,16 @@ serve(async (req) => {
     );
     const {
       data: { user },
+      error: authError,
     } = await supabase.auth.getUser();
-    if (!user)
+
+    if (authError || !user) {
+      console.error("Auth error:", authError?.message);
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
 
     const { action, imageUrl, prompt, assetId, guidanceScale } =
       await req.json();
@@ -36,6 +40,8 @@ serve(async (req) => {
       throw new Error("WAVESPEED_API_KEY not configured");
 
     if (action === "edit") {
+      console.log("SeedEdit request:", { prompt, guidanceScale, assetId });
+
       // Submit SeedEdit task
       const submitResp = await fetch(
         "https://api.wavespeed.ai/api/v3/bytedance/seededit-v3",
@@ -61,6 +67,7 @@ serve(async (req) => {
         return new Response(
           JSON.stringify({
             error: `WaveSpeed API error: ${submitResp.status}`,
+            detail: errText,
           }),
           {
             status: 500,
@@ -70,6 +77,7 @@ serve(async (req) => {
       }
 
       const submitData = await submitResp.json();
+      console.log("WaveSpeed submit response:", JSON.stringify(submitData));
       const taskId = submitData.data?.id;
       const resultUrl = submitData.data?.urls?.get;
 
@@ -93,10 +101,14 @@ serve(async (req) => {
           headers: { Authorization: `Bearer ${WAVESPEED_API_KEY}` },
         });
 
-        if (!pollResp.ok) continue;
+        if (!pollResp.ok) {
+          console.log(`Poll attempt ${i + 1} failed: ${pollResp.status}`);
+          continue;
+        }
 
         const pollData = await pollResp.json();
         const status = pollData.data?.status;
+        console.log(`Poll attempt ${i + 1}: status=${status}`);
 
         if (status === "completed") {
           result = pollData.data;
@@ -138,7 +150,7 @@ serve(async (req) => {
         );
       }
 
-      // Download and upload to Supabase Storage for persistence
+      // Download and upload to Supabase Storage
       const imgResp = await fetch(outputUrl);
       const imgBlob = await imgResp.blob();
       const fileName = `${user.id}/${assetId || crypto.randomUUID()}_edited_${Date.now()}.png`;
@@ -157,7 +169,6 @@ serve(async (req) => {
 
       if (uploadError) {
         console.error("Storage upload error:", uploadError);
-        // Return the WaveSpeed URL as fallback
         return new Response(
           JSON.stringify({
             editedUrl: outputUrl,
@@ -175,8 +186,8 @@ serve(async (req) => {
         .from("campaign_assets")
         .getPublicUrl(fileName);
 
-      // Update asset if assetId provided
-      if (assetId) {
+      // Update asset record if assetId provided
+      if (assetId && assetId !== "test") {
         await serviceClient
           .from("generated_assets")
           .update({
@@ -185,6 +196,8 @@ serve(async (req) => {
           })
           .eq("id", assetId);
       }
+
+      console.log("SeedEdit complete:", { publicUrl, inference: result.timings?.inference });
 
       return new Response(
         JSON.stringify({
