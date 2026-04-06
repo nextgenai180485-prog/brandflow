@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, ArrowRight, Loader2, ImageIcon, Sparkles, Film, Camera, Check, VideoIcon } from "lucide-react";
 import { toast } from "sonner";
@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import AssetPlatformSelector from "@/components/AssetPlatformSelector";
 import AssetLibraryPicker, { type LibraryAsset } from "@/components/AssetLibraryPicker";
 import CMOStrategyPanel from "@/components/CMOStrategyPanel";
+import CreativeDirectionStep, { type DirectorOutput } from "@/components/CreativeDirectionStep";
 import type { SocialPlatform, ContentType, BrandProfile } from "@/types/campaigns";
 import { CONTENT_TYPE_LABELS } from "@/types/campaigns";
 
@@ -20,7 +21,7 @@ interface SelectedFormat {
   format: string;
 }
 
-const STEPS = ["Details", "Platforms", "Content Type", "Review"];
+const ALL_STEPS = ["Details", "Platforms", "Content Type", "Creative Direction", "Review"];
 
 const CONTENT_TYPE_ICONS: Record<ContentType, React.ReactNode> = {
   image: <ImageIcon className="w-5 h-5" />,
@@ -40,6 +41,16 @@ const NewCampaign = () => {
   const [creating, setCreating] = useState(false);
   const [brandProfile, setBrandProfile] = useState<BrandProfile | null>(null);
   const [loadingProfile, setLoadingProfile] = useState(true);
+  const [creativeBrief, setCreativeBrief] = useState("");
+  const [creativeReferenceAssets, setCreativeReferenceAssets] = useState<LibraryAsset[]>([]);
+  const [creativeDirection, setCreativeDirection] = useState<DirectorOutput | null>(null);
+
+  const hasVideoContent = contentTypes.some(ct => ct === "ugc_video" || ct === "pro_video");
+
+  const STEPS = useMemo(() => {
+    if (hasVideoContent) return ALL_STEPS;
+    return ALL_STEPS.filter(s => s !== "Creative Direction");
+  }, [hasVideoContent]);
 
   // Load brand profile from brand_memory
   useEffect(() => {
@@ -166,17 +177,23 @@ const NewCampaign = () => {
     navigate("/dashboard");
   };
 
+  const currentStepName = STEPS[step];
   const canProceedStep0 = title.trim().length > 0;
   const canProceedStep1 = platforms.length > 0;
   const canProceedStep2 = contentTypes.length > 0;
-  const canCreate = canProceedStep0 && canProceedStep1 && canProceedStep2 && !creating;
+  const canProceedCreativeDirection = !hasVideoContent || !!creativeDirection;
+  const canCreate = canProceedStep0 && canProceedStep1 && canProceedStep2 && canProceedCreativeDirection && !creating;
 
   const handleNext = () => {
-    if (step === 0 && !canProceedStep0) { toast.error("Enter a campaign name."); return; }
-    if (step === 1 && !canProceedStep1) { toast.error("Select at least one platform."); return; }
-    if (step === 2 && !canProceedStep2) { toast.error("Select at least one content type."); return; }
+    if (currentStepName === "Details" && !canProceedStep0) { toast.error("Enter a campaign name."); return; }
+    if (currentStepName === "Platforms" && !canProceedStep1) { toast.error("Select at least one platform."); return; }
+    if (currentStepName === "Content Type" && !canProceedStep2) { toast.error("Select at least one content type."); return; }
+    if (currentStepName === "Creative Direction" && !canProceedCreativeDirection) { toast.error("Structure your creative brief before proceeding."); return; }
     setStep(step + 1);
   };
+
+  const primaryPlatform = platforms[0]?.platform || "instagram";
+  const primaryFormat = platforms[0]?.format || "reel";
 
   const isImageUrl = (url: string) => /\.(jpg|jpeg|png|gif|webp|svg)(\?|$)/i.test(url);
 
@@ -201,8 +218,8 @@ const NewCampaign = () => {
         </div>
 
         <div className="space-y-8">
-          {/* ═══ Step 0: Details ═══ */}
-          {step === 0 && (
+          {/* ═══ Details ═══ */}
+          {currentStepName === "Details" && (
             <>
               <div className="space-y-2">
                 <Label htmlFor="campaign-title" className="text-sm font-medium">Campaign Name</Label>
@@ -218,8 +235,8 @@ const NewCampaign = () => {
             </>
           )}
 
-          {/* ═══ Step 1: Platforms ═══ */}
-          {step === 1 && (
+          {/* ═══ Platforms ═══ */}
+          {currentStepName === "Platforms" && (
             <div className="space-y-4">
               <div>
                 <h2 className="text-lg font-semibold text-foreground">Target Platforms</h2>
@@ -234,8 +251,8 @@ const NewCampaign = () => {
             </div>
           )}
 
-          {/* ═══ Step 2: Content Type ═══ */}
-          {step === 2 && (
+          {/* ═══ Content Type ═══ */}
+          {currentStepName === "Content Type" && (
             <div className="space-y-4">
               <div>
                 <h2 className="text-lg font-semibold text-foreground">Content Types</h2>
@@ -273,8 +290,22 @@ const NewCampaign = () => {
             </div>
           )}
 
-          {/* ═══ Step 3: Review ═══ */}
-          {step === 3 && (
+          {/* ═══ Creative Direction (conditional — video only) ═══ */}
+          {currentStepName === "Creative Direction" && (
+            <CreativeDirectionStep
+              brief={creativeBrief}
+              onBriefChange={setCreativeBrief}
+              referenceAssets={creativeReferenceAssets}
+              onReferenceAssetsChange={setCreativeReferenceAssets}
+              direction={creativeDirection}
+              onDirectionChange={setCreativeDirection}
+              platform={primaryPlatform}
+              format={primaryFormat}
+            />
+          )}
+
+          {/* ═══ Review ═══ */}
+          {currentStepName === "Review" && (
             <div className="space-y-6">
               <div>
                 <h2 className="text-lg font-semibold text-foreground">Review & Launch</h2>
@@ -307,6 +338,15 @@ const NewCampaign = () => {
                     ))}
                   </div>
                 </div>
+                {creativeDirection && (
+                  <div className="p-4">
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">Creative Direction</p>
+                    <div className="flex items-center gap-2">
+                      <span className="px-2 py-0.5 rounded-full bg-secondary text-[11px] font-medium text-foreground">{creativeDirection.family_label}</span>
+                      <span className="text-[10px] text-muted-foreground">{creativeDirection.scenes.length} scenes · {creativeDirection.estimated_duration_s}s · {creativeDirection.aspect_ratio}</span>
+                    </div>
+                  </div>
+                )}
                 {selectedAssets.length > 0 && (
                   <div className="p-4">
                     <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">Reference Assets ({selectedAssets.length})</p>

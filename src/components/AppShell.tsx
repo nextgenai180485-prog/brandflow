@@ -11,7 +11,7 @@ import { LogOut, ChevronDown } from "lucide-react";
 
 const navItems = [
   { label: "Campaigns", path: "/dashboard" },
-  { label: "Visual Director", path: "/dashboard/visual-director" },
+  { label: "Creative Sandbox", path: "/dashboard/visual-director" },
   { label: "Calendar", path: "/calendar" },
 ];
 

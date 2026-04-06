@@ -146,10 +146,10 @@ const VisualDirector = () => {
           <div>
             <h1 className="text-xl font-semibold text-foreground flex items-center gap-2">
               <Clapperboard className="h-5 w-5 text-primary" />
-              Visual Director
+              Creative Sandbox
             </h1>
             <p className="text-xs text-muted-foreground">
-              Describe your vision — the engine structures it into cinematic scenes
+              Explore creative directions freely — use the campaign wizard for production briefs
             </p>
           </div>
         </div>
