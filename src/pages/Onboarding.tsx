@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, ArrowRight, Rocket, Loader2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Rocket, Loader2, Brain } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -11,7 +11,7 @@ import BrandIdentity from "@/components/onboarding/BrandIdentity";
 import BrandVoice from "@/components/onboarding/BrandVoice";
 import ReviewLaunch from "@/components/onboarding/ReviewLaunch";
 
-const STEPS = ["Business", "Identity", "Voice", "Review"];
+const STEPS = ["Brand Intake", "Visual System", "Voice", "Review"];
 
 const Onboarding = () => {
   const { user } = useAuth();
@@ -19,12 +19,13 @@ const Onboarding = () => {
   const [step, setStep] = useState(0);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [researching, setResearching] = useState(false);
 
   // Form state
   const [business, setBusiness] = useState({
     business_name: "",
     website_url: "",
-    industry: "medspa",
+    industry: "other",
     target_audience: "",
   });
   const [colors, setColors] = useState({ primary: "#D35400", secondary: "#F8F5F1", accent: "#2C3E50" });
@@ -32,6 +33,7 @@ const Onboarding = () => {
   const [tone, setTone] = useState("");
   const [keywords, setKeywords] = useState<string[]>([]);
   const [sampleText, setSampleText] = useState("");
+  const [brandResearchComplete, setBrandResearchComplete] = useState(false);
 
   // Generate and inject OKLCH brand tokens whenever colors change
   const [palette, setPalette] = useState<BrandPalette | null>(null);
@@ -50,7 +52,7 @@ const Onboarding = () => {
         setBusiness({
           business_name: data.business_name || "",
           website_url: (data as any).website_url || "",
-          industry: (data as any).industry || "medspa",
+          industry: (data as any).industry || "other",
           target_audience: (data as any).target_audience || "",
         });
         const bc = (data as any).brand_colors as any;
@@ -100,42 +102,76 @@ const Onboarding = () => {
 
   const handleNext = async () => {
     if (step === 0 && !business.business_name.trim()) {
-      toast.error("Please enter your business name.");
+      toast.error("Please enter your brand name.");
       return;
     }
-    // Trigger silent brand research when leaving Step 1 (Business) with a website URL
+    
+    // If leaving Step 1 with a website URL, run Firecrawl and wait for results
     if (step === 0 && business.website_url.trim()) {
-      triggerSilentResearch();
+      setResearching(true);
+      await saveProgress(step + 1);
+      setStep(step + 1);
+      
+      try {
+        console.log("[Onboarding] Running brand research for:", business.website_url);
+        const { data, error } = await supabase.functions.invoke("auto-brand-research", {
+          body: {
+            websiteUrl: business.website_url.trim(),
+            businessName: business.business_name.trim(),
+            industry: business.industry,
+            targetAudience: business.target_audience,
+            brandVoice: tone || "professional",
+          },
+        });
+
+        if (!error && data?.brandProfile) {
+          const bp = data.brandProfile;
+          
+          // Auto-populate colors from Firecrawl extraction
+          if (bp.color_palette_suggestion) {
+            const extracted = bp.color_palette_suggestion;
+            setColors({
+              primary: extracted.primary || colors.primary,
+              secondary: extracted.secondary || colors.secondary,
+              accent: extracted.accent || colors.accent,
+            });
+            console.log("[Onboarding] Colors auto-populated:", extracted);
+          }
+          
+          // Auto-populate tone if detected
+          if (bp.brand_voice_detected && !tone) {
+            setTone(bp.brand_voice_detected);
+            console.log("[Onboarding] Voice auto-populated:", bp.brand_voice_detected);
+          }
+          
+          // Auto-populate target audience if detected
+          if (bp.target_audience_detected && !business.target_audience) {
+            setBusiness(prev => ({ ...prev, target_audience: bp.target_audience_detected }));
+            console.log("[Onboarding] Audience auto-populated:", bp.target_audience_detected);
+          }
+          
+          // Auto-populate keywords from key_themes
+          if (bp.key_themes?.length > 0 && keywords.length === 0) {
+            setKeywords(bp.key_themes.slice(0, 5));
+            console.log("[Onboarding] Keywords auto-populated:", bp.key_themes);
+          }
+          
+          setBrandResearchComplete(true);
+          toast.success("Brand DNA extracted from your website.");
+        } else {
+          console.error("[Onboarding] Research failed:", error);
+          toast.info("Couldn't extract brand data. You can set it manually.");
+        }
+      } catch (e) {
+        console.error("[Onboarding] Research error:", e);
+      } finally {
+        setResearching(false);
+      }
+      return;
     }
+    
     await saveProgress(step + 1);
     setStep(step + 1);
-  };
-
-  const triggerSilentResearch = async () => {
-    try {
-      console.log("[Onboarding] Triggering silent brand research for:", business.website_url);
-      supabase.functions.invoke("auto-brand-research", {
-        body: {
-          websiteUrl: business.website_url.trim(),
-          businessName: business.business_name.trim(),
-          industry: business.industry,
-          targetAudience: business.target_audience,
-          brandVoice: tone || "professional",
-        },
-      }).then(({ data, error }) => {
-        if (error) {
-          console.error("[Onboarding] Silent research failed:", error);
-          return;
-        }
-        console.log("[Onboarding] Silent research complete:", data?.brandProfile?.summary);
-        // Auto-populate detected voice if user hasn't set one
-        if (data?.brandProfile?.brand_voice_detected && !tone) {
-          setTone(data.brandProfile.brand_voice_detected);
-        }
-      });
-    } catch (e) {
-      console.error("[Onboarding] Silent research trigger error:", e);
-    }
   };
 
   const handleBack = () => setStep(step - 1);
@@ -173,9 +209,9 @@ const Onboarding = () => {
       onboarding_step: 4,
     } as any).eq("id", user.id);
 
-    // Fire silent research in background (Process B)
-    if (business.website_url.trim()) {
-      console.log("[Onboarding] Firing post-launch silent research");
+    // Fire background research if not already done
+    if (business.website_url.trim() && !brandResearchComplete) {
+      console.log("[Onboarding] Firing post-launch research");
       supabase.functions.invoke("auto-brand-research", {
         body: {
           websiteUrl: business.website_url.trim(),
@@ -184,15 +220,13 @@ const Onboarding = () => {
           targetAudience: business.target_audience,
           brandVoice: tone || "professional",
         },
-      }).then(({ data, error }) => {
+      }).then(({ error }) => {
         if (error) console.error("[Onboarding] Post-launch research failed:", error);
-        else console.log("[Onboarding] Post-launch research complete");
       });
     }
 
     toast.success("Welcome to Brandflow! 🚀");
     setSaving(false);
-    // Route immediately — no loading screen (Process A)
     navigate("/dashboard/strategy/new");
   };
 
@@ -238,6 +272,33 @@ const Onboarding = () => {
 
       {/* Content */}
       <div className="flex-1 max-w-2xl mx-auto w-full px-6 py-10">
+        {/* Research Loading Overlay on Step 2 */}
+        {step === 1 && researching && (
+          <div className="mb-6 rounded-xl border-2 border-primary/20 bg-primary/5 p-5 flex items-center gap-4 animate-in fade-in duration-300">
+            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+              <Brain className="w-5 h-5 text-primary animate-pulse" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-foreground">Extracting brand DNA from your website…</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Analyzing colors, typography, voice, and competitive landscape. Your colors will auto-populate below.
+              </p>
+            </div>
+          </div>
+        )}
+        
+        {step === 1 && brandResearchComplete && !researching && (
+          <div className="mb-6 rounded-xl border border-primary/30 bg-primary/5 p-4 flex items-center gap-3 animate-in fade-in duration-300">
+            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+              <Brain className="w-4 h-4 text-primary" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-foreground">Brand DNA extracted successfully</p>
+              <p className="text-[10px] text-muted-foreground">Colors, voice, and audience have been auto-populated from your website.</p>
+            </div>
+          </div>
+        )}
+
         {step === 0 && (
           <BusinessBasics
             data={business}
@@ -288,8 +349,12 @@ const Onboarding = () => {
           )}
 
           {step < STEPS.length - 1 ? (
-            <Button onClick={handleNext} className="gap-2">
-              Next <ArrowRight className="w-4 h-4" />
+            <Button onClick={handleNext} disabled={researching} className="gap-2">
+              {researching ? (
+                <><Loader2 className="w-4 h-4 animate-spin" /> Analyzing…</>
+              ) : (
+                <>Next <ArrowRight className="w-4 h-4" /></>
+              )}
             </Button>
           ) : (
             <Button onClick={handleLaunch} disabled={saving} className="gap-2">
