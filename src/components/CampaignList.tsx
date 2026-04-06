@@ -1,13 +1,27 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
-import { ImageIcon, Clock, ArrowRight } from "lucide-react";
+import { ImageIcon, Clock, ArrowRight, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import type { Campaign, CampaignStatus } from "@/types/campaigns";
 
 interface CampaignListProps {
   campaigns: Campaign[];
+  onDelete: () => void;
 }
 
 const statusConfig: Record<CampaignStatus, { label: string; className: string }> = {
@@ -19,7 +33,7 @@ const statusConfig: Record<CampaignStatus, { label: string; className: string }>
   published: { label: "Published", className: "bg-sky-100 text-sky-800 border-sky-200" },
 };
 
-const CampaignList = ({ campaigns }: CampaignListProps) => {
+const CampaignList = ({ campaigns, onDelete }: CampaignListProps) => {
   const navigate = useNavigate();
   const [assetCounts, setAssetCounts] = useState<Record<string, number>>({});
 
@@ -42,8 +56,21 @@ const CampaignList = ({ campaigns }: CampaignListProps) => {
     fetchCounts();
   }, [campaigns]);
 
+  const handleDelete = async (e: React.MouseEvent, campaignId: string) => {
+    e.stopPropagation();
+    // Delete assets first, then campaign
+    await supabase.from("generated_assets").delete().eq("campaign_id", campaignId);
+    const { error } = await supabase.from("campaigns").delete().eq("id", campaignId);
+    if (error) {
+      toast.error("Failed to delete campaign.");
+    } else {
+      toast.success("Campaign deleted.");
+      onDelete();
+    }
+  };
+
   return (
-    <div className="grid gap-4">
+    <div className="grid gap-2">
       {campaigns.map((campaign) => {
         const status = statusConfig[campaign.status];
         const count = assetCounts[campaign.id] || 0;
@@ -52,21 +79,21 @@ const CampaignList = ({ campaigns }: CampaignListProps) => {
           <div
             key={campaign.id}
             onClick={() => navigate(`/dashboard/campaigns/${campaign.id}`)}
-            className="group flex items-center justify-between rounded-xl border border-border bg-card p-5 cursor-pointer transition-all hover:shadow-md hover:border-foreground/10"
+            className="group flex items-center justify-between rounded-lg border border-border bg-card px-4 py-3 cursor-pointer transition-all hover:shadow-sm hover:border-foreground/10"
           >
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-3 mb-1.5">
-                <h3 className="text-base font-semibold text-foreground truncate">{campaign.title}</h3>
-                <Badge variant="outline" className={status.className}>{status.label}</Badge>
+              <div className="flex items-center gap-2 mb-0.5">
+                <h3 className="text-sm font-semibold text-foreground truncate">{campaign.title}</h3>
+                <Badge variant="outline" className={`text-[10px] ${status.className}`}>{status.label}</Badge>
               </div>
-              <div className="flex items-center gap-4 text-xs text-muted-foreground">
+              <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
                 <span className="flex items-center gap-1">
-                  <Clock className="w-3.5 h-3.5" />
+                  <Clock className="w-3 h-3" />
                   {format(new Date(campaign.created_at), "MMM d, yyyy")}
                 </span>
                 {count > 0 && (
                   <span className="flex items-center gap-1">
-                    <ImageIcon className="w-3.5 h-3.5" />
+                    <ImageIcon className="w-3 h-3" />
                     {count} asset{count !== 1 ? "s" : ""}
                   </span>
                 )}
@@ -77,7 +104,39 @@ const CampaignList = ({ campaigns }: CampaignListProps) => {
                 )}
               </div>
             </div>
-            <ArrowRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+
+            <div className="flex items-center gap-1.5">
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete campaign?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will permanently delete "{campaign.title}" and all its generated assets. This action cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={(e) => handleDelete(e as any, campaign.id)}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      Delete
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+              <ArrowRight className="w-3.5 h-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+            </div>
           </div>
         );
       })}
