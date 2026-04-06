@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import type { Campaign, GeneratedAsset, CampaignStatus } from "@/types/campaigns";
+import PhonePreview from "@/components/PhonePreview";
 
 const STATUS_CONFIG: Record<string, { label: string; icon: React.ReactNode; className: string }> = {
   pending_review: { label: "Pending", icon: <Clock className="w-3 h-3" />, className: "bg-amber-100 text-amber-800 border-amber-200" },
@@ -55,6 +56,7 @@ const CampaignReview = () => {
   const [loading, setLoading] = useState(true);
   const [selectedAsset, setSelectedAsset] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [previewAssetId, setPreviewAssetId] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
     if (!id || !user) return;
@@ -279,7 +281,7 @@ const CampaignReview = () => {
                   "group rounded-xl border overflow-hidden bg-card transition-all cursor-pointer",
                   isSelected ? "border-primary ring-2 ring-primary/20" : "border-border hover:border-foreground/15 hover:shadow-md"
                 )}
-                onClick={() => setSelectedAsset(isSelected ? null : asset.id)}
+                onClick={() => setPreviewAssetId(asset.id)}
               >
                 {/* Media */}
                 <div className={cn("relative bg-muted overflow-hidden", aspectClass)}>
