@@ -653,6 +653,34 @@ function buildVideoPrompt(platform: string, format: string, brandContext: any, i
   return prompt;
 }
 
+// ── SEALCaM → Prompt Compiler (Family-Aware) ────────────────
+function compileSealcamToPrompt(scene: any, family: string, brandContext: any): string {
+  const familyModifiers: Record<string, string> = {
+    F1_UGC: "handheld camera, raw authentic feel, natural imperfections, social-first energy, real environment",
+    F2_SPOKESPERSON: "talking head, professional but personable, clean background, direct eye contact, confident delivery",
+    F5_CINEMATIC: "cinematic 4K, dramatic composition, professional color grading, premium production value, smooth dolly movement",
+  };
+
+  const modifier = familyModifiers[family] || familyModifiers.F5_CINEMATIC;
+
+  let prompt = `${scene.subject}. `;
+  prompt += `Environment: ${scene.environment}. `;
+  prompt += `Action: ${scene.action}. `;
+  prompt += `Lighting: ${scene.lighting}. `;
+  prompt += `Camera: ${scene.camera}. `;
+  if (scene.metatokens) prompt += `Style: ${scene.metatokens}. `;
+  prompt += `${modifier}. `;
+  if (brandContext?.businessName) prompt += `Brand: ${brandContext.businessName}. `;
+  prompt += `No text overlays, no watermarks.`;
+  return prompt;
+}
+
+function buildVideoPromptFromDirection(creativeDirection: any, sceneIndex: number, brandContext: any): string {
+  const scene = creativeDirection.scenes?.[sceneIndex];
+  if (!scene) return buildVideoPrompt("instagram", "reel", brandContext, {}, {});
+  return compileSealcamToPrompt(scene, creativeDirection.family, brandContext);
+}
+
 // ── Background Processing (now with Decision Engine) ─────────
 async function processAssetsInBackground(
   userId: string,
