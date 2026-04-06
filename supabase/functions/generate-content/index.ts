@@ -49,9 +49,9 @@ function routeProvider(assetType: string) {
   switch (assetType) {
     case "image":
     case "carousel":
-      return { provider: "kie_ai", model: "seedream/4.5-text-to-image", estimatedCost: assetType === "carousel" ? 0.12 : 0.04 };
+      return { provider: "replicate", model: "seedream-5", estimatedCost: assetType === "carousel" ? 0.15 : 0.05 };
     case "video":
-      return { provider: "kie_ai", model: "bytedance/seedance-2", estimatedCost: 0.30 };
+      return { provider: "kie_ai", model: "kling-2.5", estimatedCost: 0.35 };
     default:
       return { provider: "lovable_ai", model: "google/gemini-3-flash-preview", estimatedCost: 0.002 };
   }
@@ -67,8 +67,66 @@ function mapAspectRatio(width: number, height: number): string {
   return "9:16";
 }
 
-// ── Image Generation via Kie AI Seedream 4.5 ────────────────
+// ── Image Generation via Replicate Seedream 5 (Primary) ─────
 async function generateImage(prompt: string, width: number, height: number) {
+  const REPLICATE_API_KEY = Deno.env.get("REPLICATE_API_KEY");
+  if (!REPLICATE_API_KEY) {
+    console.warn("[Seedream 5] No REPLICATE_API_KEY, falling back to Kie AI");
+    return await generateImageKie(prompt, width, height);
+  }
+  const startTime = Date.now();
+  const aspectRatio = mapAspectRatio(width, height);
+  try {
+    console.log(`[Seedream 5] Generating image via Replicate, aspect: ${aspectRatio}`);
+    const response = await fetch("https://api.replicate.com/v1/predictions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${REPLICATE_API_KEY}`, "Content-Type": "application/json", Prefer: "wait" },
+      body: JSON.stringify({
+        model: "bytedance/seedream-3.0",
+        input: {
+          prompt,
+          aspect_ratio: aspectRatio,
+          num_outputs: 1,
+          output_format: "png",
+          guidance_scale: 5,
+        },
+      }),
+    });
+    if (!response.ok) {
+      const err = await response.text();
+      console.error(`[Seedream 5] Replicate error ${response.status}: ${err}`);
+      throw new Error(`Replicate Seedream error: ${response.status}`);
+    }
+    const prediction = await response.json();
+
+    // If synchronous response (Prefer: wait)
+    if (prediction.status === "succeeded" && prediction.output?.[0]) {
+      return { url: prediction.output[0], provider: "replicate_seedream_5", cost: 0.05, timeMs: Date.now() - startTime };
+    }
+
+    // Async polling fallback
+    for (let i = 0; i < 60; i++) {
+      await new Promise((r) => setTimeout(r, 3000));
+      const pollResp = await fetch(`https://api.replicate.com/v1/predictions/${prediction.id}`, {
+        headers: { Authorization: `Bearer ${REPLICATE_API_KEY}` },
+      });
+      const pollData = await pollResp.json();
+      if (pollData.status === "succeeded" && pollData.output?.[0]) {
+        return { url: pollData.output[0], provider: "replicate_seedream_5", cost: 0.05, timeMs: Date.now() - startTime };
+      }
+      if (pollData.status === "failed" || pollData.status === "canceled") {
+        throw new Error(`Replicate Seedream failed: ${pollData.error || "Unknown"}`);
+      }
+    }
+    throw new Error("Replicate Seedream timed out");
+  } catch (e) {
+    console.error("[Seedream 5] Failed, trying Kie AI fallback:", e);
+    return await generateImageKie(prompt, width, height);
+  }
+}
+
+// ── Image Fallback via Kie AI Seedream 4.5 ──────────────────
+async function generateImageKie(prompt: string, width: number, height: number) {
   const KIE_AI_API_KEY = Deno.env.get("KIE_AI_API_KEY")!;
   const aspectRatio = mapAspectRatio(width, height);
   try {
@@ -77,22 +135,64 @@ async function generateImage(prompt: string, width: number, height: number) {
     if (!result.urls?.length) throw new Error("Seedream returned no image URLs");
     return { url: result.urls[0], provider: "kie_ai_seedream_4.5", cost: 0.04, timeMs: result.costTime };
   } catch (e) {
-    console.error("[Seedream 4.5] Failed, trying fallback:", e);
+    console.error("[Seedream 4.5] Failed, trying FAL fallback:", e);
     return await generateImageFallback(prompt, width, height);
   }
 }
 
-// ── Video Generation via Kie AI Seedance 2.0 ─────────────────
+// ── Video Generation via Kie AI Kling 2.5 (Primary) / 3.0 (Fallback) ──
 async function generateVideo(prompt: string, width: number, height: number) {
   const KIE_AI_API_KEY = Deno.env.get("KIE_AI_API_KEY")!;
   const aspectRatio = mapAspectRatio(width, height);
+  // Try Kling 2.5 first
   try {
-    const taskId = await kieCreateTask(KIE_AI_API_KEY, "bytedance/seedance-2", { prompt, aspect_ratio: aspectRatio, resolution: "720p", duration: 8, generate_audio: false, web_search: false });
+    console.log(`[Kling 2.5] Generating video, aspect: ${aspectRatio}`);
+    const taskId = await kieCreateTask(KIE_AI_API_KEY, "kling/kling-2.5", {
+      prompt,
+      aspect_ratio: aspectRatio,
+      resolution: "720p",
+      duration: 5,
+      generate_audio: false,
+      web_search: false,
+    });
+    const result = await kiePollTask(KIE_AI_API_KEY, taskId, 100, 3000);
+    if (!result.urls?.length) throw new Error("Kling 2.5 returned no video URLs");
+    return { url: result.urls[0], provider: "kie_ai_kling_2.5", cost: 0.35, timeMs: result.costTime };
+  } catch (e) {
+    console.error("[Kling 2.5] Failed, trying Kling 3.0:", e);
+  }
+  // Fallback to Kling 3.0
+  try {
+    console.log(`[Kling 3.0] Fallback video generation`);
+    const taskId = await kieCreateTask(KIE_AI_API_KEY, "kling/kling-3.0", {
+      prompt,
+      aspect_ratio: aspectRatio,
+      resolution: "720p",
+      duration: 5,
+      generate_audio: false,
+      web_search: false,
+    });
+    const result = await kiePollTask(KIE_AI_API_KEY, taskId, 100, 3000);
+    if (!result.urls?.length) throw new Error("Kling 3.0 returned no video URLs");
+    return { url: result.urls[0], provider: "kie_ai_kling_3.0", cost: 0.40, timeMs: result.costTime };
+  } catch (e) {
+    console.error("[Kling 3.0] Failed, trying Seedance 2.0 fallback:", e);
+  }
+  // Final fallback to Seedance 2.0
+  try {
+    const taskId = await kieCreateTask(KIE_AI_API_KEY, "bytedance/seedance-2", {
+      prompt,
+      aspect_ratio: aspectRatio,
+      resolution: "720p",
+      duration: 8,
+      generate_audio: false,
+      web_search: false,
+    });
     const result = await kiePollTask(KIE_AI_API_KEY, taskId, 100, 3000);
     if (!result.urls?.length) throw new Error("Seedance returned no video URLs");
     return { url: result.urls[0], provider: "kie_ai_seedance_2.0", cost: 0.30, timeMs: result.costTime };
   } catch (e) {
-    console.error("[Seedance 2.0] Failed, trying image fallback:", e);
+    console.error("[Seedance 2.0] All video providers failed, returning image fallback:", e);
     const fallback = await generateImage(prompt, width, height);
     return { ...fallback, provider: fallback.provider + "_video_fallback" };
   }
@@ -411,12 +511,25 @@ async function storeDecisionTrace(
 }
 
 // ── Caption Generation via Lovable AI ────────────────────────
-async function generateCaption(platform: string, format: string, brandContext: any, intelligenceBrief: any, decisionWinner: any): Promise<string> {
+async function generateCaption(platform: string, format: string, brandContext: any, intelligenceBrief: any, decisionWinner: any, imagePrompt: string): Promise<string> {
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
   if (!LOVABLE_API_KEY) return `Content for ${platform} ${format}`;
 
   const hookSuggestion = decisionWinner?.hook_suggestion || "";
   const angle = decisionWinner?.angle_type || "";
+  const directionName = decisionWinner?.name || "brand showcase";
+  const directionDesc = decisionWinner?.description || "";
+
+  const platformRules: Record<string, string> = {
+    instagram: "Use relevant hashtags (5-10), line breaks for readability, emojis that match the tone. Start with a hook that stops the scroll. Keep under 2200 chars. End with a CTA.",
+    tiktok: "Short, punchy, trend-aware. Use 3-5 hashtags. Include a hook question or statement. Keep conversational and Gen-Z friendly. Under 300 chars ideal.",
+    linkedin: "Professional but personable. No hashtags in the body (add 3-5 at the end). Use line breaks. Start with a bold statement or insight. 1300 chars max.",
+    facebook: "Conversational, community-focused. 1-3 hashtags max. Ask a question to drive engagement. Medium length.",
+    twitter: "Concise, punchy. Under 280 chars. 1-2 hashtags max. Make every word count.",
+    youtube: "Descriptive title + description format. Include relevant keywords naturally. Add timestamps if applicable.",
+  };
+
+  const platformRule = platformRules[platform.toLowerCase()] || platformRules.instagram;
 
   const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
@@ -424,26 +537,45 @@ async function generateCaption(platform: string, format: string, brandContext: a
     body: JSON.stringify({
       model: "google/gemini-3-flash-preview",
       messages: [
-        { role: "system", content: `You are a social media copywriter for "${brandContext.businessName || "the brand"}" in the ${brandContext.industry || "beauty"} industry. Brand voice: ${brandContext.brandVoice || "professional, warm"}. Write captions that are native to each platform.` },
-        { role: "user", content: `Write a single ${platform} ${format} caption for this brand.
-Target audience: ${brandContext.targetAudience || "general audience"}
-Creative direction: ${decisionWinner?.name || "brand showcase"}
-Angle: ${angle}
-Hook inspiration: ${hookSuggestion}
-${intelligenceBrief?.content_angles ? `Trending angles: ${intelligenceBrief.content_angles.join(", ")}` : ""}
-${intelligenceBrief?.hooks ? `Hook library: ${intelligenceBrief.hooks.join("; ")}` : ""}
+        {
+          role: "system",
+          content: `You are an elite social media copywriter for "${brandContext.businessName || "the brand"}" in the ${brandContext.industry || "beauty"} industry. 
+Brand voice: ${brandContext.brandVoice || "professional, warm"}.
+Target audience: ${brandContext.targetAudience || "general audience"}.
 
-Requirements:
-- Platform-native formatting (hashtags for IG, professional tone for LinkedIn, etc.)
-- Include relevant emojis
-- Include a call-to-action
-- Keep it concise and engaging
-- Output ONLY the caption text, no explanations` },
+You write captions that feel NATIVE to each platform — not generic marketing copy. Every caption must:
+1. Open with a scroll-stopping hook
+2. Connect emotionally with the target audience
+3. Include a clear but subtle call-to-action
+4. Match the platform's culture and formatting norms
+5. Be directly relevant to the visual content being posted`,
+        },
+        {
+          role: "user",
+          content: `Write a caption for this ${platform} ${format} post.
+
+THE VISUAL CONTENT: ${imagePrompt}
+
+CREATIVE DIRECTION: "${directionName}" — ${directionDesc}
+ANGLE: ${angle}
+HOOK INSPIRATION: ${hookSuggestion}
+
+${intelligenceBrief?.content_angles ? `TRENDING ANGLES IN THIS SPACE: ${intelligenceBrief.content_angles.slice(0, 5).join(", ")}` : ""}
+${intelligenceBrief?.hooks ? `COMPETITOR HOOKS WORKING NOW: ${intelligenceBrief.hooks.slice(0, 5).join(" | ")}` : ""}
+${intelligenceBrief?.avoid ? `AVOID THESE APPROACHES: ${intelligenceBrief.avoid.join(", ")}` : ""}
+
+PLATFORM RULES: ${platformRule}
+
+Output ONLY the caption text. No explanations, no quotes around it. Just the raw caption ready to paste.`,
+        },
       ],
     }),
   });
 
-  if (!response.ok) { await response.text(); return `Discover the difference at ${brandContext.businessName || "our studio"}. ✨ #${brandContext.industry || "beauty"}`; }
+  if (!response.ok) {
+    await response.text();
+    return `Discover the difference at ${brandContext.businessName || "our studio"}. ✨ #${brandContext.industry || "beauty"}`;
+  }
   const data = await response.json();
   return data.choices?.[0]?.message?.content?.trim() || `Content for ${platform}`;
 }
@@ -508,26 +640,28 @@ async function processAssetsInBackground(
       let actualCost = 0;
       let generationTimeMs = 0;
 
+      let generatedPrompt = "";
+
       if (assetType === "image" || assetType === "carousel") {
-        const prompt = buildImagePrompt(platform, format, brandContext || {}, intelligenceBrief || {}, decisionWinner);
-        console.log(`[Generate] ${assetType} for ${platform}/${format} via Seedream 4.5`);
-        const result = await generateImage(prompt, width || 1080, height || 1080);
+        generatedPrompt = buildImagePrompt(platform, format, brandContext || {}, intelligenceBrief || {}, decisionWinner);
+        console.log(`[Generate] ${assetType} for ${platform}/${format} via Replicate Seedream 5`);
+        const result = await generateImage(generatedPrompt, width || 1080, height || 1080);
         contentUrl = result.url;
         actualProvider = result.provider;
         actualCost = result.cost;
         generationTimeMs = result.timeMs;
       } else if (assetType === "video") {
-        const prompt = buildVideoPrompt(platform, format, brandContext || {}, intelligenceBrief || {}, decisionWinner);
-        console.log(`[Generate] video for ${platform}/${format} via Seedance 2.0`);
-        const result = await generateVideo(prompt, width || 1080, height || 1920);
+        generatedPrompt = buildVideoPrompt(platform, format, brandContext || {}, intelligenceBrief || {}, decisionWinner);
+        console.log(`[Generate] video for ${platform}/${format} via Kling 2.5`);
+        const result = await generateVideo(generatedPrompt, width || 1080, height || 1920);
         contentUrl = result.url;
         actualProvider = result.provider;
         actualCost = result.cost;
         generationTimeMs = result.timeMs;
       }
 
-      // Generate caption using decision context
-      const caption = await generateCaption(platform, format, brandContext || {}, intelligenceBrief || {}, decisionWinner);
+      // Generate caption using decision context + the actual visual prompt for accuracy
+      const caption = await generateCaption(platform, format, brandContext || {}, intelligenceBrief || {}, decisionWinner, generatedPrompt);
       if (!generationTimeMs) generationTimeMs = Date.now() - startTime;
 
       // Build structured rationale from decision engine
