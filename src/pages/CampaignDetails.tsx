@@ -303,8 +303,8 @@ const CampaignDetails = () => {
   }
 
   const status = statusConfig[campaign.status];
-  const showResearchPanel = campaign.status === "draft" && (researchBrief || researchLoading);
-  const showEmptyDraft = campaign.status === "draft" && generatedAssets.length === 0 && !researchBrief && !researchLoading;
+  const showResearchPanel = campaign.status === "draft" && (researchBrief || researchLoading || isStreaming);
+  const showEmptyDraft = campaign.status === "draft" && generatedAssets.length === 0 && !researchBrief && !researchLoading && !isStreaming;
 
   return (
     <AppShell>
