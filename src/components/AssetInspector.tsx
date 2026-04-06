@@ -17,10 +17,36 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import type { GeneratedAsset, AssetStatus, SocialPlatform } from "@/types/campaigns";
 import { PLATFORM_LABELS } from "@/types/campaigns";
 
+/** Platform-native dimensions for pixel-perfect preview */
+const PLATFORM_DIMENSIONS: Record<string, { width: number; height: number; aspectRatio: string }> = {
+  "instagram|story": { width: 1080, height: 1920, aspectRatio: "9 / 16" },
+  "instagram|reel": { width: 1080, height: 1920, aspectRatio: "9 / 16" },
+  "instagram|post": { width: 1080, height: 1350, aspectRatio: "4 / 5" },
+  "instagram|carousel": { width: 1080, height: 1350, aspectRatio: "4 / 5" },
+  "tiktok|video": { width: 1080, height: 1920, aspectRatio: "9 / 16" },
+  "tiktok|story": { width: 1080, height: 1920, aspectRatio: "9 / 16" },
+  "facebook|post": { width: 1200, height: 1200, aspectRatio: "1 / 1" },
+  "facebook|story": { width: 1080, height: 1920, aspectRatio: "9 / 16" },
+  "linkedin|post": { width: 1200, height: 1200, aspectRatio: "1 / 1" },
+  "youtube|thumbnail": { width: 1280, height: 720, aspectRatio: "16 / 9" },
+  "x|post": { width: 1200, height: 675, aspectRatio: "16 / 9" },
+  "snapchat|story": { width: 1080, height: 1920, aspectRatio: "9 / 16" },
+};
+
 const parseSocialMeta = (asset: GeneratedAsset) => {
   const text = asset.content_text || "";
   const match = text.match(/^\[meta:([a-z]+)\|([a-z]+)\|([0-9/]+)\]/);
-  if (match) return { platform: match[1], format: match[2], aspectRatio: match[3] };
+  if (match) {
+    const key = `${match[1]}|${match[2]}`;
+    const dims = PLATFORM_DIMENSIONS[key];
+    return {
+      platform: match[1],
+      format: match[2],
+      aspectRatio: dims?.aspectRatio || match[3].replace("/", " / "),
+      width: dims?.width || 0,
+      height: dims?.height || 0,
+    };
+  }
   return null;
 };
 
@@ -78,7 +104,9 @@ const AssetInspector = ({
   const meta = parseSocialMeta(asset);
   const caption = stripMeta(asset.content_text);
   const status = statusBadge[asset.status];
-  const aspectRatio = meta?.aspectRatio?.replace("/", " / ") || "4 / 5";
+  const nativeAspect = meta?.aspectRatio || "4 / 5";
+  const platformLabel = meta ? `${PLATFORM_LABELS[meta.platform as SocialPlatform]} · ${meta.format}` : "";
+  const dimensionLabel = meta ? `${meta.width}×${meta.height}` : "";
 
   const updateStatus = async (newStatus: AssetStatus) => {
     setUpdating(true);
@@ -143,27 +171,36 @@ const AssetInspector = ({
         <Badge variant="outline" className={`text-[10px] ${status.className}`}>{status.label}</Badge>
       </div>
 
-      {/* Preview image */}
+      {/* Platform-native WYSIWYG preview */}
       {asset.asset_type !== "copy" && (
-        <div className="px-4 pt-3">
+        <div className="px-4 pt-3 flex flex-col items-center">
+          {/* Platform frame label */}
+          {meta && (
+            <div className="flex items-center justify-between w-full mb-2">
+              <span className="text-[10px] font-medium text-foreground uppercase tracking-wide">
+                {platformLabel}
+              </span>
+              <span className="text-[10px] text-muted-foreground font-mono">{dimensionLabel}</span>
+            </div>
+          )}
+          {/* Native aspect ratio container — exactly how it appears on the platform */}
           <div
-            className="w-full rounded-lg overflow-hidden bg-muted border border-border"
-            style={{ aspectRatio, maxHeight: isMobile ? "40vh" : "50vh" }}
+            className="w-full rounded-lg overflow-hidden bg-muted border border-border shadow-sm"
+            style={{
+              aspectRatio: nativeAspect,
+              maxHeight: isMobile ? "55vh" : "50vh",
+            }}
           >
             {asset.content_url ? (
-              <img src={asset.content_url} alt={meta?.format || "Asset"} className="w-full h-full object-cover" />
+              <img
+                src={asset.content_url}
+                alt={meta?.format || "Asset"}
+                className="w-full h-full object-cover"
+              />
             ) : (
               <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs">Loading…</div>
             )}
           </div>
-          {meta && (
-            <div className="flex items-center gap-2 mt-2">
-              <span className="text-[10px] font-medium text-foreground uppercase tracking-wide">
-                {PLATFORM_LABELS[meta.platform as SocialPlatform]} · {meta.format}
-              </span>
-              <span className="text-[10px] text-muted-foreground font-mono">{meta.aspectRatio}</span>
-            </div>
-          )}
         </div>
       )}
 
@@ -303,10 +340,11 @@ const AssetInspector = ({
   );
 
   if (isMobile) {
+    const isTallFormat = nativeAspect === "9 / 16";
     return (
       <Drawer open={open} onOpenChange={onOpenChange}>
-        <DrawerContent className="max-h-[85vh]">
-          <div className="overflow-y-auto max-h-[80vh] pb-6">
+        <DrawerContent className={isTallFormat ? "max-h-[95vh]" : "max-h-[85vh]"}>
+          <div className={`overflow-y-auto pb-6 ${isTallFormat ? "max-h-[92vh]" : "max-h-[80vh]"}`}>
             {content}
           </div>
         </DrawerContent>
