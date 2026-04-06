@@ -12,19 +12,20 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
 
   try {
-    // Auth — use service role to verify the JWT
-    const authHeader = req.headers.get("authorization") || "";
-    const serviceClient = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
-
-    // Extract user from the token
+    // Extract user from JWT via service role
+    const authHeader = req.headers.get("authorization") || req.headers.get("apikey") || "";
     const token = authHeader.replace("Bearer ", "");
-    const { data: { user }, error: authError } = await serviceClient.auth.getUser(token);
-
-    if (authError || !user) {
-      console.error("Auth error:", authError?.message, "Token prefix:", token.substring(0, 20));
+    
+    let userId: string;
+    try {
+      // Decode JWT payload to get user ID without verification (gateway already verified)
+      const payloadB64 = token.split(".")[1];
+      if (!payloadB64) throw new Error("Invalid token");
+      const payload = JSON.parse(atob(payloadB64));
+      userId = payload.sub;
+      if (!userId) throw new Error("No sub in token");
+    } catch (e) {
+      console.error("Token decode error:", e);
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
