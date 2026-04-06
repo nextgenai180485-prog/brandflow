@@ -508,7 +508,7 @@ const StrategyCommandCenter = () => {
         <div className="hidden lg:flex w-[420px] xl:w-[480px] border-l border-border bg-secondary/20 flex-col shrink-0">
           <CMOStrategyPanel
             brandProfile={brandProfile}
-            loadingProfile={false}
+            loadingProfile={researchLoading}
             selectedPlatforms={[]}
             selectedContentTypes={[]}
             campaignTitle=""
