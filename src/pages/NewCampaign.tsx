@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, ArrowRight, Loader2, ImageIcon, Sparkles, Film, Camera, Check, VideoIcon } from "lucide-react";
 import { toast } from "sonner";
@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import AssetPlatformSelector from "@/components/AssetPlatformSelector";
 import AssetLibraryPicker, { type LibraryAsset } from "@/components/AssetLibraryPicker";
 import CMOStrategyPanel from "@/components/CMOStrategyPanel";
+import CreativeDirectionStep, { type DirectorOutput } from "@/components/CreativeDirectionStep";
 import type { SocialPlatform, ContentType, BrandProfile } from "@/types/campaigns";
 import { CONTENT_TYPE_LABELS } from "@/types/campaigns";
 
@@ -20,7 +21,7 @@ interface SelectedFormat {
   format: string;
 }
 
-const STEPS = ["Details", "Platforms", "Content Type", "Review"];
+const ALL_STEPS = ["Details", "Platforms", "Content Type", "Creative Direction", "Review"];
 
 const CONTENT_TYPE_ICONS: Record<ContentType, React.ReactNode> = {
   image: <ImageIcon className="w-5 h-5" />,
@@ -40,6 +41,16 @@ const NewCampaign = () => {
   const [creating, setCreating] = useState(false);
   const [brandProfile, setBrandProfile] = useState<BrandProfile | null>(null);
   const [loadingProfile, setLoadingProfile] = useState(true);
+  const [creativeBrief, setCreativeBrief] = useState("");
+  const [creativeReferenceAssets, setCreativeReferenceAssets] = useState<LibraryAsset[]>([]);
+  const [creativeDirection, setCreativeDirection] = useState<DirectorOutput | null>(null);
+
+  const hasVideoContent = contentTypes.some(ct => ct === "ugc_video" || ct === "pro_video");
+
+  const STEPS = useMemo(() => {
+    if (hasVideoContent) return ALL_STEPS;
+    return ALL_STEPS.filter(s => s !== "Creative Direction");
+  }, [hasVideoContent]);
 
   // Load brand profile from brand_memory
   useEffect(() => {
@@ -166,17 +177,23 @@ const NewCampaign = () => {
     navigate("/dashboard");
   };
 
+  const currentStepName = STEPS[step];
   const canProceedStep0 = title.trim().length > 0;
   const canProceedStep1 = platforms.length > 0;
   const canProceedStep2 = contentTypes.length > 0;
-  const canCreate = canProceedStep0 && canProceedStep1 && canProceedStep2 && !creating;
+  const canProceedCreativeDirection = !hasVideoContent || !!creativeDirection;
+  const canCreate = canProceedStep0 && canProceedStep1 && canProceedStep2 && canProceedCreativeDirection && !creating;
 
   const handleNext = () => {
-    if (step === 0 && !canProceedStep0) { toast.error("Enter a campaign name."); return; }
-    if (step === 1 && !canProceedStep1) { toast.error("Select at least one platform."); return; }
-    if (step === 2 && !canProceedStep2) { toast.error("Select at least one content type."); return; }
+    if (currentStepName === "Details" && !canProceedStep0) { toast.error("Enter a campaign name."); return; }
+    if (currentStepName === "Platforms" && !canProceedStep1) { toast.error("Select at least one platform."); return; }
+    if (currentStepName === "Content Type" && !canProceedStep2) { toast.error("Select at least one content type."); return; }
+    if (currentStepName === "Creative Direction" && !canProceedCreativeDirection) { toast.error("Structure your creative brief before proceeding."); return; }
     setStep(step + 1);
   };
+
+  const primaryPlatform = platforms[0]?.platform || "instagram";
+  const primaryFormat = platforms[0]?.format || "reel";
 
   const isImageUrl = (url: string) => /\.(jpg|jpeg|png|gif|webp|svg)(\?|$)/i.test(url);
 
