@@ -231,7 +231,7 @@ const Dashboard = () => {
               return (
                 <div
                   key={campaign.id}
-                  onClick={() => navigate(`/dashboard/strategy/new?campaign=${campaign.id}`)}
+                  onClick={() => navigate(`/dashboard/campaign/${campaign.id}`)}
                   className="group rounded-xl border border-border bg-card overflow-hidden cursor-pointer transition-all hover:shadow-lg hover:border-foreground/15 hover:-translate-y-0.5"
                 >
                   {/* Thumbnail Grid */}
