@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
+import type { LibrarySelection } from "@/components/LibraryBrowser";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, ArrowRight, Loader2, ImageIcon, Sparkles, Film, Camera, Check, VideoIcon } from "lucide-react";
 import { toast } from "sonner";
@@ -44,6 +45,7 @@ const NewCampaign = () => {
   const [creativeBrief, setCreativeBrief] = useState("");
   const [creativeReferenceAssets, setCreativeReferenceAssets] = useState<LibraryAsset[]>([]);
   const [creativeDirection, setCreativeDirection] = useState<DirectorOutput | null>(null);
+  const [librarySelections, setLibrarySelections] = useState<LibrarySelection[]>([]);
 
   const hasVideoContent = contentTypes.some(ct => ct === "ugc_video" || ct === "pro_video");
 
@@ -315,6 +317,8 @@ const NewCampaign = () => {
               onDirectionChange={setCreativeDirection}
               platform={primaryPlatform}
               format={primaryFormat}
+              librarySelections={librarySelections}
+              onLibrarySelectionsChange={setLibrarySelections}
             />
           )}
 
