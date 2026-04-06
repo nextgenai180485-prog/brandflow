@@ -153,7 +153,7 @@ serve(async (req) => {
       // Download and upload to Supabase Storage
       const imgResp = await fetch(outputUrl);
       const imgBlob = await imgResp.blob();
-      const fileName = `${user.id}/${assetId || crypto.randomUUID()}_edited_${Date.now()}.png`;
+      const fileName = `${userId}/${assetId || crypto.randomUUID()}_edited_${Date.now()}.png`;
 
       const serviceClient = createClient(
         Deno.env.get("SUPABASE_URL")!,
