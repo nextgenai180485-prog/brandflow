@@ -73,6 +73,8 @@ const StrategyCommandCenter = () => {
   const lastPitchRef = useRef("");
 
   // Determine mode on mount
+  const [researchLoading, setResearchLoading] = useState(false);
+
   useEffect(() => {
     if (!user) return;
     const load = async () => {
@@ -127,12 +129,40 @@ const StrategyCommandCenter = () => {
       // No data at all — check for website URL
       const { data: profile } = await supabase
         .from("profiles")
-        .select("website_url")
+        .select("website_url, business_name, industry, target_audience")
         .eq("id", user.id)
         .single();
 
-      setMode(profile?.website_url?.trim() ? "OPTIMIZATION" : "GENESIS");
-      setLoading(false);
+      if (profile?.website_url?.trim()) {
+        // Has website but no research yet — trigger auto-research and show profile-based CMO
+        const minimalProfile: BrandProfile = {
+          summary: `Analyzing ${profile.business_name || 'your brand'} (${profile.website_url}). ${profile.industry ? `Industry: ${profile.industry}.` : ''} ${profile.target_audience ? `Target: ${profile.target_audience}.` : ''} Deep brand intelligence is being synthesized — the CSO is crawling your website for competitive positioning.`,
+          brand_voice_detected: "analyzing",
+          visual_style: "pending deep-crawl",
+          color_palette_suggestion: undefined,
+          target_audience_detected: profile.target_audience || "",
+          competitors: [],
+          key_themes: [],
+          content_pillars: [],
+        };
+        setBrandProfile(minimalProfile);
+        setMode("OPTIMIZATION");
+        setLoading(false);
+
+        // Fire auto-research in background
+        setResearchLoading(true);
+        supabase.functions.invoke("auto-brand-research", {
+          body: { websiteUrl: profile.website_url, profileId: user.id },
+        }).then(async ({ data }) => {
+          if (data?.brandProfile) {
+            setBrandProfile(data.brandProfile as BrandProfile);
+          }
+          setResearchLoading(false);
+        }).catch(() => setResearchLoading(false));
+      } else {
+        setMode("GENESIS");
+        setLoading(false);
+      }
     };
     load();
   }, [user]);
