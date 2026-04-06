@@ -46,10 +46,14 @@ const GlobalCMOChat = () => {
     load();
   }, [open, loaded, user]);
 
-  // Auto-scroll
+  // Auto-scroll to bottom on messages change or initial load
   useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
-  }, [messages]);
+    if (scrollRef.current) {
+      requestAnimationFrame(() => {
+        scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+      });
+    }
+  }, [messages, loaded]);
 
   // Focus input when opened
   useEffect(() => {
@@ -192,8 +196,8 @@ const GlobalCMOChat = () => {
   if (!user) return null;
 
   const widgetSize = expanded
-    ? "w-[560px] h-[680px]"
-    : "w-[380px] h-[520px]";
+    ? "sm:w-[560px] sm:h-[680px]"
+    : "sm:w-[380px] sm:h-[520px]";
 
   return (
     <>
@@ -201,7 +205,7 @@ const GlobalCMOChat = () => {
       {!open && (
         <button
           onClick={() => setOpen(true)}
-          className="fixed bottom-6 right-6 z-[100] w-12 h-12 rounded-full bg-primary text-primary-foreground shadow-lg hover:shadow-xl transition-all hover:scale-105 flex items-center justify-center"
+          className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-[100] w-12 h-12 rounded-full bg-primary text-primary-foreground shadow-lg hover:shadow-xl transition-all hover:scale-105 flex items-center justify-center"
           aria-label="Open CSO Chat"
         >
           <MessageSquare className="w-5 h-5" />
@@ -215,7 +219,7 @@ const GlobalCMOChat = () => {
 
       {/* Chat Panel */}
       {open && (
-        <div className={`fixed bottom-6 right-6 z-[100] ${widgetSize} rounded-2xl border border-border bg-background shadow-2xl flex flex-col overflow-hidden transition-all duration-200`}>
+        <div className={`fixed z-[100] inset-0 sm:inset-auto sm:bottom-6 sm:right-6 ${widgetSize} rounded-none sm:rounded-2xl border-0 sm:border border-border bg-background shadow-2xl flex flex-col overflow-hidden transition-all duration-200`}>
           {/* Header */}
           <div className="flex items-center justify-between border-b border-border px-4 py-2.5 shrink-0 bg-background">
             <div className="flex items-center gap-2">
