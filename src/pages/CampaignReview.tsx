@@ -60,6 +60,11 @@ const CampaignReview = () => {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [previewAssetId, setPreviewAssetId] = useState<string | null>(null);
   const [editingAssetId, setEditingAssetId] = useState<string | null>(null);
+  const [editingCaptionId, setEditingCaptionId] = useState<string | null>(null);
+  const [editedCaption, setEditedCaption] = useState("");
+  const [captionSaving, setCaptionSaving] = useState(false);
+  const [captionRegenerating, setCaptionRegenerating] = useState<string | null>(null);
+  const captionRef = useRef<HTMLTextAreaElement>(null);
 
   const fetchData = useCallback(async () => {
     if (!id || !user) return;
