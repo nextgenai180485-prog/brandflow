@@ -9,6 +9,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import AssetPlatformSelector from "@/components/AssetPlatformSelector";
+import type { SocialPlatform } from "@/types/campaigns";
+
+interface SelectedFormat {
+  platform: SocialPlatform;
+  format: string;
+}
 
 interface UploadedFile {
   id: string;
@@ -17,6 +24,7 @@ interface UploadedFile {
   uploading: boolean;
   url: string | null;
   type: "image" | "video";
+  platforms: SelectedFormat[];
 }
 
 const NewCampaign = () => {
@@ -40,6 +48,7 @@ const NewCampaign = () => {
         uploading: true,
         url: null,
         type: isVideo ? "video" : "image",
+        platforms: [],
       };
 
       if (!user) return { ...entry, uploading: false };
@@ -72,7 +81,6 @@ const NewCampaign = () => {
       );
       if (newFiles.length === 0) return;
 
-      // Create placeholder entries immediately
       const placeholders: UploadedFile[] = newFiles.map((f) => ({
         id: crypto.randomUUID(),
         file: f,
@@ -80,11 +88,11 @@ const NewCampaign = () => {
         uploading: true,
         url: null,
         type: f.type.startsWith("video/") ? "video" as const : "image" as const,
+        platforms: [],
       }));
 
       setFiles((prev) => [...prev, ...placeholders]);
 
-      // Upload all in parallel
       const results = await Promise.all(newFiles.map(uploadFile));
 
       setFiles((prev) => {
@@ -114,6 +122,12 @@ const NewCampaign = () => {
     });
   };
 
+  const updateFilePlatforms = (id: string, platforms: SelectedFormat[]) => {
+    setFiles((prev) =>
+      prev.map((f) => (f.id === id ? { ...f, platforms } : f))
+    );
+  };
+
   const handleCreate = async () => {
     if (!user || !title.trim()) return;
     setCreating(true);
@@ -135,16 +149,46 @@ const NewCampaign = () => {
       return;
     }
 
-    // Batch insert all uploaded files as generated_assets
+    // Create one generated_asset row per file×platform combination
     const uploadedFiles = files.filter((f) => f.url);
-    if (uploadedFiles.length > 0) {
-      const assetRows = uploadedFiles.map((f) => ({
-        campaign_id: campaign.id,
-        profile_id: user.id,
-        asset_type: f.type,
-        content_url: f.url!,
-        status: "pending_review",
-      }));
+    const assetRows: Array<{
+      campaign_id: string;
+      profile_id: string;
+      asset_type: string;
+      content_url: string;
+      status: string;
+      platform: string | null;
+      format: string | null;
+    }> = [];
+
+    for (const f of uploadedFiles) {
+      if (f.platforms.length > 0) {
+        for (const p of f.platforms) {
+          assetRows.push({
+            campaign_id: campaign.id,
+            profile_id: user.id,
+            asset_type: f.type,
+            content_url: f.url!,
+            status: "pending_review",
+            platform: p.platform,
+            format: p.format,
+          });
+        }
+      } else {
+        // No platform selected — still create the asset
+        assetRows.push({
+          campaign_id: campaign.id,
+          profile_id: user.id,
+          asset_type: f.type,
+          content_url: f.url!,
+          status: "pending_review",
+          platform: null,
+          format: null,
+        });
+      }
+    }
+
+    if (assetRows.length > 0) {
       await supabase.from("generated_assets").insert(assetRows);
     }
 
@@ -157,7 +201,7 @@ const NewCampaign = () => {
 
   return (
     <AppShell>
-      <div className="max-w-3xl mx-auto py-6 px-4 sm:px-6 lg:py-10">
+      <div className="max-w-4xl mx-auto py-6 px-4 sm:px-6 lg:py-10">
         {/* Back nav */}
         <button
           onClick={() => navigate("/dashboard")}
@@ -210,59 +254,84 @@ const NewCampaign = () => {
               <span className="text-muted-foreground font-normal">(optional)</span>
             </Label>
 
-            {/* Filmstrip — shown when files exist */}
+            {/* Asset cards with platform selectors */}
             {files.length > 0 && (
-              <div className="grid grid-cols-3 sm:flex sm:flex-wrap gap-3">
+              <div className="space-y-3">
                 {files.map((f) => (
                   <div
                     key={f.id}
-                    className="relative group aspect-square sm:w-[120px] sm:h-[120px] rounded-xl border-2 border-border overflow-hidden bg-muted"
+                    className="flex gap-4 rounded-xl border border-border bg-card p-3 transition-colors"
                   >
-                    {f.uploading ? (
-                      <div className="absolute inset-0 flex items-center justify-center bg-muted">
-                        <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
-                      </div>
-                    ) : f.type === "image" && f.preview ? (
-                      <img
-                        src={f.preview}
-                        alt={f.file.name}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex flex-col items-center justify-center gap-1 p-2">
-                        <VideoIcon className="w-6 h-6 text-muted-foreground" />
-                        <span className="text-[10px] text-muted-foreground text-center truncate w-full">
-                          {f.file.name}
-                        </span>
-                      </div>
-                    )}
-
-                    {/* Remove button */}
-                    {!f.uploading && (
-                      <button
-                        onClick={() => removeFile(f.id)}
-                        className="absolute top-1 right-1 w-6 h-6 rounded-full bg-foreground/80 text-background flex items-center justify-center opacity-0 group-hover:opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
-                        style={{ opacity: undefined }}
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    )}
-
-                    {/* Type badge */}
-                    <div className="absolute bottom-1 left-1">
-                      {f.type === "image" ? (
-                        <ImageIcon className="w-3.5 h-3.5 text-background drop-shadow-md" />
+                    {/* Thumbnail */}
+                    <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-lg border border-border overflow-hidden bg-muted shrink-0">
+                      {f.uploading ? (
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                        </div>
+                      ) : f.type === "image" && f.preview ? (
+                        <img
+                          src={f.preview}
+                          alt={f.file.name}
+                          className="w-full h-full object-cover"
+                        />
                       ) : (
-                        <VideoIcon className="w-3.5 h-3.5 text-background drop-shadow-md" />
+                        <div className="w-full h-full flex flex-col items-center justify-center gap-1">
+                          <VideoIcon className="w-6 h-6 text-muted-foreground" />
+                        </div>
+                      )}
+                      <div className="absolute bottom-0.5 left-0.5">
+                        {f.type === "image" ? (
+                          <ImageIcon className="w-3 h-3 text-background drop-shadow-md" />
+                        ) : (
+                          <VideoIcon className="w-3 h-3 text-background drop-shadow-md" />
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Details + Platform selector */}
+                    <div className="flex-1 min-w-0 flex flex-col gap-2">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-foreground truncate">
+                            {f.file.name}
+                          </p>
+                          <p className="text-[11px] text-muted-foreground">
+                            {f.type === "image" ? "Image" : "Video"} •{" "}
+                            {(f.file.size / 1024 / 1024).toFixed(1)} MB
+                          </p>
+                        </div>
+                        {!f.uploading && (
+                          <button
+                            onClick={() => removeFile(f.id)}
+                            className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors shrink-0"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Platform chips */}
+                      {!f.uploading && (
+                        <div>
+                          <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium mb-1.5">
+                            Target Platforms
+                          </p>
+                          <AssetPlatformSelector
+                            selected={f.platforms}
+                            onChange={(platforms) => updateFilePlatforms(f.id, platforms)}
+                            assetType={f.type}
+                            compact
+                          />
+                        </div>
                       )}
                     </div>
                   </div>
                 ))}
 
-                {/* Add More tile */}
-                <label className="aspect-square sm:w-[120px] sm:h-[120px] rounded-xl border-2 border-dashed border-border bg-card flex flex-col items-center justify-center cursor-pointer hover:border-foreground/30 hover:bg-secondary/50 transition-colors">
-                  <Plus className="w-5 h-5 text-muted-foreground mb-1" />
-                  <span className="text-[11px] text-muted-foreground font-medium">Add More</span>
+                {/* Add More */}
+                <label className="flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border py-4 cursor-pointer hover:border-foreground/30 hover:bg-secondary/50 transition-colors">
+                  <Plus className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground font-medium">Add More</span>
                   <input
                     type="file"
                     className="hidden"
@@ -277,7 +346,7 @@ const NewCampaign = () => {
               </div>
             )}
 
-            {/* Hero Dropzone — shown when no files yet */}
+            {/* Hero Dropzone */}
             {files.length === 0 && (
               <label
                 onDragOver={(e) => {
@@ -317,7 +386,7 @@ const NewCampaign = () => {
             )}
 
             <p className="text-xs text-muted-foreground">
-              Recommended: 1080×1080px for images, 1080×1920px for videos
+              Select target platforms per asset — dimensions are applied automatically during generation
             </p>
           </div>
 

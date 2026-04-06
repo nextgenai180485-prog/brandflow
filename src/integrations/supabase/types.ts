@@ -92,7 +92,9 @@ export type Database = {
           content_text: string | null
           content_url: string | null
           created_at: string
+          format: string | null
           id: string
+          platform: string | null
           profile_id: string
           status: string
           updated_at: string
@@ -103,7 +105,9 @@ export type Database = {
           content_text?: string | null
           content_url?: string | null
           created_at?: string
+          format?: string | null
           id?: string
+          platform?: string | null
           profile_id: string
           status?: string
           updated_at?: string
@@ -114,7 +118,9 @@ export type Database = {
           content_text?: string | null
           content_url?: string | null
           created_at?: string
+          format?: string | null
           id?: string
+          platform?: string | null
           profile_id?: string
           status?: string
           updated_at?: string
