@@ -251,6 +251,7 @@ const CampaignDetails = () => {
                 researchApproved={researchApproved}
                 researchId={researchId}
                 intelligenceBrief={researchBrief}
+                publishPlatforms={campaign.publish_platforms}
               />
             )}
             <AlertDialog>
@@ -376,6 +377,7 @@ const CampaignDetails = () => {
               researchApproved={researchApproved}
               researchId={researchId}
               intelligenceBrief={researchBrief}
+              publishPlatforms={campaign.publish_platforms}
             />
           </div>
         ) : generatedAssets.length > 0 && filteredAssets.length === 0 ? (
