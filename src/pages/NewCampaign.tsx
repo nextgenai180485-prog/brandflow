@@ -120,9 +120,20 @@ const NewCampaign = () => {
     if (!user || !title.trim()) return;
     setCreating(true);
 
+    // Store selected platform|format pairs so generation uses ONLY these
+    const publishPlatforms = platforms.map((p) => `${p.platform}|${p.format}`);
+    // Also store content types as ct: prefixed entries
+    const ctEntries = contentTypes.map((ct) => `ct:${ct}`);
+
     const { data: campaign, error } = await supabase
       .from("campaigns")
-      .insert({ profile_id: user.id, title: title.trim(), instructions: instructions.trim() || null, status: "draft" })
+      .insert({
+        profile_id: user.id,
+        title: title.trim(),
+        instructions: instructions.trim() || null,
+        status: "draft",
+        publish_platforms: [...publishPlatforms, ...ctEntries],
+      })
       .select().single();
 
     if (error || !campaign) { toast.error("Failed to create campaign."); setCreating(false); return; }

@@ -16,11 +16,13 @@ interface GenerateButtonProps {
   researchApproved?: boolean;
   researchId?: string | null;
   intelligenceBrief?: IntelligenceBrief | null;
+  publishPlatforms?: string[] | null;
 }
 
 const GenerateButton = ({
   campaignId, onGenerated, onResearchReady, onResearchLoading,
   disabled, researchApproved, researchId: existingResearchId, intelligenceBrief: existingBrief,
+  publishPlatforms,
 }: GenerateButtonProps) => {
   const { user } = useAuth();
   const [researching, setResearching] = useState(false);
@@ -108,7 +110,16 @@ const GenerateButton = ({
       const brandContext = await loadBrandContext();
       if (!brandContext) throw new Error("No brand context");
 
-      const assets = SOCIAL_FORMATS.map((fmt) => {
+      // Only generate for the platforms/formats the user selected during campaign creation
+      const selectedPairs = (publishPlatforms || [])
+        .filter((p) => !p.startsWith("ct:"))
+        .map((p) => { const [platform, format] = p.split("|"); return { platform, format }; });
+
+      const selectedFormats = selectedPairs.length > 0
+        ? SOCIAL_FORMATS.filter((fmt) => selectedPairs.some((sp) => sp.platform === fmt.platform && sp.format === fmt.format))
+        : SOCIAL_FORMATS; // fallback for legacy campaigns
+
+      const assets = selectedFormats.map((fmt) => {
         const isVideo = fmt.format === "reel";
         const isCarousel = fmt.format === "carousel";
         return {
