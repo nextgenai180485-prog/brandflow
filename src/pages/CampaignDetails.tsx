@@ -9,7 +9,7 @@ import GenerateButton from "@/components/GenerateButton";
 import AssetFeedCard from "@/components/AssetFeedCard";
 import AssetInspector from "@/components/AssetInspector";
 import ResearchPreviewPanel from "@/components/ResearchPreviewPanel";
-import type { IntelligenceBrief } from "@/components/ResearchPreviewPanel";
+import type { IntelligenceBrief, StreamPhase } from "@/components/ResearchPreviewPanel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -49,6 +49,13 @@ const CampaignDetails = () => {
   const [researchId, setResearchId] = useState<string | null>(null);
   const [researchLoading, setResearchLoading] = useState(false);
   const [researchApproved, setResearchApproved] = useState(false);
+
+  // Streaming state
+  const [streamPhases, setStreamPhases] = useState<StreamPhase[]>([]);
+  const [streamColors, setStreamColors] = useState<{ hex: string; source: string }[]>([]);
+  const [streamPages, setStreamPages] = useState<string[]>([]);
+  const [streamAssets, setStreamAssets] = useState<any>(null);
+  const [isStreaming, setIsStreaming] = useState(false);
 
   const fetchData = useCallback(async () => {
     if (!user || !id) return;
@@ -105,8 +112,13 @@ const CampaignDetails = () => {
   const triggerAutoResearch = useCallback(async () => {
     if (!user || !id) return;
     setResearchLoading(true);
+    setIsStreaming(true);
+    setStreamPhases([]);
+    setStreamColors([]);
+    setStreamPages([]);
+    setStreamAssets(null);
+
     try {
-      // Load brand context for research
       const { data: profile } = await supabase
         .from("profiles")
         .select("business_name, industry, target_audience, brand_voice_tone, website_url")
@@ -121,26 +133,91 @@ const CampaignDetails = () => {
         websiteUrl: profile?.website_url || null,
       };
 
-      const { data: researchData, error: researchError } = await supabase.functions.invoke("research", {
-        body: { campaignId: id, ...brandContext, uploadedAssetUrls: [] },
+      // Use SSE streaming
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
+      const resp = await fetch(`${supabaseUrl}/functions/v1/research`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          apikey: anonKey,
+        },
+        body: JSON.stringify({ campaignId: id, ...brandContext, uploadedAssetUrls: [], stream: true }),
       });
 
-      if (researchError) {
-        console.error("[AutoResearch] Failed:", researchError);
-        toast.error("Market research failed. You can retry manually.");
-      } else {
-        const brief = researchData?.intelligenceBrief;
-        const rId = researchData?.research?.id;
-        if (brief && rId) {
-          setResearchBrief(brief);
-          setResearchId(rId);
-          toast.success(`Research complete — ${brief.trending_topics?.length || 0} trends, ${brief.competitors?.length || 0} competitors found`);
+      if (!resp.ok || !resp.body) {
+        throw new Error("Research stream failed");
+      }
+
+      const reader = resp.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+
+        let newlineIdx: number;
+        while ((newlineIdx = buffer.indexOf("\n\n")) !== -1) {
+          const chunk = buffer.slice(0, newlineIdx);
+          buffer = buffer.slice(newlineIdx + 2);
+
+          const lines = chunk.split("\n");
+          let eventType = "";
+          let eventData = "";
+
+          for (const line of lines) {
+            if (line.startsWith("event: ")) eventType = line.slice(7);
+            else if (line.startsWith("data: ")) eventData = line.slice(6);
+          }
+
+          if (!eventType || !eventData) continue;
+
+          try {
+            const parsed = JSON.parse(eventData);
+
+            switch (eventType) {
+              case "phase":
+                setStreamPhases(prev => [...prev, parsed as StreamPhase]);
+                break;
+              case "colors":
+                setStreamColors(parsed.colors || []);
+                break;
+              case "pages_found":
+                setStreamPages(parsed.pages || []);
+                break;
+              case "assets":
+                setStreamAssets(parsed);
+                break;
+              case "result":
+                const brief = parsed.intelligenceBrief;
+                const rId = parsed.research?.id;
+                if (brief && rId) {
+                  setResearchBrief(brief);
+                  setResearchId(rId);
+                  toast.success(`Research complete — ${brief.trending_topics?.length || 0} trends, ${brief.competitors?.length || 0} competitors, ${(brief.extracted_colors || []).length} colors extracted`);
+                }
+                break;
+              case "error":
+                toast.error(parsed.message || "Research failed");
+                break;
+            }
+          } catch {
+            // ignore parse errors
+          }
         }
       }
     } catch (e) {
       console.error("[AutoResearch] Error:", e);
+      toast.error("Market research failed. You can retry manually.");
     } finally {
       setResearchLoading(false);
+      setIsStreaming(false);
     }
   }, [user, id]);
 
@@ -167,6 +244,8 @@ const CampaignDetails = () => {
     setResearchBrief(null);
     setResearchId(null);
     setResearchApproved(false);
+    autoResearchTriggered.current = false;
+    triggerAutoResearch();
   };
 
   const platformTabs = useMemo(() => {
@@ -226,8 +305,8 @@ const CampaignDetails = () => {
   }
 
   const status = statusConfig[campaign.status];
-  const showResearchPanel = campaign.status === "draft" && (researchBrief || researchLoading);
-  const showEmptyDraft = campaign.status === "draft" && generatedAssets.length === 0 && !researchBrief && !researchLoading;
+  const showResearchPanel = campaign.status === "draft" && (researchBrief || researchLoading || isStreaming);
+  const showEmptyDraft = campaign.status === "draft" && generatedAssets.length === 0 && !researchBrief && !researchLoading && !isStreaming;
 
   return (
     <AppShell>
@@ -287,6 +366,11 @@ const CampaignDetails = () => {
               onApprove={handleResearchApprove}
               onRerun={handleResearchRerun}
               approved={researchApproved}
+              streamPhases={streamPhases}
+              streamColors={streamColors}
+              streamPages={streamPages}
+              streamAssets={streamAssets}
+              isStreaming={isStreaming}
             />
           </div>
         )}
