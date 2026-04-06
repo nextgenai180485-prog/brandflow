@@ -14,6 +14,63 @@ export type Database = {
   }
   public: {
     Tables: {
+      ad_reference_library: {
+        Row: {
+          compatible_families: string[]
+          created_at: string
+          description: string | null
+          id: string
+          industry_tags: string[] | null
+          is_active: boolean
+          media_type: string
+          media_url: string | null
+          mood_tags: string[] | null
+          performance_notes: string | null
+          platform_tags: string[] | null
+          sealcam_analysis: Json
+          thumbnail_url: string | null
+          title: string
+          updated_at: string
+          usage_count: number
+        }
+        Insert: {
+          compatible_families?: string[]
+          created_at?: string
+          description?: string | null
+          id?: string
+          industry_tags?: string[] | null
+          is_active?: boolean
+          media_type?: string
+          media_url?: string | null
+          mood_tags?: string[] | null
+          performance_notes?: string | null
+          platform_tags?: string[] | null
+          sealcam_analysis?: Json
+          thumbnail_url?: string | null
+          title: string
+          updated_at?: string
+          usage_count?: number
+        }
+        Update: {
+          compatible_families?: string[]
+          created_at?: string
+          description?: string | null
+          id?: string
+          industry_tags?: string[] | null
+          is_active?: boolean
+          media_type?: string
+          media_url?: string | null
+          mood_tags?: string[] | null
+          performance_notes?: string | null
+          platform_tags?: string[] | null
+          sealcam_analysis?: Json
+          thumbnail_url?: string | null
+          title?: string
+          updated_at?: string
+          usage_count?: number
+        }
+        Relationships: []
+      }
       asset_memory: {
         Row: {
           asset_id: string | null
@@ -308,6 +365,63 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      character_library: {
+        Row: {
+          age_range: string | null
+          avatar_url: string | null
+          compatible_families: string[]
+          created_at: string
+          description: string | null
+          ethnicity_tags: string[] | null
+          gender: string | null
+          id: string
+          industry_tags: string[] | null
+          is_active: boolean
+          mood_tags: string[] | null
+          name: string
+          persona_traits: Json
+          updated_at: string
+          usage_count: number
+          voice_style: string | null
+        }
+        Insert: {
+          age_range?: string | null
+          avatar_url?: string | null
+          compatible_families?: string[]
+          created_at?: string
+          description?: string | null
+          ethnicity_tags?: string[] | null
+          gender?: string | null
+          id?: string
+          industry_tags?: string[] | null
+          is_active?: boolean
+          mood_tags?: string[] | null
+          name: string
+          persona_traits?: Json
+          updated_at?: string
+          usage_count?: number
+          voice_style?: string | null
+        }
+        Update: {
+          age_range?: string | null
+          avatar_url?: string | null
+          compatible_families?: string[]
+          created_at?: string
+          description?: string | null
+          ethnicity_tags?: string[] | null
+          gender?: string | null
+          id?: string
+          industry_tags?: string[] | null
+          is_active?: boolean
+          mood_tags?: string[] | null
+          name?: string
+          persona_traits?: Json
+          updated_at?: string
+          usage_count?: number
+          voice_style?: string | null
+        }
+        Relationships: []
       }
       cmo_chat_messages: {
         Row: {
