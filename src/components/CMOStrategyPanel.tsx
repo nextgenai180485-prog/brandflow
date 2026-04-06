@@ -237,12 +237,50 @@ const CMOStrategyPanel = ({
             )}
           </div>
         ) : (
-          /* ── Empty state: Select platforms ── */
-          <div className="rounded-xl border-2 border-dashed border-border bg-secondary/30 p-6 flex flex-col items-center gap-3">
-            <Radio className="w-6 h-6 text-muted-foreground/40" />
-            <p className="text-xs text-muted-foreground text-center">
-              Select platforms to activate the CMO Intelligence engine.
-            </p>
+          /* ── Brand-aware idle state ── */
+          <div className="space-y-4 animate-in fade-in duration-500">
+            <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+              <div className="flex items-center gap-2">
+                <Brain className="w-4 h-4 text-primary" />
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                  CMO Intelligence — Active
+                </span>
+              </div>
+              <p className="text-[11px] text-foreground leading-relaxed">
+                {brandProfile?.summary
+                  ? `I've analyzed your brand positioning. ${brandProfile.summary.substring(0, 200)}${brandProfile.summary.length > 200 ? '…' : ''}`
+                  : "Your brand intelligence is loaded. Select platforms in a campaign to activate real-time strategic guidance."}
+              </p>
+              {brandProfile?.key_themes && brandProfile.key_themes.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mt-2">
+                  {brandProfile.key_themes.slice(0, 4).map((theme, i) => (
+                    <Badge key={i} variant="secondary" className="text-[9px]">{theme}</Badge>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {brandProfile?.competitors && brandProfile.competitors.length > 0 && (
+              <div className="rounded-xl border border-border bg-card p-4 space-y-2">
+                <div className="flex items-center gap-2">
+                  <Crosshair className="w-3.5 h-3.5 text-amber-500" />
+                  <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">
+                    Competitive Landscape
+                  </span>
+                </div>
+                <div className="space-y-1.5">
+                  {brandProfile.competitors.slice(0, 3).map((comp: any, i: number) => (
+                    <div key={i} className="flex items-start gap-2">
+                      <div className="w-1.5 h-1.5 rounded-full bg-foreground/40 mt-1.5 shrink-0" />
+                      <p className="text-[10px] text-foreground">
+                        <span className="font-semibold">{comp.name || comp}</span>
+                        {comp.weakness && <span className="text-muted-foreground"> — {comp.weakness}</span>}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
