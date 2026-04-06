@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { Plus, LayoutGrid, Clock, ImageIcon, Video, FileText, Layers, Brain, ChevronDown, Target, TrendingUp } from "lucide-react";
+import { Plus, LayoutGrid, Clock, ImageIcon, Video, FileText, Layers, Brain, ChevronDown, Target, TrendingUp, Trash2 } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import type { Campaign, CampaignStatus, GeneratedAsset } from "@/types/campaigns";
 
 const statusConfig: Record<CampaignStatus, { label: string; className: string }> = {
@@ -106,6 +107,18 @@ const Dashboard = () => {
     const interval = setInterval(fetchCampaigns, 4000);
     return () => clearInterval(interval);
   }, [campaigns, fetchCampaigns]);
+
+  const deleteCampaign = useCallback(async (campaignId: string) => {
+    // Delete assets first, then campaign
+    await supabase.from("generated_assets").delete().eq("campaign_id", campaignId);
+    const { error } = await supabase.from("campaigns").delete().eq("id", campaignId);
+    if (error) {
+      toast.error("Failed to delete campaign");
+      return;
+    }
+    toast.success("Campaign deleted");
+    setCampaigns((prev) => prev.filter((c) => c.id !== campaignId));
+  }, []);
 
   const getTypeIcon = (type: string) => {
     switch (type) {
@@ -276,9 +289,43 @@ const Dashboard = () => {
 
                   {/* Info */}
                   <div className="p-3">
-                    <h3 className="text-sm font-semibold text-foreground truncate group-hover:text-primary transition-colors">
-                      {campaign.title}
-                    </h3>
+                    <div className="flex items-center justify-between gap-2">
+                      <h3 className="text-sm font-semibold text-foreground truncate group-hover:text-primary transition-colors">
+                        {campaign.title}
+                      </h3>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 shrink-0 text-muted-foreground hover:text-destructive"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete campaign?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This will permanently delete "{campaign.title}" and all its generated assets. This action cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                deleteCampaign(campaign.id);
+                              }}
+                            >
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
                     <div className="flex items-center gap-2 mt-1.5 text-[10px] text-muted-foreground">
                       <span className="flex items-center gap-1">
                         <Clock className="w-3 h-3" />
