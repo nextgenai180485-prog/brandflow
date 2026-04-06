@@ -88,6 +88,7 @@ interface AssetFeedCardProps {
 const AssetFeedCard = ({ asset, onStatusChange, isSelected, onClick }: AssetFeedCardProps) => {
   const socialMeta = parseSocialMeta(asset);
   const displayCaption = stripMeta(asset.content_text);
+  const { displayed: typedCaption, done: typingDone } = useTypewriter(displayCaption, 14);
   const statusCfg = statusBadgeConfig[asset.status];
   const isVisual = asset.asset_type !== "copy";
   const aspectRatio = socialMeta?.aspectRatio?.replace("/", " / ") || "4 / 5";
