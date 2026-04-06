@@ -211,7 +211,7 @@ const NewCampaign = () => {
             <>
               <div className="space-y-2">
                 <Label htmlFor="campaign-title" className="text-sm font-medium">Campaign Name</Label>
-                <Input id="campaign-title" placeholder='e.g. "Mother\'s Day Botox Promo"' value={title} onChange={(e) => setTitle(e.target.value)} autoFocus className="h-12 text-base" />
+                <Input id="campaign-title" placeholder="e.g. Mother's Day Botox Promo" value={title} onChange={(e) => setTitle(e.target.value)} autoFocus className="h-12 text-base" />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="campaign-instructions" className="text-sm font-medium">What is this campaign about? <span className="text-muted-foreground font-normal">(optional)</span></Label>
