@@ -1,0 +1,2 @@
+ALTER TABLE public.generated_assets DROP CONSTRAINT generated_assets_asset_type_check;
+ALTER TABLE public.generated_assets ADD CONSTRAINT generated_assets_asset_type_check CHECK (asset_type = ANY (ARRAY['image'::text, 'video'::text, 'copy'::text, 'carousel'::text]));
