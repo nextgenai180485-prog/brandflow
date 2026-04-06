@@ -289,9 +289,43 @@ const Dashboard = () => {
 
                   {/* Info */}
                   <div className="p-3">
-                    <h3 className="text-sm font-semibold text-foreground truncate group-hover:text-primary transition-colors">
-                      {campaign.title}
-                    </h3>
+                    <div className="flex items-center justify-between gap-2">
+                      <h3 className="text-sm font-semibold text-foreground truncate group-hover:text-primary transition-colors">
+                        {campaign.title}
+                      </h3>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 shrink-0 text-muted-foreground hover:text-destructive"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete campaign?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This will permanently delete "{campaign.title}" and all its generated assets. This action cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                deleteCampaign(campaign.id);
+                              }}
+                            >
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
                     <div className="flex items-center gap-2 mt-1.5 text-[10px] text-muted-foreground">
                       <span className="flex items-center gap-1">
                         <Clock className="w-3 h-3" />
