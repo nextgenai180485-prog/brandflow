@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { session, user, loading } = useAuth();
+  const location = useLocation();
   const [checkingOnboarding, setCheckingOnboarding] = useState(true);
   const [onboardingCompleted, setOnboardingCompleted] = useState<boolean | null>(null);
 
@@ -14,12 +15,24 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
       return;
     }
     const check = async () => {
-      const { data } = await supabase
-        .from("profiles")
-        .select("onboarding_completed")
-        .eq("id", user.id)
-        .single();
-      setOnboardingCompleted((data as any)?.onboarding_completed ?? false);
+      try {
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("onboarding_completed")
+          .eq("id", user.id)
+          .single();
+
+        if (error) {
+          console.error("Profile check error:", error);
+          // If profile doesn't exist yet, treat as not completed
+          setOnboardingCompleted(false);
+        } else {
+          setOnboardingCompleted(data?.onboarding_completed ?? false);
+        }
+      } catch (e) {
+        console.error("Profile check exception:", e);
+        setOnboardingCompleted(false);
+      }
       setCheckingOnboarding(false);
     };
     check();
@@ -37,7 +50,9 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     return <Navigate to="/login" replace />;
   }
 
-  if (!onboardingCompleted) {
+  if (onboardingCompleted === false) {
+    // Avoid redirect loop if already on onboarding
+    if (location.pathname === "/onboarding") return <>{children}</>;
     return <Navigate to="/onboarding" replace />;
   }
 

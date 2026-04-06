@@ -23,7 +23,6 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import type { GeneratedAsset, AssetStatus, SocialPlatform } from "@/types/campaigns";
 import { PLATFORM_LABELS } from "@/types/campaigns";
 
-/** Platform-native dimensions for pixel-perfect preview */
 const PLATFORM_DIMENSIONS: Record<string, { width: number; height: number; aspectRatio: string }> = {
   "instagram|story": { width: 1080, height: 1920, aspectRatio: "9 / 16" },
   "instagram|reel": { width: 1080, height: 1920, aspectRatio: "9 / 16" },
@@ -79,8 +78,8 @@ const schedulePlatforms = [
   { id: "x" as const, label: "X" },
 ];
 
-/** Video Player with play/pause, scrub, and mute controls */
-const VideoPlayer = ({ src, aspectRatio, maxHeight }: { src: string; aspectRatio: string; maxHeight: string }) => {
+/** Video Player */
+const VideoPlayer = ({ src, aspectRatio }: { src: string; aspectRatio: string }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [playing, setPlaying] = useState(false);
   const [muted, setMuted] = useState(true);
@@ -93,25 +92,24 @@ const VideoPlayer = ({ src, aspectRatio, maxHeight }: { src: string; aspectRatio
     if (v.paused) { v.play(); setPlaying(true); } else { v.pause(); setPlaying(false); }
   };
 
-  const handleTimeUpdate = () => { const v = videoRef.current; if (!v || !v.duration) return; setProgress((v.currentTime / v.duration) * 100); };
-  const handleScrub = (val: number[]) => { const v = videoRef.current; if (!v || !v.duration) return; v.currentTime = (val[0] / 100) * v.duration; setProgress(val[0]); };
-  const formatTime = (s: number) => { const m = Math.floor(s / 60); const sec = Math.floor(s % 60); return `${m}:${sec.toString().padStart(2, "0")}`; };
-
   return (
-    <div className="relative w-full rounded-lg overflow-hidden bg-black border border-border shadow-sm" style={{ aspectRatio, maxHeight }}>
-      <video ref={videoRef} src={src} muted={muted} loop playsInline className="w-full h-full object-cover" onTimeUpdate={handleTimeUpdate} onLoadedMetadata={() => setDuration(videoRef.current?.duration || 0)} onEnded={() => setPlaying(false)} />
+    <div className="relative w-full rounded-lg overflow-hidden bg-black" style={{ aspectRatio }}>
+      <video ref={videoRef} src={src} muted={muted} loop playsInline className="w-full h-full object-contain"
+        onTimeUpdate={() => { const v = videoRef.current; if (v?.duration) setProgress((v.currentTime / v.duration) * 100); }}
+        onLoadedMetadata={() => setDuration(videoRef.current?.duration || 0)}
+      />
       <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/80 to-transparent p-3 pt-8">
-        <Slider value={[progress]} max={100} step={0.1} onValueChange={handleScrub} className="mb-2 [&_[role=slider]]:h-3 [&_[role=slider]]:w-3" />
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <button onClick={togglePlay} className="w-7 h-7 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center text-white hover:bg-white/30 transition-colors">
-              {playing ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 ml-0.5" />}
-            </button>
-            <button onClick={() => setMuted(!muted)} className="w-7 h-7 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center text-white hover:bg-white/30 transition-colors">
-              {muted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
-            </button>
-            <span className="text-[10px] text-white/80 font-mono">{formatTime((progress / 100) * duration)} / {formatTime(duration)}</span>
-          </div>
+        <Slider value={[progress]} max={100} step={0.1} onValueChange={(v) => { const el = videoRef.current; if (el?.duration) { el.currentTime = (v[0] / 100) * el.duration; setProgress(v[0]); } }} className="mb-2 [&_[role=slider]]:h-3 [&_[role=slider]]:w-3" />
+        <div className="flex items-center gap-2">
+          <button onClick={togglePlay} className="w-7 h-7 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center text-white hover:bg-white/30">
+            {playing ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 ml-0.5" />}
+          </button>
+          <button onClick={() => setMuted(!muted)} className="w-7 h-7 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center text-white hover:bg-white/30">
+            {muted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
+          </button>
+          <span className="text-[10px] text-white/80 font-mono">
+            {Math.floor((progress / 100) * duration / 60)}:{Math.floor((progress / 100) * duration % 60).toString().padStart(2, "0")} / {Math.floor(duration / 60)}:{Math.floor(duration % 60).toString().padStart(2, "0")}
+          </span>
         </div>
       </div>
     </div>
@@ -119,34 +117,28 @@ const VideoPlayer = ({ src, aspectRatio, maxHeight }: { src: string; aspectRatio
 };
 
 /** Carousel Slide Navigator */
-const CarouselNavigator = ({ contentUrl, aspectRatio, maxHeight, slideCount = 5 }: { contentUrl: string; aspectRatio: string; maxHeight: string; slideCount?: number }) => {
+const CarouselNavigator = ({ contentUrl, aspectRatio, slideCount = 5 }: { contentUrl: string; aspectRatio: string; slideCount?: number }) => {
   const [currentSlide, setCurrentSlide] = useState(0);
   return (
-    <div className="relative w-full rounded-lg overflow-hidden bg-muted border border-border shadow-sm" style={{ aspectRatio, maxHeight }}>
-      <img src={contentUrl} alt={`Slide ${currentSlide + 1}`} className="w-full h-full object-cover" />
+    <div className="relative w-full rounded-lg overflow-hidden bg-muted" style={{ aspectRatio }}>
+      <img src={contentUrl} alt={`Slide ${currentSlide + 1}`} className="w-full h-full object-contain" />
       <div className="absolute bottom-3 inset-x-0 flex items-center justify-center gap-1.5">
         {Array.from({ length: slideCount }).map((_, i) => (
-          <button key={i} onClick={() => setCurrentSlide(i)} className={cn("w-1.5 h-1.5 rounded-full transition-all", i === currentSlide ? "bg-white w-3" : "bg-white/50 hover:bg-white/70")} />
+          <button key={i} onClick={() => setCurrentSlide(i)} className={cn("w-1.5 h-1.5 rounded-full transition-all", i === currentSlide ? "bg-white w-3" : "bg-white/50")} />
         ))}
       </div>
       {currentSlide > 0 && (
-        <button onClick={() => setCurrentSlide((s) => s - 1)} className="absolute left-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/60 transition-colors">
-          <ChevronLeft className="w-4 h-4" />
-        </button>
+        <button onClick={() => setCurrentSlide((s) => s - 1)} className="absolute left-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-white"><ChevronLeft className="w-4 h-4" /></button>
       )}
       {currentSlide < slideCount - 1 && (
-        <button onClick={() => setCurrentSlide((s) => s + 1)} className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/60 transition-colors">
-          <ChevronRight className="w-4 h-4" />
-        </button>
+        <button onClick={() => setCurrentSlide((s) => s + 1)} className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-white"><ChevronRight className="w-4 h-4" /></button>
       )}
       <div className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-black/50 backdrop-blur-sm text-[10px] text-white font-medium">{currentSlide + 1} / {slideCount}</div>
     </div>
   );
 };
 
-// ══════════════════════════════════════════════════════════════
-// Decision Trace Dialog — "Why This?" transparency layer
-// ══════════════════════════════════════════════════════════════
+// ── Decision Trace Dialog ──
 interface DecisionTrace {
   id: string;
   decision_summary: string;
@@ -168,15 +160,10 @@ const DecisionTraceDialog = ({ traceId, open, onOpenChange }: { traceId: string 
   useEffect(() => {
     if (!traceId || !open) return;
     setLoading(true);
-    supabase
-      .from("decision_traces")
-      .select("*")
-      .eq("id", traceId)
-      .single()
-      .then(({ data }) => {
-        if (data) setTrace(data as any);
-        setLoading(false);
-      });
+    supabase.from("decision_traces").select("*").eq("id", traceId).single().then(({ data }) => {
+      if (data) setTrace(data as any);
+      setLoading(false);
+    });
   }, [traceId, open]);
 
   return (
@@ -184,35 +171,21 @@ const DecisionTraceDialog = ({ traceId, open, onOpenChange }: { traceId: string 
       <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-sm">
-            <Shield className="w-4 h-4 text-primary" />
-            Decision Trace — Why This?
+            <Shield className="w-4 h-4 text-primary" /> Decision Trace — Why This?
           </DialogTitle>
         </DialogHeader>
-
-        {loading && (
-          <div className="flex items-center justify-center py-8">
-            <Loader2 className="w-5 h-5 animate-spin text-primary" />
-          </div>
-        )}
-
+        {loading && <div className="flex items-center justify-center py-8"><Loader2 className="w-5 h-5 animate-spin text-primary" /></div>}
         {trace && (
           <div className="space-y-4">
-            {/* Summary */}
             <div className="rounded-lg bg-secondary/50 border border-border p-3">
               <p className="text-xs text-foreground leading-relaxed">{trace.decision_summary}</p>
-              <div className="flex items-center gap-2 mt-2">
-                <Badge variant="outline" className="text-[9px]">
-                  Confidence: {(trace.confidence_score * 100).toFixed(0)}%
-                </Badge>
-              </div>
+              <Badge variant="outline" className="text-[9px] mt-2">Confidence: {(trace.confidence_score * 100).toFixed(0)}%</Badge>
             </div>
-
-            {/* Creative Directions Scored */}
             {trace.creative_directions?.length > 0 && (
               <div className="space-y-2">
                 <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Creative Directions Evaluated</span>
                 {trace.creative_directions.map((d: any, i: number) => {
-                  const isWinner = i === trace.winner?.total_score ? false : d.name === trace.winner?.name;
+                  const isWinner = d.name === trace.winner?.name;
                   return (
                     <div key={i} className={cn("rounded-lg border p-3", isWinner ? "border-primary bg-primary/5" : "border-border bg-card")}>
                       <div className="flex items-center justify-between mb-1">
@@ -223,55 +196,20 @@ const DecisionTraceDialog = ({ traceId, open, onOpenChange }: { traceId: string 
                         </div>
                       </div>
                       <p className="text-[10px] text-muted-foreground">{d.description}</p>
-                      {d.scoring && (
-                        <div className="grid grid-cols-4 gap-1 mt-2">
-                          {Object.entries(d.scoring).map(([k, v]) => (
-                            <div key={k} className="text-center">
-                              <div className="text-[8px] text-muted-foreground capitalize">{k.replace(/_/g, " ")}</div>
-                              <div className="text-[10px] font-semibold text-foreground">{String(v)}</div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                      {d.hook_suggestion && (
-                        <div className="mt-1.5 text-[9px] text-primary italic">Hook: "{d.hook_suggestion}"</div>
-                      )}
                     </div>
                   );
                 })}
               </div>
             )}
-
-            {/* Winner Rationale */}
             {trace.winner?.rationale && (
               <div className="rounded-lg border border-primary/30 bg-primary/5 p-3">
                 <span className="text-[10px] font-semibold text-primary uppercase tracking-wide">Why This Direction Won</span>
                 <p className="text-[11px] text-foreground leading-relaxed mt-1">{trace.winner.rationale}</p>
               </div>
             )}
-
-            {/* Rejected Alternatives */}
-            {trace.rejected_alternatives?.length > 0 && (
-              <div className="space-y-1.5">
-                <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Rejected Alternatives</span>
-                {trace.rejected_alternatives.map((r: any, i: number) => (
-                  <div key={i} className="rounded-lg border border-border bg-card p-2.5">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-medium text-foreground">{r.name}</span>
-                      <Badge variant="outline" className="text-[8px] h-3.5 text-red-600 border-red-200">Score: {r.total_score}</Badge>
-                    </div>
-                    <p className="text-[9px] text-muted-foreground mt-0.5">{r.reason_rejected}</p>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Brand Memory Influences */}
             {trace.brand_memory_influences?.length > 0 && (
               <div className="space-y-1.5">
-                <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1">
-                  <Brain className="w-3 h-3" /> Brand Memory Influences
-                </span>
+                <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1"><Brain className="w-3 h-3" /> Brand Memory Influences</span>
                 <div className="flex flex-wrap gap-1">
                   {trace.brand_memory_influences.map((m: any, i: number) => (
                     <Badge key={i} variant="outline" className={cn("text-[9px]", m.type === "approval" ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-red-50 text-red-700 border-red-200")}>
@@ -281,28 +219,6 @@ const DecisionTraceDialog = ({ traceId, open, onOpenChange }: { traceId: string 
                 </div>
               </div>
             )}
-
-            {/* Assumptions */}
-            {trace.assumptions?.length > 0 && (
-              <div className="rounded-lg border border-dashed border-amber-300 bg-amber-50/50 p-3">
-                <span className="text-[10px] font-semibold text-amber-700 uppercase tracking-wide">Assumptions Made</span>
-                <ul className="mt-1 space-y-0.5">
-                  {trace.assumptions.map((a: string, i: number) => (
-                    <li key={i} className="text-[10px] text-amber-800">• {a}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {/* Next Test */}
-            {trace.next_test_recommendation?.description && (
-              <div className="rounded-lg border border-blue-200 bg-blue-50/50 p-3">
-                <span className="text-[10px] font-semibold text-blue-700 uppercase tracking-wide">Recommended Next Test</span>
-                <p className="text-[10px] text-blue-800 mt-1">{trace.next_test_recommendation.description}</p>
-              </div>
-            )}
-
-            {/* Research Sources */}
             {trace.research_sources?.length > 0 && (
               <div className="space-y-1">
                 <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Research Sources ({trace.research_sources.length})</span>
@@ -313,12 +229,23 @@ const DecisionTraceDialog = ({ traceId, open, onOpenChange }: { traceId: string 
             )}
           </div>
         )}
-
-        {!loading && !trace && (
-          <p className="text-xs text-muted-foreground py-8 text-center">No decision trace found for this asset.</p>
-        )}
+        {!loading && !trace && <p className="text-xs text-muted-foreground py-8 text-center">No decision trace found.</p>}
       </DialogContent>
     </Dialog>
+  );
+};
+
+// ── Phone Frame Preview ──
+// Contains media within a stable device frame that never overflows
+const PhoneFrame = ({ children, aspectRatio }: { children: React.ReactNode; aspectRatio: string }) => {
+  const isTall = aspectRatio === "9 / 16";
+  return (
+    <div className={cn(
+      "mx-auto rounded-2xl border-2 border-foreground/10 bg-black shadow-xl overflow-hidden flex items-center justify-center",
+      isTall ? "w-[220px] max-h-[400px]" : "w-full max-w-[340px] max-h-[340px]"
+    )} style={{ aspectRatio }}>
+      {children}
+    </div>
   );
 };
 
@@ -364,7 +291,6 @@ const AssetInspector = ({
   const isVideo = asset.asset_type === "video";
   const isCarousel = asset.asset_type === "carousel";
 
-  // Parse rationale for decision trace ID
   let decisionTraceId: string | null = null;
   let decisionMeta: any = null;
   try {
@@ -381,8 +307,6 @@ const AssetInspector = ({
     if (error) toast.error("Failed to update.");
     else {
       toast.success(newStatus === "approved" ? "Approved!" : "Rejected.");
-
-      // LAYER 4: Record brand memory via dedicated learn-from-feedback function
       const memoryPatterns = extractPatternsFromAsset(asset, meta, decisionMeta);
       if (memoryPatterns.length > 0) {
         try {
@@ -391,22 +315,15 @@ const AssetInspector = ({
               assetId: asset.id,
               memoryType: newStatus === "approved" ? "approval" : "rejection",
               patterns: memoryPatterns.map((p) => ({
-                category: p.category,
-                value: p.value,
+                category: p.category, value: p.value,
                 context: { campaignId, assetId: asset.id, platform: meta?.platform },
               })),
             },
           });
-          // Notify if any pattern was flagged as do_not_use
           const flagged = memResult?.recorded?.filter((r: any) => r.flagged_do_not_use) || [];
-          if (flagged.length > 0) {
-            toast.info(`${flagged.length} pattern(s) flagged as "do not use" — will be avoided in future generations.`);
-          }
-        } catch (e) {
-          console.error("Memory recording failed:", e);
-        }
+          if (flagged.length > 0) toast.info(`${flagged.length} pattern(s) flagged as "do not use".`);
+        } catch (e) { console.error("Memory recording failed:", e); }
       }
-
       onStatusChange();
     }
     setUpdating(false);
@@ -444,27 +361,43 @@ const AssetInspector = ({
     else { toast.success(`Scheduled for ${format(at, "MMM d 'at' h:mm a")}`); onScheduled(); }
   };
 
+  // ── Stable phone-frame media preview ──
+  const renderMediaPreview = () => {
+    if (asset.asset_type === "copy") return null;
+    return (
+      <div className="px-4 pt-3 flex flex-col items-center">
+        {meta && (
+          <div className="flex items-center justify-between w-full mb-2">
+            <span className="text-[10px] font-medium text-foreground uppercase tracking-wide">{platformLabel}</span>
+            <span className="text-[10px] text-muted-foreground font-mono">{dimensionLabel}</span>
+          </div>
+        )}
+        <PhoneFrame aspectRatio={nativeAspect}>
+          {isVideo && asset.content_url ? (
+            <VideoPlayer src={asset.content_url} aspectRatio={nativeAspect} />
+          ) : isCarousel && asset.content_url ? (
+            <CarouselNavigator contentUrl={asset.content_url} aspectRatio={nativeAspect} />
+          ) : asset.content_url ? (
+            <img src={asset.content_url} alt={meta?.format || "Asset"} className="w-full h-full object-contain" />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs">Loading…</div>
+          )}
+        </PhoneFrame>
+      </div>
+    );
+  };
+
   const content = (
     <div className="flex flex-col h-full">
-      {/* Navigation arrows + close context */}
+      {/* Nav + status */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-border">
         <div className="flex items-center gap-1">
-          <Button size="sm" variant="ghost" className="h-7 w-7 p-0" disabled={!hasPrev} onClick={() => onNavigate?.("prev")}>
-            <ChevronLeft className="w-4 h-4" />
-          </Button>
-          <Button size="sm" variant="ghost" className="h-7 w-7 p-0" disabled={!hasNext} onClick={() => onNavigate?.("next")}>
-            <ChevronRight className="w-4 h-4" />
-          </Button>
+          <Button size="sm" variant="ghost" className="h-7 w-7 p-0" disabled={!hasPrev} onClick={() => onNavigate?.("prev")}><ChevronLeft className="w-4 h-4" /></Button>
+          <Button size="sm" variant="ghost" className="h-7 w-7 p-0" disabled={!hasNext} onClick={() => onNavigate?.("next")}><ChevronRight className="w-4 h-4" /></Button>
         </div>
         <div className="flex items-center gap-1.5">
-          {/* "Why This?" button — Trust Engine transparency */}
           {decisionTraceId && (
-            <Button
-              size="sm"
-              variant="outline"
-              className="h-6 text-[9px] gap-1 text-primary border-primary/30 hover:bg-primary/5"
-              onClick={() => setShowDecisionTrace(true)}
-            >
+            <Button size="sm" variant="outline" className="h-6 text-[9px] gap-1 text-primary border-primary/30 hover:bg-primary/5" onClick={() => setShowDecisionTrace(true)}>
               <HelpCircle className="w-3 h-3" /> Why This?
             </Button>
           )}
@@ -479,35 +412,12 @@ const AssetInspector = ({
           <span className="text-[9px] text-foreground">
             <span className="font-semibold">{decisionMeta.direction}</span>
             {decisionMeta.angle && <span className="text-muted-foreground"> · {decisionMeta.angle}</span>}
-            {decisionMeta.confidence > 0 && <span className="text-muted-foreground"> · {decisionMeta.confidence}pts</span>}
           </span>
         </div>
       )}
 
-      {/* Platform-native WYSIWYG preview */}
-      {asset.asset_type !== "copy" && (
-        <div className="px-4 pt-3 flex flex-col items-center">
-          {meta && (
-            <div className="flex items-center justify-between w-full mb-2">
-              <span className="text-[10px] font-medium text-foreground uppercase tracking-wide">{platformLabel}</span>
-              <span className="text-[10px] text-muted-foreground font-mono">{dimensionLabel}</span>
-            </div>
-          )}
-          {isVideo && asset.content_url ? (
-            <VideoPlayer src={asset.content_url} aspectRatio={nativeAspect} maxHeight={isMobile ? "55vh" : "50vh"} />
-          ) : isCarousel && asset.content_url ? (
-            <CarouselNavigator contentUrl={asset.content_url} aspectRatio={nativeAspect} maxHeight={isMobile ? "55vh" : "50vh"} />
-          ) : (
-            <div className="w-full rounded-lg overflow-hidden bg-muted border border-border shadow-sm" style={{ aspectRatio: nativeAspect, maxHeight: isMobile ? "55vh" : "50vh" }}>
-              {asset.content_url ? (
-                <img src={asset.content_url} alt={meta?.format || "Asset"} className="w-full h-full object-cover" />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs">Loading…</div>
-              )}
-            </div>
-          )}
-        </div>
-      )}
+      {/* Stable phone-frame preview */}
+      {renderMediaPreview()}
 
       {/* Tabs */}
       <Tabs defaultValue="preview" className="flex-1 flex flex-col px-4 pt-3">
@@ -517,15 +427,12 @@ const AssetInspector = ({
           <TabsTrigger value="schedule" className="text-[11px] flex-1" disabled={campaignStatus !== "approved"}>Schedule</TabsTrigger>
         </TabsList>
 
-        {/* PREVIEW TAB */}
-        <TabsContent value="preview" className="flex-1 mt-3 space-y-3">
+        <TabsContent value="preview" className="flex-1 mt-3 space-y-3 overflow-y-auto">
           {caption && !editingCaption && (
             <div className="space-y-1">
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Caption</span>
-                <Button size="sm" variant="ghost" className="h-5 w-5 p-0" onClick={() => { setCaptionDraft(caption); setEditingCaption(true); }}>
-                  <Pencil className="w-3 h-3" />
-                </Button>
+                <Button size="sm" variant="ghost" className="h-5 w-5 p-0" onClick={() => { setCaptionDraft(caption); setEditingCaption(true); }}><Pencil className="w-3 h-3" /></Button>
               </div>
               <p className="text-xs text-foreground leading-relaxed whitespace-pre-line">{caption}</p>
             </div>
@@ -539,8 +446,6 @@ const AssetInspector = ({
               </div>
             </div>
           )}
-
-          {/* Actions */}
           <div className="pt-2 space-y-2">
             {asset.status === "pending_review" && (
               <div className="flex gap-2">
@@ -553,9 +458,7 @@ const AssetInspector = ({
               </div>
             )}
             {asset.status === "rejected" && (
-              <Button variant="outline" className="w-full h-9 text-xs" onClick={handleRegenerate} disabled={updating}>
-                <RefreshCw className="w-3.5 h-3.5 mr-1" /> Regenerate
-              </Button>
+              <Button variant="outline" className="w-full h-9 text-xs" onClick={handleRegenerate} disabled={updating}><RefreshCw className="w-3.5 h-3.5 mr-1" /> Regenerate</Button>
             )}
             {asset.status === "approved" && (
               <div className="flex items-center gap-2 py-2 px-3 rounded-lg bg-emerald-50 border border-emerald-200">
@@ -566,42 +469,23 @@ const AssetInspector = ({
           </div>
         </TabsContent>
 
-        {/* STRATEGY TAB */}
         <TabsContent value="strategy" className="flex-1 mt-3 space-y-3 overflow-y-auto">
-          {/* Decision Engine Output */}
           {decisionMeta?.direction && decisionMeta.direction !== "default" && (
             <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-medium text-primary uppercase tracking-wide flex items-center gap-1">
-                  <Brain className="w-3 h-3" /> Decision Engine
-                </span>
-                {decisionMeta.confidence > 0 && (
-                  <Badge variant="outline" className="text-[9px] border-primary/30 text-primary">
-                    Score: {decisionMeta.confidence}
-                  </Badge>
-                )}
+                <span className="text-[10px] font-medium text-primary uppercase tracking-wide flex items-center gap-1"><Brain className="w-3 h-3" /> Decision Engine</span>
+                {decisionMeta.confidence > 0 && <Badge variant="outline" className="text-[9px] border-primary/30 text-primary">Score: {decisionMeta.confidence}</Badge>}
               </div>
               <p className="text-[11px] text-foreground font-semibold">{decisionMeta.direction}</p>
-              <div className="flex items-center gap-2">
-                <Badge variant="secondary" className="text-[9px]">{decisionMeta.angle}</Badge>
-                {decisionMeta.hook && <span className="text-[9px] text-muted-foreground italic">"{decisionMeta.hook}"</span>}
-              </div>
               {decisionTraceId && (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="h-6 text-[9px] gap-1 text-primary p-0"
-                  onClick={() => setShowDecisionTrace(true)}
-                >
+                <Button size="sm" variant="ghost" className="h-6 text-[9px] gap-1 text-primary p-0" onClick={() => setShowDecisionTrace(true)}>
                   <Shield className="w-3 h-3" /> View Full Decision Trace
                 </Button>
               )}
             </div>
           )}
-
           {researchBrief ? (
             <>
-              {/* Research Quality */}
               <div className="rounded-lg border border-border bg-secondary/30 p-3 space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Research Quality</span>
@@ -613,61 +497,34 @@ const AssetInspector = ({
                 </div>
                 <p className="text-[11px] text-foreground leading-relaxed">{researchBrief.summary}</p>
               </div>
-
               {researchBrief.visual_direction && (
                 <div className="rounded-lg border border-border bg-secondary/30 p-3">
                   <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Visual Direction</span>
                   <p className="text-[11px] text-foreground leading-relaxed mt-1">{researchBrief.visual_direction}</p>
                 </div>
               )}
-
               {researchBrief.content_angles?.length > 0 && (
                 <div className="rounded-lg border border-border bg-secondary/30 p-3">
                   <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Content Angles</span>
                   <ul className="mt-1.5 space-y-1">
                     {researchBrief.content_angles.map((angle: string, i: number) => (
-                      <li key={i} className="text-[10px] text-foreground flex items-start gap-1.5">
-                        <Sparkles className="w-3 h-3 text-primary mt-0.5 shrink-0" /> {angle}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {researchBrief.brand_gap_analysis && (
-                <div className="rounded-lg border border-border bg-secondary/30 p-3">
-                  <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Brand Gap Analysis</span>
-                  <p className="text-[11px] text-foreground leading-relaxed mt-1">{researchBrief.brand_gap_analysis}</p>
-                </div>
-              )}
-
-              {researchBrief.sources?.length > 0 && (
-                <div className="rounded-lg border border-dashed border-border p-3">
-                  <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Research Sources ({researchBrief.sources.length})</span>
-                  <ul className="mt-1.5 space-y-1">
-                    {researchBrief.sources.slice(0, 8).map((s: any, i: number) => (
-                      <li key={i}><a href={s.url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-primary hover:underline truncate block">{s.title || s.url}</a></li>
+                      <li key={i} className="text-[10px] text-foreground flex items-start gap-1.5"><Sparkles className="w-3 h-3 text-primary mt-0.5 shrink-0" /> {angle}</li>
                     ))}
                   </ul>
                 </div>
               )}
             </>
           ) : !decisionMeta?.direction && (
-            <div className="rounded-lg border border-border bg-secondary/30 p-3 space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Decision Confidence</span>
-                <span className="text-xs font-semibold text-foreground">—</span>
-              </div>
-              <p className="text-[11px] text-muted-foreground leading-relaxed">Run research first to see strategy insights for this asset.</p>
+            <div className="rounded-lg border border-border bg-secondary/30 p-3">
+              <p className="text-[11px] text-muted-foreground">Run research first to see strategy insights.</p>
             </div>
           )}
         </TabsContent>
 
-        {/* SCHEDULE TAB */}
-        <TabsContent value="schedule" className="flex-1 mt-3 space-y-4">
+        <TabsContent value="schedule" className="flex-1 mt-3 space-y-4 overflow-y-auto">
           <div className="space-y-2">
             <Label className="text-xs">Publish Date</Label>
-            <Calendar mode="single" selected={schedDate} onSelect={setSchedDate} disabled={(d) => d < new Date()} className={cn("rounded-md border pointer-events-auto")} />
+            <Calendar mode="single" selected={schedDate} onSelect={setSchedDate} disabled={(d) => d < new Date()} className="rounded-md border pointer-events-auto" />
           </div>
           <div className="space-y-2">
             <Label className="text-xs">Time</Label>
@@ -688,21 +545,15 @@ const AssetInspector = ({
         </TabsContent>
       </Tabs>
 
-      {/* Decision Trace Dialog */}
-      <DecisionTraceDialog
-        traceId={decisionTraceId}
-        open={showDecisionTrace}
-        onOpenChange={setShowDecisionTrace}
-      />
+      <DecisionTraceDialog traceId={decisionTraceId} open={showDecisionTrace} onOpenChange={setShowDecisionTrace} />
     </div>
   );
 
   if (isMobile) {
-    const isTallFormat = nativeAspect === "9 / 16";
     return (
       <Drawer open={open} onOpenChange={onOpenChange}>
-        <DrawerContent className={isTallFormat ? "max-h-[95vh]" : "max-h-[85vh]"}>
-          <div className={`overflow-y-auto pb-6 ${isTallFormat ? "max-h-[92vh]" : "max-h-[80vh]"}`}>{content}</div>
+        <DrawerContent className="max-h-[92vh]">
+          <div className="overflow-y-auto pb-6 max-h-[88vh]">{content}</div>
         </DrawerContent>
       </Drawer>
     );
@@ -710,38 +561,18 @@ const AssetInspector = ({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-[400px] sm:w-[420px] p-0 overflow-y-auto">{content}</SheetContent>
+      <SheetContent side="right" className="w-[420px] sm:w-[440px] p-0 overflow-y-auto">{content}</SheetContent>
     </Sheet>
   );
 };
 
-// ── Pattern extraction for Brand Memory ──────────────────────
 function extractPatternsFromAsset(asset: GeneratedAsset, meta: any, decisionMeta: any) {
   const patterns: Array<{ category: string; value: string }> = [];
-
-  // Platform + format pattern
-  if (meta?.platform && meta?.format) {
-    patterns.push({ category: "format", value: `${meta.platform}_${meta.format}` });
-  }
-
-  // Asset type pattern
+  if (meta?.platform && meta?.format) patterns.push({ category: "format", value: `${meta.platform}_${meta.format}` });
   patterns.push({ category: "asset_type", value: asset.asset_type });
-
-  // Angle pattern from decision engine
-  if (decisionMeta?.angle) {
-    patterns.push({ category: "angle", value: decisionMeta.angle });
-  }
-
-  // Hook pattern
-  if (decisionMeta?.hook) {
-    patterns.push({ category: "hook", value: decisionMeta.hook });
-  }
-
-  // Direction pattern
-  if (decisionMeta?.direction && decisionMeta.direction !== "default") {
-    patterns.push({ category: "direction", value: decisionMeta.direction });
-  }
-
+  if (decisionMeta?.angle) patterns.push({ category: "angle", value: decisionMeta.angle });
+  if (decisionMeta?.hook) patterns.push({ category: "hook", value: decisionMeta.hook });
+  if (decisionMeta?.direction && decisionMeta.direction !== "default") patterns.push({ category: "direction", value: decisionMeta.direction });
   return patterns;
 }
 
