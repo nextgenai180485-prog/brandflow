@@ -192,8 +192,8 @@ const GlobalCMOChat = () => {
   if (!user) return null;
 
   const widgetSize = expanded
-    ? "w-[560px] h-[680px]"
-    : "w-[380px] h-[520px]";
+    ? "sm:w-[560px] sm:h-[680px]"
+    : "sm:w-[380px] sm:h-[520px]";
 
   return (
     <>
