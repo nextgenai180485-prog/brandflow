@@ -244,6 +244,8 @@ const CampaignDetails = () => {
     setResearchBrief(null);
     setResearchId(null);
     setResearchApproved(false);
+    autoResearchTriggered.current = false;
+    triggerAutoResearch();
   };
 
   const platformTabs = useMemo(() => {
