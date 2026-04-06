@@ -140,59 +140,99 @@ async function generateImageKie(prompt: string, width: number, height: number) {
   }
 }
 
-// ── Video Generation via Kie AI Kling 2.5 (Primary) / 3.0 (Fallback) ──
+// ── Video Generation via Replicate Kling 2.5 (Primary) / Kie AI (Fallback) ──
 async function generateVideo(prompt: string, width: number, height: number) {
-  const KIE_AI_API_KEY = Deno.env.get("KIE_AI_API_KEY")!;
+  const REPLICATE_API_KEY = Deno.env.get("REPLICATE_API_KEY");
   const aspectRatio = mapAspectRatio(width, height);
-  // Try Kling 2.5 first
+
+  // Primary: Replicate Kling 2.5
+  if (REPLICATE_API_KEY) {
+    try {
+      console.log(`[Kling 2.5] Generating video via Replicate, aspect: ${aspectRatio}`);
+      const startTime = Date.now();
+      const response = await fetch("https://api.replicate.com/v1/predictions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${REPLICATE_API_KEY}`, "Content-Type": "application/json", Prefer: "wait=120" },
+        body: JSON.stringify({
+          model: "kwaai/kling-v2.5-pro",
+          input: {
+            prompt,
+            duration: 5,
+            aspect_ratio: aspectRatio,
+            negative_prompt: "blurry, low quality, distorted, watermark, text overlay, amateur",
+          },
+        }),
+      });
+      if (!response.ok) {
+        const err = await response.text();
+        console.error(`[Kling 2.5] Replicate error ${response.status}: ${err}`);
+        throw new Error(`Replicate Kling error: ${response.status}`);
+      }
+      const prediction = await response.json();
+      if (prediction.status === "succeeded" && prediction.output) {
+        const outputUrl = typeof prediction.output === "string" ? prediction.output : prediction.output?.[0] || prediction.output?.video;
+        if (outputUrl) return { url: outputUrl, provider: "replicate_kling_2.5", cost: 0.35, timeMs: Date.now() - startTime };
+      }
+      // Async polling
+      for (let i = 0; i < 120; i++) {
+        await new Promise((r) => setTimeout(r, 3000));
+        const pollResp = await fetch(`https://api.replicate.com/v1/predictions/${prediction.id}`, {
+          headers: { Authorization: `Bearer ${REPLICATE_API_KEY}` },
+        });
+        const pollData = await pollResp.json();
+        if (pollData.status === "succeeded") {
+          const outputUrl = typeof pollData.output === "string" ? pollData.output : pollData.output?.[0] || pollData.output?.video;
+          if (outputUrl) return { url: outputUrl, provider: "replicate_kling_2.5", cost: 0.35, timeMs: Date.now() - startTime };
+        }
+        if (pollData.status === "failed" || pollData.status === "canceled") {
+          throw new Error(`Replicate Kling failed: ${pollData.error || "Unknown"}`);
+        }
+      }
+      throw new Error("Replicate Kling timed out");
+    } catch (e) {
+      console.error("[Kling 2.5 Replicate] Failed, trying Kie AI fallback:", e);
+    }
+  }
+
+  // Fallback: Kie AI Kling 2.5 → 3.0 → Seedance
+  const KIE_AI_API_KEY = Deno.env.get("KIE_AI_API_KEY");
+  if (!KIE_AI_API_KEY) {
+    console.error("[Video] No KIE_AI_API_KEY, falling back to image");
+    const fallback = await generateImage(prompt, width, height);
+    return { ...fallback, provider: fallback.provider + "_video_fallback" };
+  }
+
+  // Kie Kling 2.5
   try {
-    console.log(`[Kling 2.5] Generating video, aspect: ${aspectRatio}`);
+    console.log(`[Kling 2.5 Kie] Generating video, aspect: ${aspectRatio}`);
     const taskId = await kieCreateTask(KIE_AI_API_KEY, "kling/kling-2.5", {
-      prompt,
-      aspect_ratio: aspectRatio,
-      resolution: "720p",
-      duration: 5,
-      generate_audio: false,
-      web_search: false,
+      prompt, aspect_ratio: aspectRatio, resolution: "720p", duration: 5, generate_audio: false, web_search: false,
     });
     const result = await kiePollTask(KIE_AI_API_KEY, taskId, 100, 3000);
     if (!result.urls?.length) throw new Error("Kling 2.5 returned no video URLs");
     return { url: result.urls[0], provider: "kie_ai_kling_2.5", cost: 0.35, timeMs: result.costTime };
-  } catch (e) {
-    console.error("[Kling 2.5] Failed, trying Kling 3.0:", e);
-  }
-  // Fallback to Kling 3.0
+  } catch (e) { console.error("[Kling 2.5 Kie] Failed:", e); }
+
+  // Kie Kling 3.0
   try {
-    console.log(`[Kling 3.0] Fallback video generation`);
     const taskId = await kieCreateTask(KIE_AI_API_KEY, "kling/kling-3.0", {
-      prompt,
-      aspect_ratio: aspectRatio,
-      resolution: "720p",
-      duration: 5,
-      generate_audio: false,
-      web_search: false,
+      prompt, aspect_ratio: aspectRatio, resolution: "720p", duration: 5, generate_audio: false, web_search: false,
     });
     const result = await kiePollTask(KIE_AI_API_KEY, taskId, 100, 3000);
     if (!result.urls?.length) throw new Error("Kling 3.0 returned no video URLs");
     return { url: result.urls[0], provider: "kie_ai_kling_3.0", cost: 0.40, timeMs: result.costTime };
-  } catch (e) {
-    console.error("[Kling 3.0] Failed, trying Seedance 2.0 fallback:", e);
-  }
-  // Final fallback to Seedance 2.0
+  } catch (e) { console.error("[Kling 3.0 Kie] Failed:", e); }
+
+  // Seedance 2.0
   try {
     const taskId = await kieCreateTask(KIE_AI_API_KEY, "bytedance/seedance-2", {
-      prompt,
-      aspect_ratio: aspectRatio,
-      resolution: "720p",
-      duration: 8,
-      generate_audio: false,
-      web_search: false,
+      prompt, aspect_ratio: aspectRatio, resolution: "720p", duration: 8, generate_audio: false, web_search: false,
     });
     const result = await kiePollTask(KIE_AI_API_KEY, taskId, 100, 3000);
     if (!result.urls?.length) throw new Error("Seedance returned no video URLs");
     return { url: result.urls[0], provider: "kie_ai_seedance_2.0", cost: 0.30, timeMs: result.costTime };
   } catch (e) {
-    console.error("[Seedance 2.0] All video providers failed, returning image fallback:", e);
+    console.error("[Seedance 2.0] All video providers failed:", e);
     const fallback = await generateImage(prompt, width, height);
     return { ...fallback, provider: fallback.provider + "_video_fallback" };
   }
