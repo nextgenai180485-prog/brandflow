@@ -102,6 +102,48 @@ const CampaignDetails = () => {
     init();
   }, [fetchData]);
 
+  const triggerAutoResearch = useCallback(async () => {
+    if (!user || !id) return;
+    setResearchLoading(true);
+    try {
+      // Load brand context for research
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("business_name, industry, target_audience, brand_voice_tone, website_url")
+        .eq("id", user.id)
+        .single();
+
+      const brandContext = {
+        businessName: profile?.business_name || "Brand",
+        industry: profile?.industry || "beauty",
+        brandVoice: profile?.brand_voice_tone || "professional",
+        targetAudience: profile?.target_audience || "consumers",
+        websiteUrl: profile?.website_url || null,
+      };
+
+      const { data: researchData, error: researchError } = await supabase.functions.invoke("research", {
+        body: { campaignId: id, ...brandContext, uploadedAssetUrls: [] },
+      });
+
+      if (researchError) {
+        console.error("[AutoResearch] Failed:", researchError);
+        toast.error("Market research failed. You can retry manually.");
+      } else {
+        const brief = researchData?.intelligenceBrief;
+        const rId = researchData?.research?.id;
+        if (brief && rId) {
+          setResearchBrief(brief);
+          setResearchId(rId);
+          toast.success(`Research complete — ${brief.trending_topics?.length || 0} trends, ${brief.competitors?.length || 0} competitors found`);
+        }
+      }
+    } catch (e) {
+      console.error("[AutoResearch] Error:", e);
+    } finally {
+      setResearchLoading(false);
+    }
+  }, [user, id]);
+
   const handleDeleteCampaign = async () => {
     if (!id) return;
     await supabase.from("generated_assets").delete().eq("campaign_id", id);
