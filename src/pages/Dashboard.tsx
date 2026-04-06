@@ -125,6 +125,75 @@ const Dashboard = () => {
           </Button>
         </div>
 
+        {/* Strategy Widget */}
+        {strategy && (
+          <Collapsible open={strategyOpen} onOpenChange={setStrategyOpen} className="mb-6">
+            <CollapsibleTrigger className="w-full">
+              <div className="flex items-center justify-between rounded-xl border border-border bg-card px-5 py-3 hover:bg-secondary/50 transition-colors cursor-pointer">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Brain className="w-4 h-4 text-primary" />
+                  </div>
+                  <div className="text-left">
+                    <p className="text-xs font-bold text-foreground">
+                      Current Mission: {(strategy as any).core_identity?.archetype || "Strategy Active"}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground">
+                      Focus: {((strategy as any).current_focus || "tof") === "tof" ? "Top of Funnel — Awareness" : ((strategy as any).current_focus === "mof" ? "Mid Funnel — Trust" : "Bottom Funnel — Conversion")}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="text-[9px] border-primary/30 text-primary">
+                    {(strategy as any).launch_readiness || 0}% Ready
+                  </Badge>
+                  <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${strategyOpen ? "rotate-180" : ""}`} />
+                </div>
+              </div>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <div className="mt-2 rounded-xl border border-border bg-card p-5 space-y-4 animate-in fade-in duration-300">
+                {/* Persona */}
+                {(strategy as any).persona_card?.name && (
+                  <div className="flex items-start gap-3">
+                    <Target className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+                    <div>
+                      <p className="text-[9px] uppercase tracking-wider text-muted-foreground font-bold">Target Persona</p>
+                      <p className="text-xs font-bold text-foreground">{(strategy as any).persona_card.name}</p>
+                      <p className="text-[10px] text-muted-foreground">{(strategy as any).persona_card.psychographic}</p>
+                    </div>
+                  </div>
+                )}
+                {/* Funnel */}
+                {(strategy as any).funnel_stages && (
+                  <div className="flex items-start gap-3">
+                    <TrendingUp className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+                    <div className="space-y-1">
+                      <p className="text-[9px] uppercase tracking-wider text-muted-foreground font-bold">Funnel Strategy</p>
+                      {["tof", "mof", "bof"].map((stage) => {
+                        const s = (strategy as any).funnel_stages?.[stage];
+                        if (!s) return null;
+                        return (
+                          <p key={stage} className="text-[10px] text-foreground">
+                            <span className="font-semibold capitalize">{stage === "tof" ? "Awareness" : stage === "mof" ? "Trust" : "Conversion"}:</span>{" "}
+                            {s.strategy_name}
+                          </p>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+                {/* CMO Directive */}
+                {(strategy as any).cmo_directive && (
+                  <div className="border-t border-border pt-3">
+                    <p className="text-[10px] text-foreground italic">{(strategy as any).cmo_directive}</p>
+                  </div>
+                )}
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+        )}
+
         {loading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {Array.from({ length: 8 }).map((_, i) => (
