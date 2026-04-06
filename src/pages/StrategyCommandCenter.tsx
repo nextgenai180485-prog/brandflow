@@ -308,14 +308,31 @@ const StrategyCommandCenter = () => {
         </div>
 
         <div className="hidden lg:flex w-[420px] xl:w-[480px] border-l border-border bg-secondary/20 flex-col shrink-0">
-          <CMOStrategyPanel
-            brandProfile={brandProfile}
-            loadingProfile={researchLoading}
-            selectedPlatforms={[]}
-            selectedContentTypes={[]}
-            campaignTitle=""
-            campaignInstructions=""
-          />
+          <Tabs defaultValue="chat" className="flex flex-col h-full">
+            <TabsList className="w-full rounded-none border-b border-border bg-transparent h-9 px-2 shrink-0">
+              <TabsTrigger value="chat" className="text-[10px] gap-1.5 data-[state=active]:bg-primary/10">
+                <MessageSquare className="w-3 h-3" />
+                CSO Chat
+              </TabsTrigger>
+              <TabsTrigger value="intel" className="text-[10px] gap-1.5 data-[state=active]:bg-primary/10">
+                <BarChart3 className="w-3 h-3" />
+                Intelligence
+              </TabsTrigger>
+            </TabsList>
+            <TabsContent value="chat" className="flex-1 mt-0 overflow-hidden">
+              <CMOChat />
+            </TabsContent>
+            <TabsContent value="intel" className="flex-1 mt-0 overflow-hidden">
+              <CMOStrategyPanel
+                brandProfile={brandProfile}
+                loadingProfile={researchLoading}
+                selectedPlatforms={[]}
+                selectedContentTypes={[]}
+                campaignTitle=""
+                campaignInstructions=""
+              />
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
     </AppShell>
