@@ -419,25 +419,84 @@ const AssetInspector = ({
         </TabsContent>
 
         {/* STRATEGY TAB */}
-        <TabsContent value="strategy" className="flex-1 mt-3 space-y-3">
-          <div className="rounded-lg border border-border bg-secondary/30 p-3 space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Decision Confidence</span>
-              <span className="text-xs font-semibold text-foreground">—</span>
-            </div>
-            <p className="text-[11px] text-muted-foreground leading-relaxed">
-              Strategy insights will appear here once the Research & Decision Engine is connected.
-            </p>
-          </div>
-          <div className="rounded-lg border border-dashed border-border p-3">
-            <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Coming Soon</span>
-            <ul className="mt-1.5 space-y-1 text-[11px] text-muted-foreground">
-              <li>• Market trend analysis</li>
-              <li>• Competitor creative patterns</li>
-              <li>• Hook effectiveness scoring</li>
-              <li>• Brand memory signals</li>
-            </ul>
-          </div>
+        <TabsContent value="strategy" className="flex-1 mt-3 space-y-3 overflow-y-auto">
+          {researchBrief ? (
+            <>
+              {/* Decision Confidence */}
+              <div className="rounded-lg border border-border bg-secondary/30 p-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Research Quality</span>
+                  <div className="flex items-center gap-0.5">
+                    {[1, 2, 3, 4, 5].map((i) => (
+                      <Star key={i} className={cn("w-3 h-3", i <= (researchBrief.research_quality || 3) ? "fill-amber-400 text-amber-400" : "text-muted-foreground/30")} />
+                    ))}
+                  </div>
+                </div>
+                <p className="text-[11px] text-foreground leading-relaxed">{researchBrief.summary}</p>
+              </div>
+
+              {/* Visual Direction */}
+              {researchBrief.visual_direction && (
+                <div className="rounded-lg border border-border bg-secondary/30 p-3">
+                  <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Visual Direction</span>
+                  <p className="text-[11px] text-foreground leading-relaxed mt-1">{researchBrief.visual_direction}</p>
+                </div>
+              )}
+
+              {/* Content Angles Used */}
+              {researchBrief.content_angles?.length > 0 && (
+                <div className="rounded-lg border border-border bg-secondary/30 p-3">
+                  <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Content Angles</span>
+                  <ul className="mt-1.5 space-y-1">
+                    {researchBrief.content_angles.map((angle: string, i: number) => (
+                      <li key={i} className="text-[10px] text-foreground flex items-start gap-1.5">
+                        <Sparkles className="w-3 h-3 text-primary mt-0.5 shrink-0" />
+                        {angle}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Brand Gap */}
+              {researchBrief.brand_gap_analysis && (
+                <div className="rounded-lg border border-border bg-secondary/30 p-3">
+                  <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Brand Gap Analysis</span>
+                  <p className="text-[11px] text-foreground leading-relaxed mt-1">{researchBrief.brand_gap_analysis}</p>
+                </div>
+              )}
+
+              {/* Sources */}
+              {researchBrief.sources?.length > 0 && (
+                <div className="rounded-lg border border-dashed border-border p-3">
+                  <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">
+                    Research Sources ({researchBrief.sources.length})
+                  </span>
+                  <ul className="mt-1.5 space-y-1">
+                    {researchBrief.sources.slice(0, 8).map((s: any, i: number) => (
+                      <li key={i}>
+                        <a href={s.url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-primary hover:underline truncate block">
+                          {s.title || s.url}
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </>
+          ) : (
+            <>
+              <div className="rounded-lg border border-border bg-secondary/30 p-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Decision Confidence</span>
+                  <span className="text-xs font-semibold text-foreground">—</span>
+                </div>
+                <p className="text-[11px] text-muted-foreground leading-relaxed">
+                  Run research first to see strategy insights for this asset.
+                </p>
+              </div>
+            </>
+          )}
         </TabsContent>
 
         {/* SCHEDULE TAB */}
