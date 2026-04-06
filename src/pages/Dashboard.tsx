@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { Plus, LayoutGrid, Clock, ImageIcon, Video, FileText, Layers, Brain, ChevronDown, Target, TrendingUp } from "lucide-react";
+import { Plus, LayoutGrid, Clock, ImageIcon, Video, FileText, Layers, Brain, ChevronDown, Target, TrendingUp, Trash2 } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { format } from "date-fns";
 import { toast } from "sonner";
