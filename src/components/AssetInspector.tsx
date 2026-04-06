@@ -107,8 +107,6 @@ const AssetInspector = ({
   const nativeAspect = meta?.aspectRatio || "4 / 5";
   const platformLabel = meta ? `${PLATFORM_LABELS[meta.platform as SocialPlatform]} · ${meta.format}` : "";
   const dimensionLabel = meta ? `${meta.width}×${meta.height}` : "";
-  const status = statusBadge[asset.status];
-  const aspectRatio = meta?.aspectRatio?.replace("/", " / ") || "4 / 5";
 
   const updateStatus = async (newStatus: AssetStatus) => {
     setUpdating(true);
