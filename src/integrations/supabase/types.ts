@@ -270,6 +270,30 @@ export type Database = {
           },
         ]
       }
+      cmo_chat_messages: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          profile_id: string
+          role: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          profile_id: string
+          role?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          profile_id?: string
+          role?: string
+        }
+        Relationships: []
+      }
       decision_traces: {
         Row: {
           asset_id: string | null

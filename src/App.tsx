@@ -15,6 +15,7 @@ import CalendarView from "./pages/CalendarView";
 import Onboarding from "./pages/Onboarding";
 import StrategyCommandCenter from "./pages/StrategyCommandCenter";
 import NotFound from "./pages/NotFound";
+import GlobalCMOChat from "./components/GlobalCMOChat";
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1 } },
@@ -74,6 +75,7 @@ const App = () => (
             />
             <Route path="*" element={<NotFound />} />
           </Routes>
+          <GlobalCMOChat />
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
