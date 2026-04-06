@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import AssetLibraryPicker, { type LibraryAsset } from "@/components/AssetLibraryPicker";
+import LibraryBrowser, { type LibrarySelection } from "@/components/LibraryBrowser";
 import {
   Video, Film, Mic, Camera, Lightbulb, Eye, Sparkles, Loader2,
   Clapperboard, MapPin, Zap, Target, Clock, Palette, Send,
@@ -42,6 +43,8 @@ interface CreativeDirectionStepProps {
   onDirectionChange: (direction: DirectorOutput | null) => void;
   platform: string;
   format: string;
+  librarySelections?: LibrarySelection[];
+  onLibrarySelectionsChange?: (selections: LibrarySelection[]) => void;
 }
 
 const FAMILY_CONFIG: Record<string, { icon: typeof Video; color: string; bg: string }> = {
@@ -70,6 +73,7 @@ const CreativeDirectionStep = ({
   referenceAssets, onReferenceAssetsChange,
   direction, onDirectionChange,
   platform, format,
+  librarySelections = [], onLibrarySelectionsChange,
 }: CreativeDirectionStepProps) => {
   const [loading, setLoading] = useState(false);
   const [expandedScene, setExpandedScene] = useState<number | null>(0);
@@ -149,6 +153,14 @@ const CreativeDirectionStep = ({
           {/* Reference assets */}
           <AssetLibraryPicker selectedAssets={referenceAssets} onChange={onReferenceAssetsChange} />
 
+          {/* Library templates/characters/references */}
+          {onLibrarySelectionsChange && (
+            <LibraryBrowser
+              selections={librarySelections}
+              onSelectionsChange={onLibrarySelectionsChange}
+              allowedTypes={["video_template", "character", "ad_reference"]}
+            />
+          )}
           <Button
             onClick={handleStructure}
             disabled={loading || brief.trim().length < 10}
