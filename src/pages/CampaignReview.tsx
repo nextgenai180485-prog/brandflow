@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   ArrowLeft, Check, X, RefreshCw, Download, Copy, Loader2,
-  CheckCircle2, XCircle, Clock, Sparkles, Image as ImageIcon, Video
+  CheckCircle2, XCircle, Clock, Sparkles, Image as ImageIcon, Video, Wand2
 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -15,6 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import type { Campaign, GeneratedAsset, CampaignStatus } from "@/types/campaigns";
 import PhonePreview from "@/components/PhonePreview";
+import AssetEditor from "@/components/AssetEditor";
 
 const STATUS_CONFIG: Record<string, { label: string; icon: React.ReactNode; className: string }> = {
   pending_review: { label: "Pending", icon: <Clock className="w-3 h-3" />, className: "bg-amber-100 text-amber-800 border-amber-200" },
@@ -57,6 +58,7 @@ const CampaignReview = () => {
   const [selectedAsset, setSelectedAsset] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [previewAssetId, setPreviewAssetId] = useState<string | null>(null);
+  const [editingAssetId, setEditingAssetId] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
     if (!id || !user) return;
