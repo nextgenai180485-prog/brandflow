@@ -1,8 +1,9 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   ArrowLeft, Check, X, RefreshCw, Download, Copy, Loader2,
-  CheckCircle2, XCircle, Clock, Sparkles, Image as ImageIcon, Video, Wand2
+  CheckCircle2, XCircle, Clock, Sparkles, Image as ImageIcon, Video, Wand2,
+  Pencil, RotateCw, Save
 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
