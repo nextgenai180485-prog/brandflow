@@ -1,46 +1,31 @@
-## Phase 1: Inline Campaign Creator Page
 
-**Goal:** Replace the modal dialog with a dedicated `/dashboard/campaigns/new` page.
+# Master-Detail Review Canvas — Phased Plan
 
-- New route `/dashboard/campaigns/new` with full-page inline form
-- Campaign name + instructions fields inline (no modal)
-- Back arrow to `/dashboard`
-- "New Campaign" button on Dashboard navigates here instead of opening dialog
+## Phase 1: Grid Workspace Refinement
+- Fix precision spacing: 64px header, 24px gap to title, 16px to filters, 8px grid alignment
+- Tighten the generation grid to true 4-6 column density with `aspect-ratio` CSS for mixed formats (9:16, 4:5, 1:1, 16:9) in the same row
+- Carousel cards show a "stack" visual (layered shadow effect) with slide count badge
 
-## Phase 2: Multi-Asset Dropzone & Filmstrip
+## Phase 2: Inspector Side Panel (The Detail View)
+- Click any asset card → Shadcn `Sheet` slides in from the right (400px wide)
+- Shows: full-size preview at native aspect ratio, caption text, platform badge, format dimensions
+- Action buttons: **Accept**, **Reject**, **Regenerate** — all inline in the panel
+- Carousel assets get a slide navigator (prev/next) inside the panel
+- Selected card gets a 2px brand-color border highlight in the grid
 
-**Goal:** Replace single file upload with bulk drag-and-drop + filmstrip thumbnail manager.
+## Phase 3: Inline Quick-Schedule
+- Add a "Schedule" button inside the Inspector panel
+- Clicking it reveals an inline mini-calendar + time picker + platform selector (no separate modal)
+- On confirm → asset/campaign gets a "Scheduled" badge with date overlay on the card
+- Removes the need for the separate ScheduleModal popup
 
-- Full-width hero dropzone with dashed border (supports multiple files)
-- On upload: dropzone shrinks into horizontal filmstrip (scrollable thumbnails)
-- Each thumbnail shows: preview, remove (X) button, file name
-- "Add More" square at the end of the filmstrip
-- Mobile: 3-column compact grid instead of horizontal scroll
-- All files upload to `campaign_assets/{user_id}/` in Supabase Storage
-- Track multiple files in local state before campaign creation
+## Phase 4: Carousel Auto-Preview
+- Carousel cards auto-cycle slides on hover (1.5s per slide)
+- Caption truncated to 2 lines on the card, full caption in the Inspector
+- Slide indicator dots on the card thumbnail
 
-## Phase 3: Batch Asset Records
-
-**Goal:** Create `generated_assets` records for every uploaded file on campaign submit.
-
-- On "Create Campaign": insert campaign row, then batch-insert one `generated_assets` record per uploaded file
-- Each record gets `asset_type` (image/video) auto-detected from MIME type
-- Status defaults to `pending_review`
-- Navigate to `/dashboard/campaigns/:id` on success
-
-## Phase 4: Campaign Details — Multi-Asset Feed
-
-**Goal:** The feed view already exists (AssetFeedCard). Ensure it renders all uploaded assets as individual feed cards.
-
-- Each uploaded asset appears as its own social-style card with caption
-- Add "Accept All" / "Reject All" bulk action buttons at top of feed
-- GenerateButton creates variants for ALL uploaded assets (not just one)
-
-## Phase 5: Mobile Polish
-
-**Goal:** Ensure the inline canvas is thumb-friendly on mobile.
-
-- Dropzone full-width with large tap target
-- Filmstrip becomes 3-col grid on mobile
-- Create button sticky at bottom on mobile
-- Test at 375px, 390px viewports
+## Phase 5: Polish & Mobile Adaptation
+- On mobile (<768px): Inspector becomes a bottom sheet (full-width drawer)
+- Grid collapses to 2 columns with touch-friendly tap targets
+- Swipe gestures on carousel previews
+- Keyboard shortcuts: Arrow keys to navigate grid, Enter to accept, Backspace to reject
