@@ -158,14 +158,54 @@ const CampaignDetails = () => {
           </div>
         )}
 
-        {/* Feed Section Label */}
-        <div className="flex items-center gap-2 mb-4 px-1">
-          <Sparkles className="w-4 h-4 text-brand" />
-          <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Generated Content Feed</h2>
-          {generatedAssets.length > 0 && (
-            <span className="text-[10px] text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">
-              {generatedAssets.length} item{generatedAssets.length !== 1 ? "s" : ""}
-            </span>
+        {/* Feed Section Label + Bulk Actions */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 px-1">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-brand" />
+            <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Generated Content Feed</h2>
+            {generatedAssets.length > 0 && (
+              <span className="text-[10px] text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">
+                {generatedAssets.length} item{generatedAssets.length !== 1 ? "s" : ""}
+              </span>
+            )}
+          </div>
+
+          {/* Bulk Actions */}
+          {generatedAssets.filter((a) => a.status === "pending_review").length > 1 && (
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                className="text-xs gap-1.5 text-emerald-700 border-emerald-200 hover:bg-emerald-50"
+                onClick={async () => {
+                  const pending = generatedAssets.filter((a) => a.status === "pending_review");
+                  await supabase
+                    .from("generated_assets")
+                    .update({ status: "approved" })
+                    .in("id", pending.map((a) => a.id));
+                  toast.success(`${pending.length} assets approved!`);
+                  fetchData();
+                }}
+              >
+                <CheckCheck className="w-3.5 h-3.5" /> Accept All
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="text-xs gap-1.5 text-red-700 border-red-200 hover:bg-red-50"
+                onClick={async () => {
+                  const pending = generatedAssets.filter((a) => a.status === "pending_review");
+                  await supabase
+                    .from("generated_assets")
+                    .update({ status: "rejected" })
+                    .in("id", pending.map((a) => a.id));
+                  toast.success(`${pending.length} assets rejected.`);
+                  fetchData();
+                }}
+              >
+                <XCircle className="w-3.5 h-3.5" /> Reject All
+              </Button>
+            </div>
           )}
         </div>
 
