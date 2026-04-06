@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Check, X, ImageIcon, VideoIcon, FileText, Layers, Instagram } from "lucide-react";
+import { Check, X, ImageIcon, VideoIcon, FileText, Layers, Instagram, Play } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { GeneratedAsset, AssetStatus, SocialMeta } from "@/types/campaigns";
@@ -15,8 +15,6 @@ const useTypewriter = (text: string | null, speed = 18) => {
       setDone(true);
       return;
     }
-
-    // If text hasn't changed, don't re-animate
     if (prevTextRef.current === text) return;
     prevTextRef.current = text;
 
@@ -92,10 +90,45 @@ const AssetFeedCard = ({ asset, onStatusChange, isSelected, onClick }: AssetFeed
   const statusCfg = statusBadgeConfig[asset.status];
   const isVisual = asset.asset_type !== "copy";
   const aspectRatio = socialMeta?.aspectRatio?.replace("/", " / ") || "4 / 5";
+  const isVideo = asset.asset_type === "video";
+
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [hovering, setHovering] = useState(false);
+
+  // Auto-play video on hover
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v) return;
+    if (hovering) {
+      v.currentTime = 0;
+      v.play().catch(() => {});
+    } else {
+      v.pause();
+      v.currentTime = 0;
+    }
+  }, [hovering]);
+
+  // Carousel auto-cycle on hover
+  const [carouselSlide, setCarouselSlide] = useState(0);
+  const isCarousel = asset.asset_type === "carousel";
+  const slideCount = 5;
+
+  useEffect(() => {
+    if (!isCarousel || !hovering) {
+      setCarouselSlide(0);
+      return;
+    }
+    const interval = setInterval(() => {
+      setCarouselSlide((s) => (s + 1) % slideCount);
+    }, 1500);
+    return () => clearInterval(interval);
+  }, [isCarousel, hovering]);
 
   return (
     <article
       onClick={onClick}
+      onMouseEnter={() => setHovering(true)}
+      onMouseLeave={() => setHovering(false)}
       className={`group relative bg-card rounded-lg border overflow-hidden shadow-sm hover:shadow-md transition-all duration-150 cursor-pointer flex flex-col ${
         isSelected ? "border-primary ring-2 ring-primary/20" : "border-border"
       }`}
@@ -103,7 +136,28 @@ const AssetFeedCard = ({ asset, onStatusChange, isSelected, onClick }: AssetFeed
       {/* Media */}
       {isVisual && (
         <div className="relative w-full bg-muted overflow-hidden" style={{ aspectRatio }}>
-          {asset.content_url ? (
+          {/* Video with hover auto-play */}
+          {isVideo && asset.content_url ? (
+            <>
+              <video
+                ref={videoRef}
+                src={asset.content_url}
+                muted
+                playsInline
+                loop
+                className="w-full h-full object-cover"
+                poster={asset.content_url} // fallback poster
+              />
+              {/* Play icon overlay when not hovering */}
+              {!hovering && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center">
+                    <Play className="w-4 h-4 text-white ml-0.5" />
+                  </div>
+                </div>
+              )}
+            </>
+          ) : asset.content_url ? (
             <img src={asset.content_url} alt={socialMeta?.label || "Asset"} className="w-full h-full object-cover" />
           ) : (
             <Skeleton className="w-full h-full" />
@@ -124,22 +178,35 @@ const AssetFeedCard = ({ asset, onStatusChange, isSelected, onClick }: AssetFeed
             </Badge>
           </div>
 
-          {/* Carousel slide indicator */}
-          {asset.asset_type === "carousel" && (
-            <div className="absolute bottom-1.5 right-1.5 px-1 py-0.5 bg-foreground/60 backdrop-blur-sm rounded text-[8px] font-mono text-card">
-              <Layers className="w-2.5 h-2.5 inline mr-0.5" />1/5
-            </div>
+          {/* Carousel slide indicator with dots */}
+          {isCarousel && (
+            <>
+              <div className="absolute bottom-1.5 right-1.5 px-1 py-0.5 bg-foreground/60 backdrop-blur-sm rounded text-[8px] font-mono text-card">
+                <Layers className="w-2.5 h-2.5 inline mr-0.5" />{carouselSlide + 1}/{slideCount}
+              </div>
+              {/* Dot indicators */}
+              <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 flex gap-1">
+                {Array.from({ length: slideCount }).map((_, i) => (
+                  <div
+                    key={i}
+                    className={`w-1 h-1 rounded-full transition-all ${
+                      i === carouselSlide ? "bg-white w-2" : "bg-white/40"
+                    }`}
+                  />
+                ))}
+              </div>
+            </>
           )}
 
           {/* Video duration */}
-          {asset.asset_type === "video" && (
+          {isVideo && !isCarousel && (
             <div className="absolute bottom-1.5 right-1.5 px-1 py-0.5 bg-foreground/60 backdrop-blur-sm rounded text-[8px] font-mono text-card">
               0:15
             </div>
           )}
 
           {/* Dimension label */}
-          {socialMeta && (
+          {socialMeta && !isCarousel && (
             <div className="absolute bottom-1.5 left-1.5 px-1 py-0.5 bg-foreground/50 backdrop-blur-sm rounded text-[7px] font-mono text-card">
               {socialMeta.aspectRatio}
             </div>
