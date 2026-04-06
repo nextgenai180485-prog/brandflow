@@ -108,6 +108,18 @@ const Dashboard = () => {
     return () => clearInterval(interval);
   }, [campaigns, fetchCampaigns]);
 
+  const deleteCampaign = useCallback(async (campaignId: string) => {
+    // Delete assets first, then campaign
+    await supabase.from("generated_assets").delete().eq("campaign_id", campaignId);
+    const { error } = await supabase.from("campaigns").delete().eq("id", campaignId);
+    if (error) {
+      toast.error("Failed to delete campaign");
+      return;
+    }
+    toast.success("Campaign deleted");
+    setCampaigns((prev) => prev.filter((c) => c.id !== campaignId));
+  }, []);
+
   const getTypeIcon = (type: string) => {
     switch (type) {
       case "video": return <Video className="w-3 h-3" />;
