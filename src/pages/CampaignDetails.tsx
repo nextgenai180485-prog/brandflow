@@ -8,6 +8,8 @@ import AppShell from "@/components/AppShell";
 import GenerateButton from "@/components/GenerateButton";
 import AssetFeedCard from "@/components/AssetFeedCard";
 import AssetInspector from "@/components/AssetInspector";
+import ResearchPreviewPanel from "@/components/ResearchPreviewPanel";
+import type { IntelligenceBrief } from "@/components/ResearchPreviewPanel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -42,11 +44,18 @@ const CampaignDetails = () => {
   const [activePlatform, setActivePlatform] = useState<SocialPlatform | "all">("all");
   const [selectedAssetId, setSelectedAssetId] = useState<string | null>(null);
 
+  // Research state
+  const [researchBrief, setResearchBrief] = useState<IntelligenceBrief | null>(null);
+  const [researchId, setResearchId] = useState<string | null>(null);
+  const [researchLoading, setResearchLoading] = useState(false);
+  const [researchApproved, setResearchApproved] = useState(false);
+
   const fetchData = useCallback(async () => {
     if (!user || !id) return;
-    const [cRes, aRes] = await Promise.all([
+    const [cRes, aRes, rRes] = await Promise.all([
       supabase.from("campaigns").select("*").eq("id", id).single(),
       supabase.from("generated_assets").select("*").eq("campaign_id", id).order("created_at", { ascending: false }),
+      supabase.from("campaign_research").select("*").eq("campaign_id", id).order("created_at", { ascending: false }).limit(1),
     ]);
     if (cRes.data) setCampaign(cRes.data as Campaign);
     if (aRes.data) {
@@ -61,6 +70,20 @@ const CampaignDetails = () => {
         }
       }
     }
+
+    // Load existing research
+    if (rRes.data && rRes.data.length > 0) {
+      const research = rRes.data[0] as any;
+      if (research.intelligence_brief) {
+        setResearchBrief(research.intelligence_brief as IntelligenceBrief);
+        setResearchId(research.id);
+        // Auto-approve if assets already exist (research was already used)
+        if (aRes.data && aRes.data.length > 0) {
+          setResearchApproved(true);
+        }
+      }
+    }
+
     setLoading(false);
   }, [user, id]);
 
@@ -74,13 +97,29 @@ const CampaignDetails = () => {
     navigate("/dashboard");
   };
 
+  const handleResearchReady = (brief: IntelligenceBrief, rId: string) => {
+    setResearchBrief(brief);
+    setResearchId(rId);
+    setResearchApproved(false); // Require explicit approval
+  };
+
+  const handleResearchApprove = () => {
+    setResearchApproved(true);
+    toast.success("Research approved — ready to generate!");
+  };
+
+  const handleResearchRerun = () => {
+    setResearchBrief(null);
+    setResearchId(null);
+    setResearchApproved(false);
+  };
+
   const platformTabs = useMemo(() => {
     const platforms = new Set<SocialPlatform>();
     assets.forEach((a) => { const p = parsePlatform(a); if (p) platforms.add(p); });
     return Array.from(platforms).sort();
   }, [assets]);
 
-  // All assets are shown — no filtering by URL pattern
   const generatedAssets = assets;
   const filteredAssets = activePlatform === "all"
     ? generatedAssets
@@ -124,11 +163,13 @@ const CampaignDetails = () => {
   }
 
   const status = statusConfig[campaign.status];
+  const showResearchPanel = campaign.status === "draft" && (researchBrief || researchLoading);
+  const showEmptyDraft = campaign.status === "draft" && generatedAssets.length === 0 && !researchBrief && !researchLoading;
 
   return (
     <AppShell>
       <div className="px-4 sm:px-6 pt-4 pb-6">
-        {/* Header — 24px from top, tight lockup */}
+        {/* Header */}
         <div className="flex items-center justify-between gap-3 mb-4">
           <div className="flex items-center gap-2.5 min-w-0">
             <button onClick={() => navigate("/dashboard")} className="p-1.5 -ml-1.5 rounded-md hover:bg-secondary transition-colors shrink-0">
@@ -138,7 +179,17 @@ const CampaignDetails = () => {
             <Badge variant="outline" className={`text-[10px] shrink-0 ${status.className}`}>{status.label}</Badge>
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
-            {campaign.status === "draft" && <GenerateButton campaignId={campaign.id} onGenerated={fetchData} />}
+            {campaign.status === "draft" && (
+              <GenerateButton
+                campaignId={campaign.id}
+                onGenerated={fetchData}
+                onResearchReady={handleResearchReady}
+                onResearchLoading={setResearchLoading}
+                researchApproved={researchApproved}
+                researchId={researchId}
+                intelligenceBrief={researchBrief}
+              />
+            )}
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive">
@@ -163,7 +214,20 @@ const CampaignDetails = () => {
           </div>
         </div>
 
-        {/* Platform filter tabs + bulk actions — 16px gap */}
+        {/* Research Preview Panel — shows before generation */}
+        {showResearchPanel && (
+          <div className="mb-6">
+            <ResearchPreviewPanel
+              brief={researchBrief}
+              loading={researchLoading}
+              onApprove={handleResearchApprove}
+              onRerun={handleResearchRerun}
+              approved={researchApproved}
+            />
+          </div>
+        )}
+
+        {/* Platform filter tabs + bulk actions */}
         {generatedAssets.length > 0 && (
           <div className="flex items-center justify-between gap-2 mb-4">
             <div className="flex items-center gap-1 overflow-x-auto scrollbar-none">
@@ -226,21 +290,15 @@ const CampaignDetails = () => {
         {generatedAssets.length > 0 && generatedAssets.some((a: any) => a.provider) && (
           <div className="flex items-center gap-3 mb-3 px-2.5 py-1.5 rounded-lg bg-secondary/50 text-[10px] text-muted-foreground">
             <span className="font-medium text-foreground">Generation Summary</span>
-            <span>
-              {generatedAssets.filter((a: any) => a.provider).length} AI-generated
-            </span>
+            <span>{generatedAssets.filter((a: any) => a.provider).length} AI-generated</span>
             <span>·</span>
-            <span>
-              ${generatedAssets.reduce((sum: number, a: any) => sum + (Number((a as any).generation_cost) || 0), 0).toFixed(2)} total cost
-            </span>
+            <span>${generatedAssets.reduce((sum: number, a: any) => sum + (Number((a as any).generation_cost) || 0), 0).toFixed(2)} total cost</span>
             <span>·</span>
-            <span>
-              {Array.from(new Set(generatedAssets.map((a: any) => a.provider).filter(Boolean))).join(", ")}
-            </span>
+            <span>{Array.from(new Set(generatedAssets.map((a: any) => a.provider).filter(Boolean))).join(", ")}</span>
           </div>
         )}
 
-        {/* Asset grid — high-density masonry-style */}
+        {/* Asset grid */}
         {filteredAssets.length > 0 ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
             {filteredAssets.map((asset) => (
@@ -253,26 +311,34 @@ const CampaignDetails = () => {
               />
             ))}
           </div>
-        ) : campaign.status === "draft" ? (
+        ) : showEmptyDraft ? (
           <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-border bg-card py-16">
             <p className="text-muted-foreground mb-4 text-xs text-center px-4">
-              Ready to create content for this campaign.
+              Start by researching your market, then generate content backed by real intelligence.
             </p>
-            <GenerateButton campaignId={campaign.id} onGenerated={fetchData} />
+            <GenerateButton
+              campaignId={campaign.id}
+              onGenerated={fetchData}
+              onResearchReady={handleResearchReady}
+              onResearchLoading={setResearchLoading}
+              researchApproved={researchApproved}
+              researchId={researchId}
+              intelligenceBrief={researchBrief}
+            />
           </div>
         ) : generatedAssets.length > 0 && filteredAssets.length === 0 ? (
           <div className="flex items-center justify-center py-16">
             <p className="text-xs text-muted-foreground">No assets for this platform.</p>
           </div>
-        ) : (
+        ) : campaign.status === "generating" ? (
           <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-border bg-card py-16">
             <div className="w-5 h-5 border-2 border-foreground border-t-transparent rounded-full animate-spin mb-3" />
             <p className="text-muted-foreground text-xs">Generating…</p>
           </div>
-        )}
+        ) : null}
       </div>
 
-      {/* Inspector Side Panel / Bottom Drawer */}
+      {/* Inspector Side Panel */}
       <AssetInspector
         asset={selectedAsset}
         open={!!selectedAssetId}
@@ -284,6 +350,7 @@ const CampaignDetails = () => {
         onNavigate={handleNavigate}
         hasPrev={selectedIdx > 0}
         hasNext={selectedIdx < filteredAssets.length - 1}
+        researchBrief={researchBrief}
       />
     </AppShell>
   );
