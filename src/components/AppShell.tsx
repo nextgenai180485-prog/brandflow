@@ -31,20 +31,20 @@ const AppShell = ({ children }: { children: React.ReactNode }) => {
   return (
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-sm">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
-          <div className="flex items-center gap-8">
+        <div className="mx-auto flex h-12 items-center justify-between px-4 sm:px-6">
+          <div className="flex items-center gap-6">
             <span
-              className="text-xl font-semibold tracking-tight text-foreground cursor-pointer"
+              className="text-base font-semibold tracking-tight text-foreground cursor-pointer"
               onClick={() => navigate("/dashboard")}
             >
               Brandflow
             </span>
-            <nav className="hidden md:flex items-center gap-1">
+            <nav className="hidden md:flex items-center gap-0.5">
               {navItems.map((item) => (
                 <button
                   key={item.path}
                   onClick={() => navigate(item.path)}
-                  className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                  className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
                     location.pathname === item.path || (item.path === "/dashboard" && location.pathname.startsWith("/dashboard"))
                       ? "bg-accent text-foreground"
                       : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
@@ -57,20 +57,20 @@ const AppShell = ({ children }: { children: React.ReactNode }) => {
           </div>
 
           <DropdownMenu>
-            <DropdownMenuTrigger className="flex items-center gap-2 rounded-full p-1 pr-3 transition-colors hover:bg-accent focus:outline-none">
-              <Avatar className="h-8 w-8">
-                <AvatarFallback className="bg-primary text-primary-foreground text-xs font-medium">
+            <DropdownMenuTrigger className="flex items-center gap-1.5 rounded-full p-0.5 pr-2 transition-colors hover:bg-accent focus:outline-none">
+              <Avatar className="h-7 w-7">
+                <AvatarFallback className="bg-primary text-primary-foreground text-[10px] font-medium">
                   {initials}
                 </AvatarFallback>
               </Avatar>
-              <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+              <ChevronDown className="h-3 w-3 text-muted-foreground" />
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuContent align="end" className="w-44">
               <DropdownMenuItem
                 onClick={handleSignOut}
-                className="cursor-pointer text-destructive focus:text-destructive"
+                className="cursor-pointer text-destructive focus:text-destructive text-xs"
               >
-                <LogOut className="mr-2 h-4 w-4" />
+                <LogOut className="mr-2 h-3.5 w-3.5" />
                 Logout
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -78,9 +78,7 @@ const AppShell = ({ children }: { children: React.ReactNode }) => {
         </div>
       </header>
 
-      <main className="mx-auto max-w-7xl px-6 py-10">
-        {children}
-      </main>
+      <main>{children}</main>
     </div>
   );
 };

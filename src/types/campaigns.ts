@@ -1,15 +1,17 @@
 export type CampaignStatus = 'draft' | 'generating' | 'review' | 'approved' | 'scheduled' | 'published';
-export type AssetType = 'image' | 'video' | 'copy';
+export type AssetType = 'image' | 'video' | 'copy' | 'carousel';
 export type AssetStatus = 'pending_review' | 'approved' | 'rejected' | 'regenerating';
 
-export type SocialPlatform = 'instagram' | 'tiktok' | 'facebook' | 'youtube';
+export type SocialPlatform = 'instagram' | 'tiktok' | 'facebook' | 'youtube' | 'linkedin' | 'x' | 'snapchat';
 export type SocialFormat = 'post' | 'story' | 'reel' | 'carousel';
 
 export interface SocialMeta {
   platform: SocialPlatform;
   format: SocialFormat;
-  aspectRatio: string; // e.g. "1/1", "4/5", "9/16"
-  label: string; // e.g. "Instagram Post"
+  aspectRatio: string;
+  label: string;
+  width: number;
+  height: number;
 }
 
 export interface Campaign {
@@ -34,17 +36,39 @@ export interface GeneratedAsset {
   status: AssetStatus;
   created_at: string;
   updated_at: string;
-  // Extended meta stored in content_text as JSON prefix or derived client-side
   platform?: SocialPlatform;
   format?: SocialFormat;
 }
 
-// Social format definitions for generation
+// Complete social format matrix with native dimensions
 export const SOCIAL_FORMATS: SocialMeta[] = [
-  { platform: 'instagram', format: 'post', aspectRatio: '4/5', label: 'Instagram Post' },
-  { platform: 'instagram', format: 'story', aspectRatio: '9/16', label: 'Instagram Story' },
-  { platform: 'instagram', format: 'reel', aspectRatio: '9/16', label: 'Instagram Reel' },
-  { platform: 'tiktok', format: 'reel', aspectRatio: '9/16', label: 'TikTok Video' },
-  { platform: 'facebook', format: 'post', aspectRatio: '1/1', label: 'Facebook Post' },
-  { platform: 'facebook', format: 'story', aspectRatio: '9/16', label: 'Facebook Story' },
+  // Instagram
+  { platform: 'instagram', format: 'post', aspectRatio: '4/5', label: 'Instagram Post', width: 1080, height: 1350 },
+  { platform: 'instagram', format: 'story', aspectRatio: '9/16', label: 'Instagram Story', width: 1080, height: 1920 },
+  { platform: 'instagram', format: 'reel', aspectRatio: '9/16', label: 'Instagram Reel', width: 1080, height: 1920 },
+  { platform: 'instagram', format: 'carousel', aspectRatio: '1/1', label: 'Instagram Carousel', width: 1080, height: 1080 },
+  // TikTok
+  { platform: 'tiktok', format: 'reel', aspectRatio: '9/16', label: 'TikTok Video', width: 1080, height: 1920 },
+  // Facebook
+  { platform: 'facebook', format: 'post', aspectRatio: '1/1', label: 'Facebook Post', width: 1200, height: 1200 },
+  { platform: 'facebook', format: 'story', aspectRatio: '9/16', label: 'Facebook Story', width: 1080, height: 1920 },
+  // LinkedIn
+  { platform: 'linkedin', format: 'post', aspectRatio: '1/1', label: 'LinkedIn Post', width: 1200, height: 1200 },
+  { platform: 'linkedin', format: 'carousel', aspectRatio: '4/5', label: 'LinkedIn Carousel', width: 1080, height: 1350 },
+  // X (Twitter)
+  { platform: 'x', format: 'post', aspectRatio: '16/9', label: 'X Post', width: 1200, height: 675 },
+  // Snapchat
+  { platform: 'snapchat', format: 'story', aspectRatio: '9/16', label: 'Snapchat Story', width: 1080, height: 1920 },
+  // YouTube
+  { platform: 'youtube', format: 'post', aspectRatio: '16/9', label: 'YouTube Thumbnail', width: 1280, height: 720 },
 ];
+
+export const PLATFORM_LABELS: Record<SocialPlatform, string> = {
+  instagram: 'Instagram',
+  tiktok: 'TikTok',
+  facebook: 'Facebook',
+  youtube: 'YouTube',
+  linkedin: 'LinkedIn',
+  x: 'X',
+  snapchat: 'Snapchat',
+};

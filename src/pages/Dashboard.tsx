@@ -34,30 +34,30 @@ const Dashboard = () => {
 
   return (
     <AppShell>
-      <div className="max-w-4xl mx-auto py-12 px-4">
-        <div className="flex items-center justify-between mb-10">
+      <div className="px-4 sm:px-6 pt-4 pb-8">
+        <div className="flex items-center justify-between mb-4">
           <div>
-            <h1 className="text-2xl font-semibold text-foreground">Campaigns</h1>
-            <p className="text-sm text-muted-foreground mt-1">
+            <h1 className="text-lg font-semibold text-foreground">Campaigns</h1>
+            <p className="text-xs text-muted-foreground mt-0.5">
               Manage your content generation campaigns.
             </p>
           </div>
           {campaigns.length > 0 && (
-            <Button onClick={() => navigate("/dashboard/campaigns/new")}>
-              <Plus className="w-4 h-4 mr-2" />
+            <Button size="sm" onClick={() => navigate("/dashboard/campaigns/new")} className="h-8 text-xs gap-1.5">
+              <Plus className="w-3.5 h-3.5" />
               New Campaign
             </Button>
           )}
         </div>
 
         {loading ? (
-          <div className="flex items-center justify-center py-32">
-            <div className="w-6 h-6 border-2 border-foreground border-t-transparent rounded-full animate-spin" />
+          <div className="flex items-center justify-center py-24">
+            <div className="w-5 h-5 border-2 border-foreground border-t-transparent rounded-full animate-spin" />
           </div>
         ) : campaigns.length === 0 ? (
           <EmptyCampaigns onCreateClick={() => navigate("/dashboard/campaigns/new")} />
         ) : (
-          <CampaignList campaigns={campaigns} />
+          <CampaignList campaigns={campaigns} onDelete={fetchCampaigns} />
         )}
       </div>
     </AppShell>
