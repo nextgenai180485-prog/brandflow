@@ -434,6 +434,23 @@ const CampaignReview = () => {
         )}
       </div>
 
+      {/* Asset Editor Modal */}
+      {(() => {
+        const editAsset = assets.find(a => a.id === editingAssetId);
+        if (!editAsset || !editAsset.content_url) return null;
+        return (
+          <AssetEditor
+            imageUrl={editAsset.content_url}
+            assetId={editAsset.id}
+            onEdited={(newUrl) => {
+              setAssets(prev => prev.map(a => a.id === editingAssetId ? { ...a, content_url: newUrl } : a));
+              setEditingAssetId(null);
+            }}
+            onClose={() => setEditingAssetId(null)}
+          />
+        );
+      })()}
+
       {/* Phone Preview Modal */}
       {(() => {
         const previewAsset = assets.find(a => a.id === previewAssetId);
