@@ -55,6 +55,7 @@ const App = () => (
                   <CampaignReview />
                 </ProtectedRoute>
               }
+            />
             <Route
               path="/dashboard/strategy/new"
               element={
