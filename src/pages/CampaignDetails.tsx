@@ -85,9 +85,22 @@ const CampaignDetails = () => {
     }
 
     setLoading(false);
+    return { hasResearch: !!(rRes.data && rRes.data.length > 0 && (rRes.data[0] as any).intelligence_brief) };
   }, [user, id]);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
+  // Auto-trigger research on first visit if none exists
+  const autoResearchTriggered = useRef(false);
+  useEffect(() => {
+    const init = async () => {
+      const result = await fetchData();
+      if (result && !result.hasResearch && !autoResearchTriggered.current) {
+        autoResearchTriggered.current = true;
+        // Fire research automatically
+        triggerAutoResearch();
+      }
+    };
+    init();
+  }, [fetchData]);
 
   const handleDeleteCampaign = async () => {
     if (!id) return;

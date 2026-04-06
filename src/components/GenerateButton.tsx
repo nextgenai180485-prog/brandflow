@@ -197,21 +197,11 @@ const GenerateButton = ({
   return (
     <div className="flex flex-col items-end gap-1">
       <div className="flex items-center gap-1.5">
-        {/* Research button — always show when no research yet */}
-        {!researchApproved && !existingBrief && (
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={handleResearch}
-            disabled={disabled || isWorking}
-            className="gap-1.5 h-8 text-xs"
-          >
-            {researching ? (
-              <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Researching…</>
-            ) : (
-              <><Search className="w-3.5 h-3.5" /> Research Market</>
-            )}
-          </Button>
+        {/* Research status indicator — no manual button, research is automatic */}
+        {!researchApproved && !existingBrief && researching && (
+          <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Loader2 className="w-3.5 h-3.5 animate-spin" /> Analyzing market…
+          </span>
         )}
 
         {/* Generate button — only enabled after research approved */}
