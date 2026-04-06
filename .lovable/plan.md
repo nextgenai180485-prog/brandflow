@@ -1,35 +1,42 @@
-## Phase: Proactive Intelligence Engine
+## Zero-to-One Founder Protocol Implementation
 
-### Task 1: Silent Research on Onboarding
-- Update `Onboarding.tsx` to trigger background research when website URL is entered (Step 1 → Step 2 transition)
-- Create `auto-brand-research` edge function that:
-  - Fetches website via direct HTTP (extract brand text, colors, imagery)
-  - Runs Exa competitor search
-  - Stores results in `campaign_research` or a new `brand_research` table
-- Show "Brand Summary Card" on dashboard after onboarding completes
+### Phase 1: Database — `brand_strategy` table
+- Store `core_identity` (archetype, enemy, hero_journey), `funnel_stages` (tof/mof/bof), `current_focus`, `persona_card`
+- RLS: users own their strategy
+- Referenced by CMO Agent and generation engine
 
-### Task 2: Selective Platform + Content Type Selection
-- Redesign `NewCampaign.tsx` as multi-step:
-  - **Step 1**: Select Platforms (Instagram, TikTok, LinkedIn, X, Facebook, Snapchat, YouTube)
-  - **Step 2**: Select Content Types per platform (Image, UGC Video, Pro Video)
-  - **Step 3**: Review Brand Insights (show pre-fetched research)
-- Generate button only active when ≥1 platform AND ≥1 content type selected
-- Generation payload sends ONLY selected platform+format combos (no shadow jobs)
+### Phase 2: Onboarding Fork — Detect "No Website" Path
+- In `Onboarding.tsx` Step 0 (BusinessBasics), add a toggle/option: "I don't have a website yet" or "I'm starting a new business"
+- If selected, skip website URL field and flag `isGenesis: true`
+- On "Launch Brandflow", route Genesis users to a **Founder Interview** flow instead of standard research
 
-### Task 3: Brand Insights in Campaign Builder
-- Show "Brand Summary Card" at top of campaign details with AI-sourced brand identity
-- "3 visual directions" preview based on research data
-- "Why This" rationale integrated into direction cards
+### Phase 3: Founder Interview Component
+- New component `FounderInterview.tsx` — renders in the CMO right panel at `/dashboard/strategy/new`
+- 3 sequential questions (Core Value → The Enemy → Secret Weapon)
+- Each answer streams to CMO Agent which provides real-time synthesis
+- After Q3, CMO generates the full Strategy Board
 
-### Task 4: Website Crawling for Brand Assets
-- Use direct fetch in edge function to extract brand colors, images, text from user's website
-- Store extracted brand assets as reference material for generation prompts
-- Pass reference images to generation provider
+### Phase 4: CMO Agent "Architect Mode"
+- Update `cmo-agent` edge function with a new mode: `architect`
+- Input: 3 interview answers + industry + business name
+- Output: Structured JSON — `core_identity`, `persona_card`, `funnel_stages`, `launch_roadmap`
+- Persists to `brand_strategy` table
 
-### Files to modify:
-- `src/pages/Onboarding.tsx` — trigger auto-research
-- `src/pages/NewCampaign.tsx` — multi-step platform/format selection  
-- `src/pages/CampaignDetails.tsx` — brand insights card
-- `supabase/functions/auto-brand-research/index.ts` — new edge function
-- `supabase/functions/generate-content/index.ts` — selective payload
-- `src/types/campaigns.ts` — content type definitions
+### Phase 5: Strategy Dashboard Widget
+- Collapsible accordion on Dashboard showing "Current Mission" from `brand_strategy.current_focus`
+- Expands to show Persona Card + Funnel Architecture
+- Links to Strategy Command Center for full details
+
+### Phase 6: Context Injection
+- When creating campaigns, inject `brand_strategy` context into CMO/generation prompts
+- Enforce funnel-stage-appropriate content (no sales posts during awareness phase)
+
+### Files Modified:
+- `supabase/migrations/` — new `brand_strategy` table
+- `src/components/onboarding/BusinessBasics.tsx` — "no website" toggle
+- `src/pages/Onboarding.tsx` — genesis routing
+- `src/components/FounderInterview.tsx` — NEW: 3-question interview
+- `src/components/CMOStrategyPanel.tsx` — architect mode rendering
+- `supabase/functions/cmo-agent/index.ts` — architect mode prompt
+- `src/pages/Dashboard.tsx` — strategy widget
+- `src/pages/StrategyCommandCenter.tsx` — interview integration
