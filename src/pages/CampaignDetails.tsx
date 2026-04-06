@@ -364,6 +364,11 @@ const CampaignDetails = () => {
               onApprove={handleResearchApprove}
               onRerun={handleResearchRerun}
               approved={researchApproved}
+              streamPhases={streamPhases}
+              streamColors={streamColors}
+              streamPages={streamPages}
+              streamAssets={streamAssets}
+              isStreaming={isStreaming}
             />
           </div>
         )}
