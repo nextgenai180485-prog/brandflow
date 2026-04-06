@@ -547,6 +547,57 @@ export type Database = {
         }
         Relationships: []
       }
+      image_templates: {
+        Row: {
+          created_at: string
+          format: string | null
+          id: string
+          is_active: boolean
+          negative_prompt: string
+          platform: string | null
+          prompt_modifiers: string[]
+          quality_tier: string
+          style_guide: Json
+          style_name: string
+          tags: string[] | null
+          updated_at: string
+          usage_count: number
+          vertical: string
+        }
+        Insert: {
+          created_at?: string
+          format?: string | null
+          id?: string
+          is_active?: boolean
+          negative_prompt?: string
+          platform?: string | null
+          prompt_modifiers?: string[]
+          quality_tier?: string
+          style_guide?: Json
+          style_name: string
+          tags?: string[] | null
+          updated_at?: string
+          usage_count?: number
+          vertical?: string
+        }
+        Update: {
+          created_at?: string
+          format?: string | null
+          id?: string
+          is_active?: boolean
+          negative_prompt?: string
+          platform?: string | null
+          prompt_modifiers?: string[]
+          quality_tier?: string
+          style_guide?: Json
+          style_name?: string
+          tags?: string[] | null
+          updated_at?: string
+          usage_count?: number
+          vertical?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           brand_colors: Json | null

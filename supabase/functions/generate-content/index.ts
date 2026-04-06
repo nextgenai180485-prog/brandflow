@@ -620,22 +620,84 @@ Output ONLY the caption text. No explanations, no quotes around it. Just the raw
   return data.choices?.[0]?.message?.content?.trim() || `Content for ${platform}`;
 }
 
-// ── Prompt Builders (now powered by Decision Engine output) ──
-function buildImagePrompt(platform: string, format: string, brandContext: any, intelligenceBrief: any, decisionWinner: any): string {
+// ── Professional Photography Prompt System ───────────────────
+
+// Format-specific composition rules
+const FORMAT_COMPOSITION: Record<string, string> = {
+  story: "Vertical 9:16 composition. Subject centered in frame with breathing room. Mobile-first full-bleed layout. Leading lines draw eye to focal point.",
+  reel: "Vertical 9:16 cinematic composition. Rule of thirds with subject slightly off-center. Dynamic negative space for motion implication.",
+  post: "Square or 4:5 composition. Clean negative space in upper third for text overlay potential. Strong visual anchor point. Balanced symmetry or intentional asymmetry.",
+  carousel: "Consistent visual language across slides. Each frame stands alone but flows as a sequence. Uniform lighting and color temperature.",
+  landscape: "Wide 16:9 cinematic composition. Layered depth with foreground, midground, background. Panoramic feel with strong horizon line.",
+};
+
+// Platform-specific aesthetic rules
+const PLATFORM_AESTHETICS: Record<string, string> = {
+  instagram: "Instagram-native aesthetic: warm tones, high contrast, slightly desaturated shadows, editorial feel. Optimized for discovery grid — thumbnail must be compelling.",
+  tiktok: "TikTok-native aesthetic: vibrant, high-energy, slightly raw but polished. Bold colors that pop on mobile screens. Trend-aware visual language.",
+  linkedin: "LinkedIn-native aesthetic: corporate-premium, clean backgrounds, professional lighting, trustworthy color palette (blues, whites, warm neutrals). Executive-grade polish.",
+  facebook: "Facebook-native aesthetic: community-focused warmth, relatable scenarios, approachable lighting. Lifestyle-forward, not overly polished.",
+  twitter: "X/Twitter-native aesthetic: high-impact single frame, bold typography-friendly composition, strong contrast for small preview cards.",
+  youtube: "YouTube-native aesthetic: cinematic widescreen feel, dramatic lighting, thumbnail-optimized with clear focal point and high contrast.",
+};
+
+// Vertical-specific photography rules
+const VERTICAL_PHOTOGRAPHY: Record<string, string> = {
+  beauty: "Soft diffused lighting with subtle rim light. Skin rendered naturally with luminous quality — not airbrushed. Macro detail on textures. Pastel or warm gold color palette. Shot on 85mm f/1.4 equivalent — shallow depth of field isolating subject.",
+  medspa: "Clinical-luxury hybrid aesthetic. Clean white/cream environments with warm accent lighting. Before/after implied through transformation narrative. Medical-grade trust cues with spa-level warmth. Soft directional lighting.",
+  fitness: "Dynamic action-frozen or peak-moment capture. Hard directional lighting with dramatic shadows emphasizing form. Desaturated darks with punchy accent colors. Shot on 35mm f/2.0 equivalent — environmental context visible.",
+  saas: "Clean, minimal, tech-forward. Gradient backgrounds or clean workspace environments. Device mockups with realistic screen glows. Cool blue-purple palette with warm accent. Abstract data visualization elements. Shallow depth of field on hero elements.",
+  ecommerce: "Product-hero photography. Clean white or contextual lifestyle backgrounds. Multiple light sources eliminating harsh shadows. True-to-life color accuracy. Shot on 50mm f/2.8 — balanced perspective without distortion. Reflections and material textures visible.",
+  food: "Appetizing overhead or 45-degree angle. Natural window light with bounce fill — warm and inviting. Shallow depth of field with garnish/texture in sharp focus. Rustic or clean-modern surface styling. Steam, drips, or motion for freshness cues.",
+  realestate: "Wide-angle interior with corrected verticals. HDR-balanced exposure — bright windows and detailed shadows. Warm ambient lighting supplemented with cool daylight. Decluttered, staged aesthetic. Shot on 16-24mm equivalent.",
+  general: "Professional commercial photography. Three-point lighting setup. Clean, intentional composition following rule of thirds. Neutral-warm color temperature. Shot on 50mm f/1.8 — natural perspective with beautiful bokeh.",
+};
+
+// ── Prompt Builders (now powered by Decision Engine + Image Templates) ──
+function buildImagePrompt(platform: string, format: string, brandContext: any, intelligenceBrief: any, decisionWinner: any, imageTemplate?: any): string {
+  const industry = (brandContext.industry || "general").toLowerCase();
   const baseStyle = intelligenceBrief?.visual_direction || "modern, clean, professional photography style";
   const angle = decisionWinner?.description || "showcase the brand experience";
   const hookText = decisionWinner?.hook_suggestion || "";
   const avoid = intelligenceBrief?.avoid || [];
 
-  let prompt = `Professional ${brandContext.industry || "beauty and wellness"} marketing image for ${platform} ${format}. `;
-  prompt += `Brand: "${brandContext.businessName || "luxury wellness studio"}". `;
-  prompt += `Visual style: ${baseStyle}. `;
+  // Get vertical-specific photography rules
+  const verticalRules = VERTICAL_PHOTOGRAPHY[industry] || VERTICAL_PHOTOGRAPHY.general;
+  const formatRules = FORMAT_COMPOSITION[format] || FORMAT_COMPOSITION.post;
+  const platformRules = PLATFORM_AESTHETICS[platform.toLowerCase()] || PLATFORM_AESTHETICS.instagram;
+
+  let prompt = `Ultra-high-quality professional ${industry} marketing photograph. `;
+  prompt += `Brand: "${brandContext.businessName || "luxury brand"}". `;
   prompt += `Creative direction: ${angle}. `;
-  if (hookText) prompt += `Concept: ${hookText}. `;
-  prompt += `The image should feel premium, aspirational, and authentic. `;
-  if (format === "story" || format === "reel") prompt += `Vertical composition optimized for mobile full-screen viewing. `;
-  else if (format === "post") prompt += `Well-composed with clean negative space for text overlay potential. `;
-  if (avoid.length > 0) prompt += `Avoid: ${avoid.slice(0, 3).join(", ")}. `;
+  if (hookText) prompt += `Visual concept: ${hookText}. `;
+
+  // Inject image template modifiers if available
+  if (imageTemplate) {
+    const guide = imageTemplate.style_guide || {};
+    if (guide.lighting) prompt += `Lighting: ${guide.lighting}. `;
+    if (guide.composition) prompt += `Composition: ${guide.composition}. `;
+    if (guide.color_palette) prompt += `Color palette: ${guide.color_palette}. `;
+    if (guide.lens) prompt += `Lens: ${guide.lens}. `;
+    if (guide.mood) prompt += `Mood: ${guide.mood}. `;
+    if (guide.texture) prompt += `Texture: ${guide.texture}. `;
+    if (imageTemplate.prompt_modifiers?.length) {
+      prompt += `${imageTemplate.prompt_modifiers.join(". ")}. `;
+    }
+  } else {
+    // Fallback to vertical-specific photography rules
+    prompt += `${verticalRules} `;
+  }
+
+  prompt += `${formatRules} `;
+  prompt += `${platformRules} `;
+  prompt += `Visual style reference: ${baseStyle}. `;
+  prompt += `Photorealistic, shot on high-end mirrorless camera, professional post-processing. Natural color grading — not over-saturated. `;
+  prompt += `No text, no watermarks, no logos, no borders, no UI elements. `;
+
+  // Negative prompt elements baked in
+  const avoidList = [...avoid.slice(0, 3), "stock photo feel", "clipart", "illustration", "3D render", "cartoon", "amateur lighting"];
+  prompt += `Strictly avoid: ${avoidList.join(", ")}. `;
+
   return prompt;
 }
 
@@ -696,6 +758,18 @@ async function processAssetsInBackground(
 ) {
   const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
+  // ── Load matching image templates for this brand's vertical ──
+  const industry = (brandContext?.industry || "general").toLowerCase();
+  const { data: imageTemplates } = await supabase
+    .from("image_templates")
+    .select("*")
+    .eq("is_active", true)
+    .or(`vertical.eq.${industry},vertical.eq.general`)
+    .order("usage_count", { ascending: false })
+    .limit(5);
+
+  console.log(`[Image Templates] Loaded ${imageTemplates?.length || 0} templates for vertical: ${industry}`);
+
   for (let i = 0; i < assets.length; i++) {
     const asset = assets[i];
     const placeholderId = placeholderIds[i];
@@ -712,7 +786,16 @@ async function processAssetsInBackground(
       let generatedPrompt = "";
 
       if (assetType === "image" || assetType === "carousel") {
-        generatedPrompt = buildImagePrompt(platform, format, brandContext || {}, intelligenceBrief || {}, decisionWinner);
+        // Find best matching template for this platform/format combo
+        const matchedTemplate = imageTemplates?.find(
+          (t: any) => (t.platform === platform || !t.platform) && (t.format === format || !t.format)
+        ) || imageTemplates?.[0] || null;
+
+        if (matchedTemplate) {
+          console.log(`[Image Templates] Using template: "${matchedTemplate.style_name}" for ${platform}/${format}`);
+        }
+
+        generatedPrompt = buildImagePrompt(platform, format, brandContext || {}, intelligenceBrief || {}, decisionWinner, matchedTemplate);
         console.log(`[Generate] ${assetType} for ${platform}/${format} via Replicate Seedream 5`);
         const result = await generateImage(generatedPrompt, width || 1080, height || 1080);
         contentUrl = result.url;
