@@ -413,18 +413,67 @@ const CampaignReview = () => {
 
                 {/* Caption + Actions */}
                 <div className="p-3 space-y-2">
-                  {caption && (
+                  {editingCaptionId === asset.id ? (
+                    <div className="space-y-1.5" onClick={(e) => e.stopPropagation()}>
+                      <textarea
+                        ref={captionRef}
+                        value={editedCaption}
+                        onChange={(e) => setEditedCaption(e.target.value)}
+                        className="w-full text-[11px] text-foreground leading-relaxed bg-muted/50 border border-border rounded-md p-2 resize-none focus:outline-none focus:ring-1 focus:ring-primary min-h-[60px]"
+                        rows={4}
+                      />
+                      <div className="flex items-center gap-1">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-6 px-2 text-[10px] gap-1"
+                          disabled={captionSaving}
+                          onClick={() => handleSaveCaption(asset.id)}
+                        >
+                          <Save className="w-3 h-3" /> Save
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-6 px-2 text-[10px] gap-1 text-muted-foreground"
+                          onClick={() => setEditingCaptionId(null)}
+                        >
+                          <X className="w-3 h-3" /> Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  ) : caption ? (
                     <div className="relative group/caption">
                       <p className="text-[11px] text-foreground leading-relaxed line-clamp-3">{caption}</p>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); handleCopyCaption(caption); }}
-                        className="absolute top-0 right-0 p-1 rounded opacity-0 group-hover/caption:opacity-100 hover:bg-secondary transition-all"
-                        title="Copy caption"
-                      >
-                        <Copy className="w-3 h-3 text-muted-foreground" />
-                      </button>
+                      <div className="absolute top-0 right-0 flex items-center gap-0.5 opacity-0 group-hover/caption:opacity-100 transition-all">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleStartEditCaption(asset.id, caption); }}
+                          className="p-1 rounded hover:bg-secondary transition-all"
+                          title="Edit caption"
+                        >
+                          <Pencil className="w-3 h-3 text-muted-foreground" />
+                        </button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleRegenerateCaption(asset.id); }}
+                          className="p-1 rounded hover:bg-secondary transition-all"
+                          title="Regenerate caption"
+                          disabled={captionRegenerating === asset.id}
+                        >
+                          <RotateCw className={cn("w-3 h-3 text-muted-foreground", captionRegenerating === asset.id && "animate-spin")} />
+                        </button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleCopyCaption(caption); }}
+                          className="p-1 rounded hover:bg-secondary transition-all"
+                          title="Copy caption"
+                        >
+                          <Copy className="w-3 h-3 text-muted-foreground" />
+                        </button>
+                      </div>
+                      {captionRegenerating === asset.id && (
+                        <p className="text-[9px] text-primary mt-1 animate-pulse">Regenerating caption…</p>
+                      )}
                     </div>
-                  )}
+                  ) : null}
 
                   {/* Strategic rationale (collapsed) */}
                   {rationale?.direction && rationale.direction !== "default" && (
