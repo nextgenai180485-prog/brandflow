@@ -42,63 +42,107 @@ serve(async (req) => {
       });
     }
 
-    const EXA_API_KEY = Deno.env.get("EXA_API_KEY");
+    const FIRECRAWL_API_KEY = Deno.env.get("FIRECRAWL_API_KEY");
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     const domain = websiteUrl.replace(/^https?:\/\//, "").replace(/\/+$/, "");
     const brandName = businessName || "the brand";
     const brandIndustry = industry || "beauty";
+    const fullUrl = websiteUrl.startsWith("http") ? websiteUrl : `https://${domain}`;
 
-    console.log(`[AutoResearch] Starting brand research for ${domain}`);
+    console.log(`[AutoResearch] Starting Firecrawl brand research for ${domain}`);
 
-    // ── Phase 1: Direct Website Fetch ──────────────────────────
-    let directWebsiteContent: string | null = null;
-    try {
-      const siteResp = await fetch(`https://${domain}`, {
-        headers: { "User-Agent": "BrandflowBot/1.0 (brand analysis)" },
-        signal: AbortSignal.timeout(10000),
-      });
-      if (siteResp.ok) {
-        const html = await siteResp.text();
-        directWebsiteContent = html
-          .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
-          .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
-          .replace(/<[^>]+>/g, " ")
-          .replace(/\s+/g, " ")
-          .trim()
-          .substring(0, 4000);
-        console.log(`[AutoResearch] Fetched ${directWebsiteContent.length} chars from ${domain}`);
+    // ── Phase 1: Firecrawl Brand Extraction (branding + markdown) ──
+    let brandingData: any = null;
+    let markdownContent: string | null = null;
+    let scrapeMetadata: any = null;
+
+    if (FIRECRAWL_API_KEY) {
+      try {
+        const scrapeResp = await fetch("https://api.firecrawl.dev/v1/scrape", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${FIRECRAWL_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            url: fullUrl,
+            formats: ["branding", "markdown", "links"],
+            onlyMainContent: false,
+            waitFor: 3000,
+          }),
+        });
+
+        if (scrapeResp.ok) {
+          const scrapeData = await scrapeResp.json();
+          const d = scrapeData.data || scrapeData;
+          brandingData = d.branding || null;
+          markdownContent = d.markdown || null;
+          scrapeMetadata = d.metadata || null;
+          console.log(`[AutoResearch] Firecrawl branding extracted:`, brandingData ? "YES" : "NO");
+          console.log(`[AutoResearch] Firecrawl markdown: ${markdownContent?.length || 0} chars`);
+        } else {
+          const errText = await scrapeResp.text();
+          console.error("[AutoResearch] Firecrawl scrape error:", errText);
+        }
+      } catch (e) {
+        console.error("[AutoResearch] Firecrawl scrape failed:", e);
       }
-    } catch (e) {
-      console.error("[AutoResearch] Direct website fetch failed:", e);
     }
 
-    // ── Phase 2: Exa Competitor Search ─────────────────────────
-    let competitorResults: any[] = [];
-    if (EXA_API_KEY) {
+    // Fallback: direct fetch if Firecrawl unavailable
+    if (!markdownContent) {
       try {
-        const compResp = await fetch("https://api.exa.ai/search", {
+        const siteResp = await fetch(fullUrl, {
+          headers: { "User-Agent": "BrandflowBot/1.0 (brand analysis)" },
+          signal: AbortSignal.timeout(10000),
+        });
+        if (siteResp.ok) {
+          const html = await siteResp.text();
+          markdownContent = html
+            .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
+            .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
+            .replace(/<[^>]+>/g, " ")
+            .replace(/\s+/g, " ")
+            .trim()
+            .substring(0, 4000);
+        }
+      } catch (e) {
+        console.error("[AutoResearch] Direct fetch fallback failed:", e);
+      }
+    }
+
+    // ── Phase 2: Firecrawl Competitor Search ──
+    let competitorResults: any[] = [];
+    if (FIRECRAWL_API_KEY) {
+      try {
+        const compResp = await fetch("https://api.firecrawl.dev/v1/search", {
           method: "POST",
-          headers: { "x-api-key": EXA_API_KEY, "Content-Type": "application/json" },
+          headers: {
+            "Authorization": `Bearer ${FIRECRAWL_API_KEY}`,
+            "Content-Type": "application/json",
+          },
           body: JSON.stringify({
             query: `top ${brandIndustry} brands competitors ${targetAudience || "consumers"} social media 2026`,
-            type: "auto",
-            numResults: 6,
-            contents: { text: { maxCharacters: 400 }, highlights: { numSentences: 2 } },
+            limit: 6,
           }),
         });
         if (compResp.ok) {
           const compData = await compResp.json();
-          competitorResults = (compData.results || []).map((r: any) => ({
+          competitorResults = (compData.data || []).map((r: any) => ({
             title: r.title, url: r.url,
-            snippet: r.text?.substring(0, 400) || "",
+            snippet: r.description || r.markdown?.substring(0, 400) || "",
           }));
-        } else { await compResp.text(); }
+          console.log(`[AutoResearch] Found ${competitorResults.length} competitors via Firecrawl`);
+        } else {
+          const errText = await compResp.text();
+          console.error("[AutoResearch] Firecrawl search error:", errText);
+        }
       } catch (e) {
         console.error("[AutoResearch] Competitor search error:", e);
       }
     }
 
-    // ── Phase 3: AI Synthesis → Brand Profile ──────────────────
+    // ── Phase 3: AI Synthesis → Brand Profile ──
     let brandProfile: any = {
       summary: `Analyzed ${domain}. Found ${competitorResults.length} competitor signals.`,
       brand_voice_detected: brandVoice || "professional",
@@ -107,9 +151,20 @@ serve(async (req) => {
       competitors: competitorResults.slice(0, 5).map((r: any) => ({ name: r.title, url: r.url })),
       key_themes: [],
       color_palette_suggestion: null,
+      firecrawl_branding: brandingData,
     };
 
-    if (LOVABLE_API_KEY && directWebsiteContent) {
+    // Map Firecrawl branding to color palette
+    if (brandingData?.colors) {
+      brandProfile.color_palette_suggestion = {
+        primary: brandingData.colors.primary || "#000000",
+        secondary: brandingData.colors.secondary || "#666666",
+        accent: brandingData.colors.accent || "#0066FF",
+      };
+      brandProfile.visual_style = `${brandingData.colorScheme || "light"} theme, ${brandingData.fonts?.map((f: any) => f.family).join(", ") || "system fonts"}`;
+    }
+
+    if (LOVABLE_API_KEY && markdownContent) {
       try {
         const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
           method: "POST",
@@ -119,27 +174,30 @@ serve(async (req) => {
             messages: [
               {
                 role: "system",
-                content: `You are a brand strategist. Analyze the website content and produce a brand profile. Output valid JSON only.`,
+                content: `You are a brand strategist. Analyze the website content and Firecrawl branding data to produce a brand profile. Output valid JSON only.`,
               },
               {
                 role: "user",
-                content: `Analyze this website content from ${domain} and extract the brand identity:
+                content: `Analyze this brand from ${domain}:
 
 WEBSITE CONTENT:
-${directWebsiteContent.substring(0, 3000)}
+${markdownContent.substring(0, 3000)}
+
+FIRECRAWL BRANDING DATA:
+${JSON.stringify(brandingData, null, 2)}
 
 COMPETITOR DATA:
 ${JSON.stringify(competitorResults.slice(0, 4), null, 2)}
 
 Output JSON with:
 - "summary": 2-3 sentence brand overview
-- "brand_voice_detected": tone/voice style (e.g. "Bold & Luxurious", "Professional & Warm")
+- "brand_voice_detected": tone/voice style
 - "visual_style": detected visual aesthetic
 - "target_audience_detected": who the brand targets
 - "competitors": array of {name, strength} — top 3
-- "key_themes": array of 3-5 key brand themes/messages
-- "color_palette_suggestion": {primary, secondary, accent} hex codes if detectable, null if not
-- "content_pillars": array of 3-4 recommended content pillars for social media`,
+- "key_themes": array of 3-5 key brand themes
+- "color_palette_suggestion": {primary, secondary, accent} hex codes
+- "content_pillars": array of 3-4 recommended content pillars`,
               },
             ],
             tools: [{
@@ -183,13 +241,13 @@ Output JSON with:
       }
     }
 
-    // ── Save brand research to profile ─────────────────────────
+    // ── Save brand research to profile ──
     await supabase.from("profiles").update({
       brand_voice_tone: brandProfile.brand_voice_detected,
       target_audience: brandProfile.target_audience_detected,
     }).eq("id", userId);
 
-    // Store the full brand profile in brand_memory for retrieval
+    // Store the full brand profile in brand_memory
     await supabase.from("brand_memory").upsert({
       profile_id: userId,
       memory_type: "brand_profile",
