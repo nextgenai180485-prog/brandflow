@@ -1,48 +1,46 @@
+## Phase 1: Inline Campaign Creator Page
 
-## Phase 1: Campaign Feed Card Component
+**Goal:** Replace the modal dialog with a dedicated `/dashboard/campaigns/new` page.
 
-**Goal:** Build the atomic `AssetFeedCard` component that replaces the current `AssetCard`.
+- New route `/dashboard/campaigns/new` with full-page inline form
+- Campaign name + instructions fields inline (no modal)
+- Back arrow to `/dashboard`
+- "New Campaign" button on Dashboard navigates here instead of opening dialog
 
-- **Header:** Campaign icon/thumbnail, campaign title, truncated ID, status badge, kebab menu
-- **Body:** Full-width generated image/video preview (like an Instagram post)
-- **Caption Block:** AI-generated caption below the image with `✨ AI Caption` tag, italic text, accept/reject/re-roll buttons
-- **Footer:** Metric row (asset type icon, creation date, status)
-- **Responsive:** Full-bleed on mobile, rounded cards on desktop
+## Phase 2: Multi-Asset Dropzone & Filmstrip
 
-## Phase 2: Adaptive Feed Grid Layout
+**Goal:** Replace single file upload with bulk drag-and-drop + filmstrip thumbnail manager.
 
-**Goal:** Replace the current two-column CampaignDetails layout with a responsive feed.
+- Full-width hero dropzone with dashed border (supports multiple files)
+- On upload: dropzone shrinks into horizontal filmstrip (scrollable thumbnails)
+- Each thumbnail shows: preview, remove (X) button, file name
+- "Add More" square at the end of the filmstrip
+- Mobile: 3-column compact grid instead of horizontal scroll
+- All files upload to `campaign_assets/{user_id}/` in Supabase Storage
+- Track multiple files in local state before campaign creation
 
-- **Desktop (lg+):** 2-column grid of cards
-- **Tablet (md):** 2-column grid
-- **Mobile (<md):** Single-column full-width feed (Instagram-style)
-- Campaign header stays at top: back arrow, title (text-3xl), status badge
-- "Generate" button pinned in header area
+## Phase 3: Batch Asset Records
 
-## Phase 3: Caption Data Model
+**Goal:** Create `generated_assets` records for every uploaded file on campaign submit.
 
-**Goal:** Wire captions into the existing `generated_assets` table.
+- On "Create Campaign": insert campaign row, then batch-insert one `generated_assets` record per uploaded file
+- Each record gets `asset_type` (image/video) auto-detected from MIME type
+- Status defaults to `pending_review`
+- Navigate to `/dashboard/campaigns/:id` on success
 
-- Use the existing `content_text` field on image/video assets to store the AI-generated caption
-- Update `GenerateButton` to include a caption in `content_text` for every image/video asset it creates
-- No migration needed — `content_text` column already exists
+## Phase 4: Campaign Details — Multi-Asset Feed
 
-## Phase 4: Accept/Reject Per-Asset (Caption + Visual)
+**Goal:** The feed view already exists (AssetFeedCard). Ensure it renders all uploaded assets as individual feed cards.
 
-**Goal:** Approval actions directly on each feed card.
-
-- Accept → marks asset `approved` (emerald badge, caption confirmed)
-- Reject → marks asset `rejected` (red badge, shows regenerate)
-- Re-roll caption → triggers caption-only regeneration (updates `content_text`)
-- Edit caption → inline editable textarea on click
-- Campaign auto-transitions when all assets approved
+- Each uploaded asset appears as its own social-style card with caption
+- Add "Accept All" / "Reject All" bulk action buttons at top of feed
+- GenerateButton creates variants for ALL uploaded assets (not just one)
 
 ## Phase 5: Mobile Polish
 
-**Goal:** Thumb-friendly, production-ready mobile experience.
+**Goal:** Ensure the inline canvas is thumb-friendly on mobile.
 
-- Full-width cards with no horizontal margins on mobile
-- Accept/Reject buttons become large tappable targets (min h-12)
-- Caption text scrollable if >3 lines on mobile
-- Sticky "Generate" button at bottom on mobile
-- Test at 375px, 390px, 414px viewports
+- Dropzone full-width with large tap target
+- Filmstrip becomes 3-col grid on mobile
+- Create button sticky at bottom on mobile
+- Test at 375px, 390px viewports

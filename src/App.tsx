@@ -10,6 +10,7 @@ import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Dashboard from "./pages/Dashboard";
 import CampaignDetails from "./pages/CampaignDetails";
+import NewCampaign from "./pages/NewCampaign";
 import CalendarView from "./pages/CalendarView";
 import Onboarding from "./pages/Onboarding";
 import NotFound from "./pages/NotFound";
@@ -35,6 +36,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <Dashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/campaigns/new"
+              element={
+                <ProtectedRoute>
+                  <NewCampaign />
                 </ProtectedRoute>
               }
             />
