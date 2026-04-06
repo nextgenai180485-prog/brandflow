@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import AssetLibraryPicker, { type LibraryAsset } from "@/components/AssetLibraryPicker";
 import {
   Video,
   Film,
@@ -95,6 +96,7 @@ const VisualDirector = () => {
   const [loading, setLoading] = useState(false);
   const [direction, setDirection] = useState<DirectorOutput | null>(null);
   const [expandedScene, setExpandedScene] = useState<number | null>(0);
+  const [referenceAssets, setReferenceAssets] = useState<LibraryAsset[]>([]);
 
   const handleSubmit = async () => {
     if (brief.trim().length < 10) {
@@ -105,8 +107,15 @@ const VisualDirector = () => {
     setDirection(null);
 
     try {
+      const assetRefs = referenceAssets.map(a => ({
+        id: a.id,
+        file_name: a.file_name,
+        file_url: a.file_url,
+        asset_type: a.asset_type,
+      }));
+
       const { data, error } = await supabase.functions.invoke("visual-director", {
-        body: { brief: brief.trim(), platform, format },
+        body: { brief: brief.trim(), platform, format, referenceAssets: assetRefs },
       });
 
       if (error) throw error;
@@ -190,6 +199,12 @@ const VisualDirector = () => {
                     </Select>
                   </div>
                 </div>
+
+                {/* Reference Assets */}
+                <AssetLibraryPicker
+                  selectedAssets={referenceAssets}
+                  onChange={setReferenceAssets}
+                />
 
                 <Button
                   onClick={handleSubmit}

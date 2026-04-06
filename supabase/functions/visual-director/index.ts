@@ -55,7 +55,7 @@ serve(async (req) => {
       });
     }
 
-    const { brief, platform, format } = await req.json();
+    const { brief, platform, format, referenceAssets } = await req.json();
     if (!brief || typeof brief !== "string" || brief.trim().length < 10) {
       return new Response(JSON.stringify({ error: "Brief must be at least 10 characters" }), {
         status: 400,
@@ -112,6 +112,13 @@ BRAND CONTEXT:
 ${memoryContext}
 
 TARGET: Platform=${platform || "instagram"}, Format=${format || "reel"}
+
+${Array.isArray(referenceAssets) && referenceAssets.length > 0
+  ? `REFERENCE ASSETS PROVIDED (${referenceAssets.length}):
+${referenceAssets.map((a: any, i: number) => `${i + 1}. ${a.file_name} (${a.asset_type}) — ${a.file_url}`).join("\n")}
+
+These reference assets should inform your creative direction. Consider the visual style, product appearance, colors, and composition visible in these references. Incorporate them into your SEALCaM scene descriptions where relevant — e.g., "the product shown in reference asset 1" or "matching the warm tones from the brand's uploaded imagery."`
+  : "No reference assets provided."}
 
 YOUR JOB:
 1. Analyze the user's creative brief
