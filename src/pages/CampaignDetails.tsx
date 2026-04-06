@@ -9,7 +9,7 @@ import GenerateButton from "@/components/GenerateButton";
 import AssetFeedCard from "@/components/AssetFeedCard";
 import AssetInspector from "@/components/AssetInspector";
 import ResearchPreviewPanel from "@/components/ResearchPreviewPanel";
-import type { IntelligenceBrief } from "@/components/ResearchPreviewPanel";
+import type { IntelligenceBrief, StreamPhase } from "@/components/ResearchPreviewPanel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
