@@ -46,14 +46,16 @@ const GlobalCMOChat = () => {
     load();
   }, [open, loaded, user]);
 
-  // Auto-scroll to bottom on messages change or initial load
+  // Auto-scroll to bottom on messages change, initial load, or open
   useEffect(() => {
     if (scrollRef.current) {
+      // Use instant scroll on initial load, smooth on updates
+      const behavior = loaded ? "smooth" : "instant";
       requestAnimationFrame(() => {
-        scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+        scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior });
       });
     }
-  }, [messages, loaded]);
+  }, [messages, loaded, open]);
 
   // Focus input when opened
   useEffect(() => {
@@ -198,6 +200,7 @@ const GlobalCMOChat = () => {
   const widgetSize = expanded
     ? "sm:w-[560px] sm:h-[680px]"
     : "sm:w-[380px] sm:h-[520px]";
+  const mobileSize = "w-[calc(100%-32px)] h-[70vh] bottom-4 right-4 left-4 rounded-2xl border border-border";
 
   return (
     <>
@@ -219,7 +222,7 @@ const GlobalCMOChat = () => {
 
       {/* Chat Panel */}
       {open && (
-        <div className={`fixed z-[100] inset-0 sm:inset-auto sm:bottom-6 sm:right-6 ${widgetSize} rounded-none sm:rounded-2xl border-0 sm:border border-border bg-background shadow-2xl flex flex-col overflow-hidden transition-all duration-200`}>
+        <div className={`fixed z-[100] ${mobileSize} sm:inset-auto sm:bottom-6 sm:right-6 ${widgetSize} sm:rounded-2xl sm:border border-border bg-background shadow-2xl flex flex-col overflow-hidden transition-all duration-200`}>
           {/* Header */}
           <div className="flex items-center justify-between border-b border-border px-4 py-2.5 shrink-0 bg-background">
             <div className="flex items-center gap-2">
