@@ -382,19 +382,26 @@ const AssetInspector = ({
     else {
       toast.success(newStatus === "approved" ? "Approved!" : "Rejected.");
 
-      // LAYER 4: Record brand memory
+      // LAYER 4: Record brand memory via dedicated learn-from-feedback function
       const memoryPatterns = extractPatternsFromAsset(asset, meta, decisionMeta);
-      for (const pattern of memoryPatterns) {
+      if (memoryPatterns.length > 0) {
         try {
-          await supabase.functions.invoke("generate-content", {
+          const { data: memResult } = await supabase.functions.invoke("learn-from-feedback", {
             body: {
-              action: "record_memory",
+              assetId: asset.id,
               memoryType: newStatus === "approved" ? "approval" : "rejection",
-              patternCategory: pattern.category,
-              patternValue: pattern.value,
-              context: { campaignId, assetId: asset.id, platform: meta?.platform },
+              patterns: memoryPatterns.map((p) => ({
+                category: p.category,
+                value: p.value,
+                context: { campaignId, assetId: asset.id, platform: meta?.platform },
+              })),
             },
           });
+          // Notify if any pattern was flagged as do_not_use
+          const flagged = memResult?.recorded?.filter((r: any) => r.flagged_do_not_use) || [];
+          if (flagged.length > 0) {
+            toast.info(`${flagged.length} pattern(s) flagged as "do not use" — will be avoided in future generations.`);
+          }
         } catch (e) {
           console.error("Memory recording failed:", e);
         }

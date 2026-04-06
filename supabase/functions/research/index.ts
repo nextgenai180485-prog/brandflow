@@ -54,10 +54,37 @@ serve(async (req) => {
     const brandIndustry = industry || "beauty";
     const domain = websiteUrl ? websiteUrl.replace(/^https?:\/\//, "").replace(/\/+$/, "") : null;
 
-    // ── Research Phase 1: Brand Website Analysis ──────────────
+    // ── Research Phase 1A: Direct Website Fetch ────────────────
+    let directWebsiteContent: string | null = null;
+    if (domain) {
+      console.log(`[Research] Direct fetching brand website: https://${domain}`);
+      try {
+        const siteResp = await fetch(`https://${domain}`, {
+          headers: { "User-Agent": "BrandflowBot/1.0 (market research)" },
+          signal: AbortSignal.timeout(8000),
+        });
+        if (siteResp.ok) {
+          const html = await siteResp.text();
+          // Extract text content from HTML (strip tags, scripts, styles)
+          const textContent = html
+            .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
+            .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
+            .replace(/<[^>]+>/g, " ")
+            .replace(/\s+/g, " ")
+            .trim()
+            .substring(0, 3000);
+          directWebsiteContent = textContent;
+          console.log(`[Research] Fetched ${textContent.length} chars from ${domain}`);
+        }
+      } catch (e) {
+        console.error("[Research] Direct website fetch failed:", e);
+      }
+    }
+
+    // ── Research Phase 1B: Exa Website Analysis ─────────────────
     let brandWebsiteInsights: any = null;
     if (domain) {
-      console.log(`[Research] Analyzing brand website: ${domain}`);
+      console.log(`[Research] Analyzing brand website via Exa: ${domain}`);
       try {
         const brandSearchResp = await fetch("https://api.exa.ai/search", {
           method: "POST",
