@@ -38,6 +38,11 @@ export interface GeneratedAsset {
   updated_at: string;
   platform?: SocialPlatform;
   format?: SocialFormat;
+  rationale?: string | null;
+  provider?: string | null;
+  generation_cost?: number | null;
+  generation_time_ms?: number | null;
+  research_id?: string | null;
 }
 
 // Complete social format matrix with native dimensions
