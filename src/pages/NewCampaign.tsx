@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Upload, X, Loader2, Plus, ImageIcon, VideoIcon } from "lucide-react";
+import { ArrowLeft, Upload, X, Loader2, Plus, ImageIcon, VideoIcon, Layers, Image } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -26,6 +26,8 @@ interface UploadedFile {
   type: "image" | "video";
 }
 
+type UploadMode = "separate" | "grouped";
+
 const NewCampaign = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -35,6 +37,7 @@ const NewCampaign = () => {
   const [platforms, setPlatforms] = useState<SelectedFormat[]>([]);
   const [creating, setCreating] = useState(false);
   const [dragOver, setDragOver] = useState(false);
+  const [uploadMode, setUploadMode] = useState<UploadMode>("separate");
 
   const uploadFile = useCallback(
     async (file: File): Promise<UploadedFile> => {
@@ -130,7 +133,6 @@ const NewCampaign = () => {
       return;
     }
 
-    // Create one generated_asset per file × platform combination
     const uploadedFiles = files.filter((f) => f.url);
     const assetRows: Array<{
       campaign_id: string;
@@ -142,14 +144,17 @@ const NewCampaign = () => {
       format: string | null;
     }> = [];
 
-    for (const f of uploadedFiles) {
+    if (uploadMode === "grouped" && uploadedFiles.length > 1) {
+      // Grouped mode: all files become one carousel/collage asset
+      // Use first file URL as primary, store all URLs in content_text as metadata
+      const allUrls = uploadedFiles.map((f) => f.url!).join("|||");
       if (platforms.length > 0) {
         for (const p of platforms) {
           assetRows.push({
             campaign_id: campaign.id,
             profile_id: user.id,
-            asset_type: f.type,
-            content_url: f.url!,
+            asset_type: "carousel",
+            content_url: uploadedFiles[0].url!,
             status: "pending_review",
             platform: p.platform,
             format: p.format,
@@ -159,12 +164,39 @@ const NewCampaign = () => {
         assetRows.push({
           campaign_id: campaign.id,
           profile_id: user.id,
-          asset_type: f.type,
-          content_url: f.url!,
+          asset_type: "carousel",
+          content_url: uploadedFiles[0].url!,
           status: "pending_review",
           platform: null,
           format: null,
         });
+      }
+    } else {
+      // Separate mode: each file is its own asset
+      for (const f of uploadedFiles) {
+        if (platforms.length > 0) {
+          for (const p of platforms) {
+            assetRows.push({
+              campaign_id: campaign.id,
+              profile_id: user.id,
+              asset_type: f.type,
+              content_url: f.url!,
+              status: "pending_review",
+              platform: p.platform,
+              format: p.format,
+            });
+          }
+        } else {
+          assetRows.push({
+            campaign_id: campaign.id,
+            profile_id: user.id,
+            asset_type: f.type,
+            content_url: f.url!,
+            status: "pending_review",
+            platform: null,
+            format: null,
+          });
+        }
       }
     }
 
@@ -178,6 +210,7 @@ const NewCampaign = () => {
 
   const anyUploading = files.some((f) => f.uploading);
   const canCreate = title.trim().length > 0 && !anyUploading && !creating;
+  const uploadedCount = files.filter((f) => f.url).length;
 
   return (
     <AppShell>
@@ -229,18 +262,78 @@ const NewCampaign = () => {
 
           {/* Inline Asset Canvas */}
           <div className="space-y-3">
-            <Label className="text-sm font-medium">
-              Upload Images & Videos{" "}
-              <span className="text-muted-foreground font-normal">(optional)</span>
-            </Label>
+            <div className="flex items-center justify-between gap-2">
+              <Label className="text-sm font-medium">
+                Upload Images & Videos{" "}
+                <span className="text-muted-foreground font-normal">(optional)</span>
+              </Label>
+
+              {/* Upload mode toggle — only show when 2+ files */}
+              {files.length >= 2 && (
+                <div className="flex items-center rounded-lg border border-border bg-card p-0.5">
+                  <button
+                    type="button"
+                    onClick={() => setUploadMode("separate")}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-medium transition-all ${
+                      uploadMode === "separate"
+                        ? "bg-foreground text-background shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <Image className="w-3 h-3" />
+                    Separate
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setUploadMode("grouped")}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-medium transition-all ${
+                      uploadMode === "grouped"
+                        ? "bg-foreground text-background shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <Layers className="w-3 h-3" />
+                    Grouped
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Mode explanation */}
+            {files.length >= 2 && (
+              <p className="text-[11px] text-muted-foreground bg-secondary/50 rounded-lg px-3 py-2">
+                {uploadMode === "separate"
+                  ? "Each file will be generated as its own individual post — best for independent images or videos."
+                  : "All files will be combined into a single carousel or collage — best for before/after, product series, or multi-slide stories."}
+              </p>
+            )}
 
             {/* Filmstrip grid */}
             {files.length > 0 && (
-              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2">
-                {files.map((f) => (
+              <div className={`grid gap-2 ${
+                uploadMode === "grouped" && files.length >= 2
+                  ? "grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8"
+                  : "grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6"
+              }`}>
+                {/* Grouped visual wrapper */}
+                {uploadMode === "grouped" && files.length >= 2 && (
+                  <div className="col-span-full flex items-center gap-2 mb-1">
+                    <Layers className="w-3.5 h-3.5 text-primary" />
+                    <span className="text-[11px] font-medium text-primary">
+                      Carousel Group — {files.length} slides
+                    </span>
+                    <div className="flex-1 h-px bg-primary/20" />
+                  </div>
+                )}
+
+                {files.map((f, idx) => (
                   <div
                     key={f.id}
-                    className="relative group aspect-square rounded-lg border border-border overflow-hidden bg-muted"
+                    className={`relative group aspect-square rounded-lg border overflow-hidden bg-muted ${
+                      uploadMode === "grouped" && files.length >= 2
+                        ? "border-primary/30 ring-1 ring-primary/10"
+                        : "border-border"
+                    }`}
                   >
                     {f.uploading ? (
                       <div className="absolute inset-0 flex items-center justify-center bg-muted">
@@ -264,6 +357,13 @@ const NewCampaign = () => {
                       >
                         <X className="w-3 h-3" />
                       </button>
+                    )}
+
+                    {/* Slide number for grouped mode */}
+                    {uploadMode === "grouped" && files.length >= 2 && !f.uploading && (
+                      <div className="absolute bottom-1 right-1 w-4 h-4 rounded bg-primary/80 text-primary-foreground flex items-center justify-center text-[8px] font-bold">
+                        {idx + 1}
+                      </div>
                     )}
 
                     <div className="absolute bottom-1 left-1">
@@ -343,8 +443,10 @@ const NewCampaign = () => {
               />
               {platforms.length > 0 && (
                 <p className="text-[11px] text-muted-foreground mt-3 pt-3 border-t border-border/50">
-                  {files.filter((f) => f.url).length > 0
-                    ? `${files.filter((f) => f.url).length} asset${files.filter((f) => f.url).length !== 1 ? "s" : ""} × ${platforms.length} format${platforms.length !== 1 ? "s" : ""} = ${files.filter((f) => f.url).length * platforms.length} generations`
+                  {uploadedCount > 0
+                    ? uploadMode === "grouped" && uploadedCount > 1
+                      ? `1 carousel (${uploadedCount} slides) × ${platforms.length} format${platforms.length !== 1 ? "s" : ""} = ${platforms.length} generation${platforms.length !== 1 ? "s" : ""}`
+                      : `${uploadedCount} asset${uploadedCount !== 1 ? "s" : ""} × ${platforms.length} format${platforms.length !== 1 ? "s" : ""} = ${uploadedCount * platforms.length} generation${uploadedCount * platforms.length !== 1 ? "s" : ""}`
                     : `${platforms.length} format${platforms.length !== 1 ? "s" : ""} selected`}
                 </p>
               )}
