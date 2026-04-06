@@ -640,26 +640,28 @@ async function processAssetsInBackground(
       let actualCost = 0;
       let generationTimeMs = 0;
 
+      let generatedPrompt = "";
+
       if (assetType === "image" || assetType === "carousel") {
-        const prompt = buildImagePrompt(platform, format, brandContext || {}, intelligenceBrief || {}, decisionWinner);
-        console.log(`[Generate] ${assetType} for ${platform}/${format} via Seedream 4.5`);
-        const result = await generateImage(prompt, width || 1080, height || 1080);
+        generatedPrompt = buildImagePrompt(platform, format, brandContext || {}, intelligenceBrief || {}, decisionWinner);
+        console.log(`[Generate] ${assetType} for ${platform}/${format} via Replicate Seedream 5`);
+        const result = await generateImage(generatedPrompt, width || 1080, height || 1080);
         contentUrl = result.url;
         actualProvider = result.provider;
         actualCost = result.cost;
         generationTimeMs = result.timeMs;
       } else if (assetType === "video") {
-        const prompt = buildVideoPrompt(platform, format, brandContext || {}, intelligenceBrief || {}, decisionWinner);
-        console.log(`[Generate] video for ${platform}/${format} via Seedance 2.0`);
-        const result = await generateVideo(prompt, width || 1080, height || 1920);
+        generatedPrompt = buildVideoPrompt(platform, format, brandContext || {}, intelligenceBrief || {}, decisionWinner);
+        console.log(`[Generate] video for ${platform}/${format} via Kling 2.5`);
+        const result = await generateVideo(generatedPrompt, width || 1080, height || 1920);
         contentUrl = result.url;
         actualProvider = result.provider;
         actualCost = result.cost;
         generationTimeMs = result.timeMs;
       }
 
-      // Generate caption using decision context
-      const caption = await generateCaption(platform, format, brandContext || {}, intelligenceBrief || {}, decisionWinner);
+      // Generate caption using decision context + the actual visual prompt for accuracy
+      const caption = await generateCaption(platform, format, brandContext || {}, intelligenceBrief || {}, decisionWinner, generatedPrompt);
       if (!generationTimeMs) generationTimeMs = Date.now() - startTime;
 
       // Build structured rationale from decision engine
