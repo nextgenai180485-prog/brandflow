@@ -3,7 +3,8 @@ import { format } from "date-fns";
 import type { IntelligenceBrief } from "@/components/ResearchPreviewPanel";
 import {
   Check, X, RefreshCw, Pencil, CalendarIcon, Send, ChevronLeft, ChevronRight,
-  Play, Pause, Volume2, VolumeX, Star, Sparkles, HelpCircle, Brain, Shield, Loader2
+  Play, Pause, Volume2, VolumeX, Star, Sparkles, HelpCircle, Brain, Shield, Loader2,
+  Target, Eye, TrendingUp
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,7 +18,6 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Drawer, DrawerContent } from "@/components/ui/drawer";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 import type { GeneratedAsset, AssetStatus, SocialPlatform } from "@/types/campaigns";
@@ -93,7 +93,7 @@ const VideoPlayer = ({ src, aspectRatio }: { src: string; aspectRatio: string })
   };
 
   return (
-    <div className="relative w-full rounded-lg overflow-hidden bg-black" style={{ aspectRatio }}>
+    <div className="relative w-full h-full overflow-hidden bg-black">
       <video ref={videoRef} src={src} muted={muted} loop playsInline className="w-full h-full object-contain"
         onTimeUpdate={() => { const v = videoRef.current; if (v?.duration) setProgress((v.currentTime / v.duration) * 100); }}
         onLoadedMetadata={() => setDuration(videoRef.current?.duration || 0)}
@@ -120,7 +120,7 @@ const VideoPlayer = ({ src, aspectRatio }: { src: string; aspectRatio: string })
 const CarouselNavigator = ({ contentUrl, aspectRatio, slideCount = 5 }: { contentUrl: string; aspectRatio: string; slideCount?: number }) => {
   const [currentSlide, setCurrentSlide] = useState(0);
   return (
-    <div className="relative w-full rounded-lg overflow-hidden bg-muted" style={{ aspectRatio }}>
+    <div className="relative w-full h-full overflow-hidden bg-muted">
       <img src={contentUrl} alt={`Slide ${currentSlide + 1}`} className="w-full h-full object-contain" />
       <div className="absolute bottom-3 inset-x-0 flex items-center justify-center gap-1.5">
         {Array.from({ length: slideCount }).map((_, i) => (
@@ -138,7 +138,7 @@ const CarouselNavigator = ({ contentUrl, aspectRatio, slideCount = 5 }: { conten
   );
 };
 
-// ── Decision Trace Dialog ──
+// ── Decision Trace types ──
 interface DecisionTrace {
   id: string;
   decision_summary: string;
@@ -153,7 +153,9 @@ interface DecisionTrace {
   next_test_recommendation: any;
 }
 
-const DecisionTraceDialog = ({ traceId, open, onOpenChange }: { traceId: string | null; open: boolean; onOpenChange: (open: boolean) => void }) => {
+// ── Decision Trace Side Panel (replaces modal Dialog) ──
+const DecisionTracePanel = ({ traceId, open, onOpenChange }: { traceId: string | null; open: boolean; onOpenChange: (open: boolean) => void }) => {
+  const isMobile = useIsMobile();
   const [trace, setTrace] = useState<DecisionTrace | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -166,24 +168,68 @@ const DecisionTraceDialog = ({ traceId, open, onOpenChange }: { traceId: string 
     });
   }, [traceId, open]);
 
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-sm">
-            <Shield className="w-4 h-4 text-primary" /> Decision Trace — Why This?
-          </DialogTitle>
-        </DialogHeader>
-        {loading && <div className="flex items-center justify-center py-8"><Loader2 className="w-5 h-5 animate-spin text-primary" /></div>}
+  // Build 3 scannable insight bullets
+  const insightBullets = trace ? [
+    {
+      icon: Target,
+      label: "Audience Fit",
+      value: trace.winner?.audience_fit || trace.decision_summary?.split(".")[0] || "Aligned with target audience",
+      color: "text-blue-600",
+    },
+    {
+      icon: Eye,
+      label: "Visual Logic",
+      value: trace.winner?.visual_rationale || trace.winner?.rationale?.split(".")[0] || "Brand-aligned visual direction",
+      color: "text-violet-600",
+    },
+    {
+      icon: TrendingUp,
+      label: "Performance Projection",
+      value: trace.winner?.performance_note || `${(trace.confidence_score * 100).toFixed(0)}% confidence score`,
+      color: "text-emerald-600",
+    },
+  ] : [];
+
+  const panelContent = (
+    <div className="flex flex-col h-full">
+      <div className="px-5 py-4 border-b border-border">
+        <div className="flex items-center gap-2">
+          <Shield className="w-4 h-4 text-primary" />
+          <h2 className="text-sm font-semibold text-foreground">Why This?</h2>
+        </div>
+        <p className="text-[10px] text-muted-foreground mt-0.5">AI Decision Trace</p>
+      </div>
+
+      <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+        {loading && <div className="flex items-center justify-center py-12"><Loader2 className="w-5 h-5 animate-spin text-primary" /></div>}
+
         {trace && (
-          <div className="space-y-4">
-            <div className="rounded-lg bg-secondary/50 border border-border p-3">
-              <p className="text-xs text-foreground leading-relaxed">{trace.decision_summary}</p>
-              <Badge variant="outline" className="text-[9px] mt-2">Confidence: {(trace.confidence_score * 100).toFixed(0)}%</Badge>
+          <>
+            {/* 3-bullet scannable summary */}
+            <div className="space-y-2.5">
+              {insightBullets.map((b, i) => (
+                <div key={i} className="flex items-start gap-3 rounded-lg border border-border bg-card p-3">
+                  <div className={cn("mt-0.5 shrink-0", b.color)}>
+                    <b.icon className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">{b.label}</span>
+                    <p className="text-[11px] text-foreground leading-relaxed mt-0.5">{b.value}</p>
+                  </div>
+                </div>
+              ))}
             </div>
+
+            {/* Confidence */}
+            <div className="flex items-center justify-between rounded-lg bg-secondary/50 border border-border px-3 py-2">
+              <span className="text-[10px] font-medium text-muted-foreground">Confidence Score</span>
+              <Badge variant="outline" className="text-[10px]">{(trace.confidence_score * 100).toFixed(0)}%</Badge>
+            </div>
+
+            {/* Creative Directions */}
             {trace.creative_directions?.length > 0 && (
               <div className="space-y-2">
-                <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Creative Directions Evaluated</span>
+                <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Directions Evaluated</span>
                 {trace.creative_directions.map((d: any, i: number) => {
                   const isWinner = d.name === trace.winner?.name;
                   return (
@@ -201,15 +247,19 @@ const DecisionTraceDialog = ({ traceId, open, onOpenChange }: { traceId: string 
                 })}
               </div>
             )}
+
+            {/* Winner rationale */}
             {trace.winner?.rationale && (
               <div className="rounded-lg border border-primary/30 bg-primary/5 p-3">
                 <span className="text-[10px] font-semibold text-primary uppercase tracking-wide">Why This Direction Won</span>
                 <p className="text-[11px] text-foreground leading-relaxed mt-1">{trace.winner.rationale}</p>
               </div>
             )}
+
+            {/* Brand Memory */}
             {trace.brand_memory_influences?.length > 0 && (
               <div className="space-y-1.5">
-                <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1"><Brain className="w-3 h-3" /> Brand Memory Influences</span>
+                <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1"><Brain className="w-3 h-3" /> Brand Memory</span>
                 <div className="flex flex-wrap gap-1">
                   {trace.brand_memory_influences.map((m: any, i: number) => (
                     <Badge key={i} variant="outline" className={cn("text-[9px]", m.type === "approval" ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-red-50 text-red-700 border-red-200")}>
@@ -219,32 +269,59 @@ const DecisionTraceDialog = ({ traceId, open, onOpenChange }: { traceId: string 
                 </div>
               </div>
             )}
+
+            {/* Research Sources */}
             {trace.research_sources?.length > 0 && (
               <div className="space-y-1">
-                <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Research Sources ({trace.research_sources.length})</span>
+                <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Sources ({trace.research_sources.length})</span>
                 {trace.research_sources.slice(0, 6).map((s: any, i: number) => (
                   <a key={i} href={s.url} target="_blank" rel="noopener noreferrer" className="block text-[9px] text-primary hover:underline truncate">{s.title || s.url}</a>
                 ))}
               </div>
             )}
-          </div>
+          </>
         )}
-        {!loading && !trace && <p className="text-xs text-muted-foreground py-8 text-center">No decision trace found.</p>}
-      </DialogContent>
-    </Dialog>
+
+        {!loading && !trace && <p className="text-xs text-muted-foreground py-12 text-center">No decision trace found.</p>}
+      </div>
+    </div>
+  );
+
+  if (isMobile) {
+    return (
+      <Drawer open={open} onOpenChange={onOpenChange}>
+        <DrawerContent className="max-h-[70vh]">
+          <div className="overflow-y-auto pb-6 max-h-[66vh]">{panelContent}</div>
+        </DrawerContent>
+      </Drawer>
+    );
+  }
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent side="right" className="w-[380px] sm:w-[400px] p-0 overflow-y-auto">{panelContent}</SheetContent>
+    </Sheet>
   );
 };
 
-// ── Phone Frame Preview ──
-// Contains media within a stable device frame that never overflows
+// ── Stable Phone Frame Preview ──
 const PhoneFrame = ({ children, aspectRatio }: { children: React.ReactNode; aspectRatio: string }) => {
   const isTall = aspectRatio === "9 / 16";
   return (
     <div className={cn(
-      "mx-auto rounded-2xl border-2 border-foreground/10 bg-black shadow-xl overflow-hidden flex items-center justify-center",
-      isTall ? "w-[220px] max-h-[400px]" : "w-full max-w-[340px] max-h-[340px]"
-    )} style={{ aspectRatio }}>
-      {children}
+      "mx-auto rounded-[1.75rem] border-[3px] border-foreground/10 bg-black shadow-2xl overflow-hidden relative",
+      isTall ? "w-[200px]" : "w-full max-w-[300px]"
+    )}>
+      {/* Notch */}
+      {isTall && <div className="absolute top-0 left-1/2 -translate-x-1/2 w-16 h-4 bg-black rounded-b-xl z-10" />}
+      {/* Content with safe zones */}
+      <div className="w-full overflow-hidden" style={{ aspectRatio }}>
+        {children}
+      </div>
+      {/* Home indicator */}
+      <div className="flex justify-center py-1.5">
+        <div className="w-10 h-1 rounded-full bg-white/20" />
+      </div>
     </div>
   );
 };
@@ -545,20 +622,23 @@ const AssetInspector = ({
         </TabsContent>
       </Tabs>
 
-      <DecisionTraceDialog traceId={decisionTraceId} open={showDecisionTrace} onOpenChange={setShowDecisionTrace} />
+      {/* Decision Trace — Side Panel (not modal) */}
+      <DecisionTracePanel traceId={decisionTraceId} open={showDecisionTrace} onOpenChange={setShowDecisionTrace} />
     </div>
   );
 
+  // Mobile → bottom drawer (50-70% screen)
   if (isMobile) {
     return (
       <Drawer open={open} onOpenChange={onOpenChange}>
-        <DrawerContent className="max-h-[92vh]">
-          <div className="overflow-y-auto pb-6 max-h-[88vh]">{content}</div>
+        <DrawerContent className="max-h-[70vh]">
+          <div className="overflow-y-auto pb-6 max-h-[66vh]">{content}</div>
         </DrawerContent>
       </Drawer>
     );
   }
 
+  // Desktop → side sheet
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="w-[420px] sm:w-[440px] p-0 overflow-y-auto">{content}</SheetContent>
