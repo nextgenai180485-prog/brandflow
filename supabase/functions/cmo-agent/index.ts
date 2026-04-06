@@ -56,6 +56,51 @@ User: "I sell high-end mechanical keyboards to coders."
 **BAD:** "The Techie — Blue and white, modern fonts." (Generic garbage.)
 **GOOD:** "The Atelier — The keyboard market is drowning in RGB gamer aesthetics. This archetype pivots to 'Productivity Luxury': matte black, brass accents, serif typography. We position this as a tool for the C-Suite developer, not a toy."`;
 
+const CMO_FOUNDER_INTERVIEW_PROMPT = `### ROLE: Chief Strategy Officer (CSO) — Founding Strategy Sprint
+You are a $2,000/hour Brand Strategist conducting a "Founding Strategy Sprint" — the same process a branding agency charges $20,000 for.
+You do NOT ask generic questions. You conduct a **diagnostic interview** that extracts the strategic DNA of a new business.
+
+### THE ANTI-GENERIC CONSTITUTION
+**Violation of these rules is system failure.**
+1. **NO FLUFF:** Never use "That's a great idea!" or any empty validation.
+2. **NO PASSIVITY:** You DIAGNOSE, you don't suggest. "The data demands..." not "You could try..."
+3. **NO GENERIC STRATEGY:** Never produce a strategy that could apply to any business. Every output must reference the specific answers given.
+4. **RUTHLESS SPECIFICITY:** If the user says "I help busy moms," you must identify the SPECIFIC psychological trigger (guilt, aspiration, identity) and build strategy around it.
+
+### INTERVIEW PROTOCOL
+You will receive the user's answers to 3 core questions:
+1. **The Core Value:** "In one sentence, what problem do you solve, and for whom?"
+2. **The Enemy:** "What is the 'Status Quo' your customers hate?"
+3. **The Secret Weapon:** "What is your unfair advantage?"
+
+### SYNTHESIS PROTOCOL
+From these 3 answers, you must produce:
+
+**A. Core Identity** — The brand's strategic DNA:
+- archetype: A named archetype (e.g., "The Caregiver", "The Rebel", "The Oracle")
+- enemy: The specific villain the brand fights against
+- hero_journey: The transformation narrative (From X → To Y)
+- brand_voice: The tone and personality
+- visual_direction: The aesthetic strategy
+
+**B. Persona Card** — The ideal customer:
+- name: A fictional persona name (e.g., "Sarah, The Guilt-Ridden Optimizer")
+- age_range: Specific age range
+- pain_points: 3 specific pain points
+- desires: 3 specific desires
+- psychographic: 1-sentence psychographic profile
+- buying_triggers: 3 psychological triggers that drive purchase
+
+**C. Funnel Architecture** — The strategic playbook:
+- tof (Top of Funnel / Awareness): strategy name, content type, channel, psychological hook
+- mof (Middle of Funnel / Trust): strategy name, content type, channel, proof mechanism
+- bof (Bottom of Funnel / Conversion): strategy name, offer type, urgency mechanism
+
+**D. Launch Roadmap** — 3 prioritized actions:
+- Each with phase name, specific action, and strategic rationale
+
+**E. CMO Directive** — A 2-3 sentence strategic command that tells the user EXACTLY what their first move should be. This is NOT a suggestion. It is a PRESCRIPTION.`;
+
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -91,6 +136,213 @@ serve(async (req) => {
 
     const body = await req.json();
     const { mode } = body;
+
+    // ── FOUNDER INTERVIEW MODE: Generate full strategy from 3 interview answers ──
+    if (mode === "founder_interview") {
+      const { coreValue, enemy, secretWeapon, businessName, industry } = body;
+      if (!coreValue?.trim()) {
+        return new Response(JSON.stringify({ error: "Core value answer is required" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "google/gemini-3-flash-preview",
+          messages: [
+            { role: "system", content: CMO_FOUNDER_INTERVIEW_PROMPT },
+            {
+              role: "user",
+              content: `Conduct the Founding Strategy Sprint for this new business.
+
+**BUSINESS:** ${businessName || "New venture"} (${industry || "unspecified industry"})
+
+**INTERVIEW ANSWERS:**
+1. THE CORE VALUE: "${coreValue.trim()}"
+2. THE ENEMY: "${enemy?.trim() || "Not specified — infer from the core value"}"
+3. THE SECRET WEAPON: "${secretWeapon?.trim() || "Not specified — identify the implied advantage"}"
+
+Synthesize these answers into a complete Brand Strategy Board. Be ruthlessly specific. Every recommendation must trace back to their actual answers.`,
+            },
+          ],
+          tools: [{
+            type: "function",
+            function: {
+              name: "generate_strategy_board",
+              description: "Generate a complete Brand Strategy Board from the Founding Strategy Sprint interview",
+              parameters: {
+                type: "object",
+                properties: {
+                  core_identity: {
+                    type: "object",
+                    properties: {
+                      archetype: { type: "string", description: "Named brand archetype" },
+                      enemy: { type: "string", description: "The specific villain the brand fights" },
+                      hero_journey: { type: "string", description: "From X → To Y transformation" },
+                      brand_voice: { type: "string", description: "Tone and personality description" },
+                      visual_direction: { type: "string", description: "Aesthetic strategy" },
+                    },
+                    required: ["archetype", "enemy", "hero_journey", "brand_voice", "visual_direction"],
+                  },
+                  persona_card: {
+                    type: "object",
+                    properties: {
+                      name: { type: "string", description: "Fictional persona name with archetype label" },
+                      age_range: { type: "string" },
+                      pain_points: { type: "array", items: { type: "string" }, minItems: 3, maxItems: 3 },
+                      desires: { type: "array", items: { type: "string" }, minItems: 3, maxItems: 3 },
+                      psychographic: { type: "string" },
+                      buying_triggers: { type: "array", items: { type: "string" }, minItems: 3, maxItems: 3 },
+                    },
+                    required: ["name", "age_range", "pain_points", "desires", "psychographic", "buying_triggers"],
+                  },
+                  funnel_stages: {
+                    type: "object",
+                    properties: {
+                      tof: {
+                        type: "object",
+                        properties: {
+                          goal: { type: "string" },
+                          strategy_name: { type: "string" },
+                          best_format: { type: "string" },
+                          channel: { type: "string" },
+                          psychological_hook: { type: "string" },
+                        },
+                        required: ["goal", "strategy_name", "best_format", "channel", "psychological_hook"],
+                      },
+                      mof: {
+                        type: "object",
+                        properties: {
+                          goal: { type: "string" },
+                          strategy_name: { type: "string" },
+                          best_format: { type: "string" },
+                          channel: { type: "string" },
+                          proof_mechanism: { type: "string" },
+                        },
+                        required: ["goal", "strategy_name", "best_format", "channel", "proof_mechanism"],
+                      },
+                      bof: {
+                        type: "object",
+                        properties: {
+                          goal: { type: "string" },
+                          strategy_name: { type: "string" },
+                          offer_type: { type: "string" },
+                          urgency_mechanism: { type: "string" },
+                        },
+                        required: ["goal", "strategy_name", "offer_type", "urgency_mechanism"],
+                      },
+                    },
+                    required: ["tof", "mof", "bof"],
+                  },
+                  launch_roadmap: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        phase: { type: "string" },
+                        action: { type: "string" },
+                        rationale: { type: "string" },
+                      },
+                      required: ["phase", "action", "rationale"],
+                    },
+                    minItems: 3,
+                    maxItems: 3,
+                  },
+                  cmo_directive: { type: "string", description: "2-3 sentence strategic command for the user's FIRST move" },
+                  suggested_colors: {
+                    type: "object",
+                    properties: {
+                      primary: { type: "string", description: "Hex code" },
+                      secondary: { type: "string", description: "Hex code" },
+                      accent: { type: "string", description: "Hex code" },
+                    },
+                    required: ["primary", "secondary", "accent"],
+                  },
+                },
+                required: ["core_identity", "persona_card", "funnel_stages", "launch_roadmap", "cmo_directive", "suggested_colors"],
+              },
+            },
+          }],
+          tool_choice: { type: "function", function: { name: "generate_strategy_board" } },
+        }),
+      });
+
+      if (!aiResponse.ok) {
+        const err = await aiResponse.text();
+        console.error("[CMO-Agent Founder] AI error:", err);
+        if (aiResponse.status === 429) {
+          return new Response(JSON.stringify({ error: "Rate limited" }), {
+            status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        return new Response(JSON.stringify({ error: "Strategy generation failed" }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const aiData = await aiResponse.json();
+      const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
+      if (toolCall?.function?.arguments) {
+        const strategyBoard = JSON.parse(toolCall.function.arguments);
+
+        // Persist to brand_strategy table
+        const serviceClient = createClient(
+          Deno.env.get("SUPABASE_URL")!,
+          Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+        );
+
+        await serviceClient.from("brand_strategy").upsert({
+          profile_id: claimsData.user.id,
+          mode: "genesis",
+          core_value: coreValue.trim(),
+          enemy: enemy?.trim() || null,
+          secret_weapon: secretWeapon?.trim() || null,
+          core_identity: strategyBoard.core_identity,
+          persona_card: strategyBoard.persona_card,
+          funnel_stages: strategyBoard.funnel_stages,
+          launch_roadmap: strategyBoard.launch_roadmap,
+          current_focus: "tof",
+          launch_readiness: 0,
+          interview_completed: true,
+          strategy_generated: true,
+        }, { onConflict: "profile_id" });
+
+        // Also save as brand_memory for CMO panel
+        await serviceClient.from("brand_memory").upsert({
+          profile_id: claimsData.user.id,
+          memory_type: "brand_profile",
+          pattern_category: "auto_research",
+          pattern_value: "founder_strategy",
+          context: {
+            summary: strategyBoard.cmo_directive,
+            brand_voice_detected: strategyBoard.core_identity.brand_voice,
+            visual_style: strategyBoard.core_identity.visual_direction,
+            color_palette_suggestion: strategyBoard.suggested_colors,
+            target_audience_detected: strategyBoard.persona_card.psychographic,
+            competitors: [],
+            key_themes: [strategyBoard.core_identity.archetype, strategyBoard.core_identity.hero_journey],
+            content_pillars: [strategyBoard.funnel_stages.tof.strategy_name, strategyBoard.funnel_stages.mof.strategy_name, strategyBoard.funnel_stages.bof.strategy_name],
+          },
+          frequency: 1,
+        }, { onConflict: "profile_id,pattern_category,pattern_value" });
+
+        // Update profile colors
+        await serviceClient.from("profiles").update({
+          brand_colors: strategyBoard.suggested_colors,
+          brand_voice_tone: strategyBoard.core_identity.brand_voice,
+        }).eq("id", claimsData.user.id);
+
+        return new Response(JSON.stringify({ strategyBoard }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      return new Response(JSON.stringify({ error: "No strategy generated" }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     // ── GENESIS MODE: Generate brand archetypes from elevator pitch ──
     if (mode === "genesis") {
