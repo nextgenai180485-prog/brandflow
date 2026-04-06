@@ -1,8 +1,41 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Check, X, ImageIcon, VideoIcon, FileText, Layers, Instagram } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { GeneratedAsset, AssetStatus, SocialMeta } from "@/types/campaigns";
+
+const useTypewriter = (text: string | null, speed = 18) => {
+  const [displayed, setDisplayed] = useState("");
+  const [done, setDone] = useState(false);
+  const prevTextRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!text) {
+      setDisplayed("");
+      setDone(true);
+      return;
+    }
+
+    // If text hasn't changed, don't re-animate
+    if (prevTextRef.current === text) return;
+    prevTextRef.current = text;
+
+    setDisplayed("");
+    setDone(false);
+    let i = 0;
+    const interval = setInterval(() => {
+      i++;
+      setDisplayed(text.slice(0, i));
+      if (i >= text.length) {
+        clearInterval(interval);
+        setDone(true);
+      }
+    }, speed);
+    return () => clearInterval(interval);
+  }, [text, speed]);
+
+  return { displayed, done };
+};
 
 const parseSocialMeta = (asset: GeneratedAsset): SocialMeta | null => {
   const text = asset.content_text || "";
