@@ -179,7 +179,7 @@ const NewCampaign = () => {
             </Label>
             <Input
               id="campaign-title"
-              placeholder='e.g. "Mother\'s Day Botox Promo" or "Summer Filler Special"'
+              placeholder={"e.g. \"Mother's Day Botox Promo\" or \"Summer Filler Special\""}
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               autoFocus
