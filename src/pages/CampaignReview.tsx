@@ -421,6 +421,36 @@ const CampaignReview = () => {
           </div>
         )}
       </div>
+
+      {/* Phone Preview Modal */}
+      {(() => {
+        const previewAsset = assets.find(a => a.id === previewAssetId);
+        const previewIndex = assets.findIndex(a => a.id === previewAssetId);
+        const navigableAssets = assets.filter(a => a.content_url);
+        const navIndex = navigableAssets.findIndex(a => a.id === previewAssetId);
+
+        if (!previewAsset) return null;
+
+        const metaMatch = previewAsset.content_text?.match(/^\[meta:([^|]*)\|([^|]*)\|([^\]]*)\]/);
+
+        return (
+          <PhonePreview
+            open={!!previewAssetId}
+            onClose={() => setPreviewAssetId(null)}
+            imageUrl={previewAsset.content_url}
+            caption={parseCaption(previewAsset.content_text)}
+            platform={previewAsset.platform || "instagram"}
+            format={previewAsset.format || "post"}
+            brandName={campaign?.title || "Brand"}
+            aspectRatio={metaMatch?.[3]}
+            isVideo={previewAsset.asset_type === "video"}
+            hasPrev={navIndex > 0}
+            hasNext={navIndex < navigableAssets.length - 1}
+            onPrev={() => navIndex > 0 && setPreviewAssetId(navigableAssets[navIndex - 1].id)}
+            onNext={() => navIndex < navigableAssets.length - 1 && setPreviewAssetId(navigableAssets[navIndex + 1].id)}
+          />
+        );
+      })()}
     </AppShell>
   );
 };
