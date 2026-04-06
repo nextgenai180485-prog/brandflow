@@ -128,7 +128,17 @@ const CampaignReview = () => {
     await supabase.from("generated_assets").update({ status: "regenerating" as any, content_url: null }).eq("id", assetId);
     setAssets((prev) => prev.map((a) => a.id === assetId ? { ...a, status: "regenerating" as any, content_url: null } : a));
 
-    // Re-trigger generation for this single asset
+    // Extract dimensions from meta tag if available
+    const metaMatch = asset.content_text?.match(/^\[meta:([^|]*)\|([^|]*)\|([^\]]*)\]/);
+    const RATIO_MAP: Record<string, { width: number; height: number }> = {
+      "9:16": { width: 1080, height: 1920 },
+      "16:9": { width: 1280, height: 720 },
+      "4:5": { width: 1080, height: 1350 },
+      "1:1": { width: 1080, height: 1080 },
+    };
+    const ratio = metaMatch?.[3] || "1:1";
+    const dims = RATIO_MAP[ratio] || { width: 1080, height: 1080 };
+
     await supabase.functions.invoke("generate-content", {
       body: {
         campaignId: campaign.id,
@@ -136,9 +146,8 @@ const CampaignReview = () => {
           platform: asset.platform || "instagram",
           format: asset.format || "post",
           assetType: asset.asset_type,
-          width: 1080,
-          height: 1080,
-          aspectRatio: "1:1",
+          aspectRatio: ratio,
+          ...dims,
         }],
         brandContext: {},
       },

@@ -34,10 +34,23 @@ serve(async (req) => {
     }
     const userId = claimsData.user.id;
 
-    const { websiteUrl, businessName, industry, targetAudience, brandVoice } = await req.json();
+    let reqBody: any;
+    try {
+      reqBody = await req.json();
+    } catch {
+      return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const { websiteUrl, businessName, industry, targetAudience, brandVoice } = reqBody;
 
-    if (!websiteUrl) {
-      return new Response(JSON.stringify({ error: "websiteUrl is required" }), {
+    if (!websiteUrl || typeof websiteUrl !== "string") {
+      return new Response(JSON.stringify({ error: "websiteUrl (string) is required" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (websiteUrl.length > 500) {
+      return new Response(JSON.stringify({ error: "websiteUrl must be under 500 characters" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
