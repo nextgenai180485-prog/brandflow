@@ -772,6 +772,63 @@ serve(async (req) => {
       return new Response(JSON.stringify({ success: true, message: "Edit started" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
+    // ── Regenerate Caption Only ─────────────────────────────────
+    if (action === "regenerate_caption") {
+      const { assetId, platform, format } = body;
+      if (!assetId || typeof assetId !== "string") {
+        return new Response(JSON.stringify({ error: "assetId required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+
+      // Load asset, brand context, and decision trace
+      const { data: asset } = await supabase.from("generated_assets").select("*").eq("id", assetId).eq("profile_id", userId).single();
+      if (!asset) {
+        return new Response(JSON.stringify({ error: "Asset not found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+
+      const { data: profile } = await supabase.from("profiles").select("*").eq("id", userId).single();
+      const { data: campaign } = await supabase.from("campaigns").select("*").eq("id", asset.campaign_id).single();
+
+      // Try to load the decision trace for this asset
+      const { data: trace } = await supabase.from("decision_traces").select("*").eq("campaign_id", asset.campaign_id).eq("profile_id", userId).order("created_at", { ascending: false }).limit(1).maybeSingle();
+
+      const brandContext = {
+        businessName: profile?.business_name || "",
+        industry: profile?.industry || "",
+        brandVoice: profile?.brand_voice_tone || "",
+        targetAudience: profile?.target_audience || "",
+      };
+
+      const decisionWinner = trace?.winner || {};
+      const intelligenceBrief = {};
+
+      // Build the visual prompt that describes what the image shows
+      const visualPrompt = buildImagePrompt(
+        platform || asset.platform || "instagram",
+        format || asset.format || "post",
+        brandContext,
+        intelligenceBrief,
+        decisionWinner
+      );
+
+      const caption = await generateCaption(
+        platform || asset.platform || "instagram",
+        format || asset.format || "post",
+        brandContext,
+        intelligenceBrief,
+        decisionWinner,
+        visualPrompt
+      );
+
+      // Preserve meta prefix, update caption
+      const metaMatch = asset.content_text?.match(/^\[meta:[^\]]*\]/);
+      const metaPrefix = metaMatch?.[0] ? `${metaMatch[0]} ` : "";
+      const newContentText = `${metaPrefix}${caption}`;
+
+      await supabase.from("generated_assets").update({ content_text: newContentText }).eq("id", assetId);
+
+      return new Response(JSON.stringify({ success: true, caption }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
     // ── Brand Memory Action — record approval/rejection ───────
     if (action === "record_memory") {
       const { memoryType, patternCategory, patternValue, context: memCtx } = body;

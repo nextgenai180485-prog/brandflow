@@ -1,8 +1,9 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   ArrowLeft, Check, X, RefreshCw, Download, Copy, Loader2,
-  CheckCircle2, XCircle, Clock, Sparkles, Image as ImageIcon, Video, Wand2
+  CheckCircle2, XCircle, Clock, Sparkles, Image as ImageIcon, Video, Wand2,
+  Pencil, RotateCw, Save
 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -59,6 +60,11 @@ const CampaignReview = () => {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [previewAssetId, setPreviewAssetId] = useState<string | null>(null);
   const [editingAssetId, setEditingAssetId] = useState<string | null>(null);
+  const [editingCaptionId, setEditingCaptionId] = useState<string | null>(null);
+  const [editedCaption, setEditedCaption] = useState("");
+  const [captionSaving, setCaptionSaving] = useState(false);
+  const [captionRegenerating, setCaptionRegenerating] = useState<string | null>(null);
+  const captionRef = useRef<HTMLTextAreaElement>(null);
 
   const fetchData = useCallback(async () => {
     if (!id || !user) return;
@@ -164,6 +170,82 @@ const CampaignReview = () => {
   const handleCopyCaption = (text: string) => {
     navigator.clipboard.writeText(text);
     toast.success("Caption copied");
+  };
+
+  const handleStartEditCaption = (assetId: string, currentCaption: string) => {
+    setEditingCaptionId(assetId);
+    setEditedCaption(currentCaption);
+    setTimeout(() => captionRef.current?.focus(), 50);
+  };
+
+  const handleSaveCaption = async (assetId: string) => {
+    setCaptionSaving(true);
+    const asset = assets.find((a) => a.id === assetId);
+    const metaMatch = asset?.content_text?.match(/^\[meta:[^\]]*\]/);
+    const metaPrefix = metaMatch?.[0] ? `${metaMatch[0]} ` : "";
+    const newContentText = `${metaPrefix}${editedCaption}`;
+
+    const { error } = await supabase
+      .from("generated_assets")
+      .update({ content_text: newContentText })
+      .eq("id", assetId);
+
+    if (error) {
+      toast.error("Failed to save caption");
+    } else {
+      setAssets((prev) => prev.map((a) => a.id === assetId ? { ...a, content_text: newContentText } : a));
+      toast.success("Caption saved");
+    }
+    setEditingCaptionId(null);
+    setCaptionSaving(false);
+  };
+
+  const handleRegenerateCaption = async (assetId: string) => {
+    setCaptionRegenerating(assetId);
+    const asset = assets.find((a) => a.id === assetId);
+    if (!asset) { setCaptionRegenerating(null); return; }
+
+    const metaMatch = asset.content_text?.match(/^\[meta:([^|]*)\|([^|]*)\|([^\]]*)\]/);
+    const platform = metaMatch?.[1] || asset.platform || "instagram";
+    const format = metaMatch?.[2] || asset.format || "post";
+
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-content", {
+        body: {
+          action: "regenerate_caption",
+          assetId: asset.id,
+          platform,
+          format,
+        },
+      });
+
+      if (error) throw error;
+
+      // Poll for the updated caption
+      let attempts = 0;
+      const poll = setInterval(async () => {
+        attempts++;
+        const { data: updated } = await supabase
+          .from("generated_assets")
+          .select("content_text")
+          .eq("id", assetId)
+          .single();
+        const newCaption = parseCaption(updated?.content_text || "");
+        const oldCaption = parseCaption(asset.content_text);
+        if (newCaption !== oldCaption || attempts > 15) {
+          clearInterval(poll);
+          if (updated) {
+            setAssets((prev) => prev.map((a) => a.id === assetId ? { ...a, content_text: updated.content_text } : a));
+          }
+          setCaptionRegenerating(null);
+          toast.success("Caption regenerated");
+        }
+      }, 2000);
+    } catch (e) {
+      console.error("Caption regen error:", e);
+      setCaptionRegenerating(null);
+      toast.error("Failed to regenerate caption");
+    }
   };
 
   const handleDownload = async (url: string, filename: string) => {
@@ -331,18 +413,67 @@ const CampaignReview = () => {
 
                 {/* Caption + Actions */}
                 <div className="p-3 space-y-2">
-                  {caption && (
+                  {editingCaptionId === asset.id ? (
+                    <div className="space-y-1.5" onClick={(e) => e.stopPropagation()}>
+                      <textarea
+                        ref={captionRef}
+                        value={editedCaption}
+                        onChange={(e) => setEditedCaption(e.target.value)}
+                        className="w-full text-[11px] text-foreground leading-relaxed bg-muted/50 border border-border rounded-md p-2 resize-none focus:outline-none focus:ring-1 focus:ring-primary min-h-[60px]"
+                        rows={4}
+                      />
+                      <div className="flex items-center gap-1">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-6 px-2 text-[10px] gap-1"
+                          disabled={captionSaving}
+                          onClick={() => handleSaveCaption(asset.id)}
+                        >
+                          <Save className="w-3 h-3" /> Save
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-6 px-2 text-[10px] gap-1 text-muted-foreground"
+                          onClick={() => setEditingCaptionId(null)}
+                        >
+                          <X className="w-3 h-3" /> Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  ) : caption ? (
                     <div className="relative group/caption">
                       <p className="text-[11px] text-foreground leading-relaxed line-clamp-3">{caption}</p>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); handleCopyCaption(caption); }}
-                        className="absolute top-0 right-0 p-1 rounded opacity-0 group-hover/caption:opacity-100 hover:bg-secondary transition-all"
-                        title="Copy caption"
-                      >
-                        <Copy className="w-3 h-3 text-muted-foreground" />
-                      </button>
+                      <div className="absolute top-0 right-0 flex items-center gap-0.5 opacity-0 group-hover/caption:opacity-100 transition-all">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleStartEditCaption(asset.id, caption); }}
+                          className="p-1 rounded hover:bg-secondary transition-all"
+                          title="Edit caption"
+                        >
+                          <Pencil className="w-3 h-3 text-muted-foreground" />
+                        </button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleRegenerateCaption(asset.id); }}
+                          className="p-1 rounded hover:bg-secondary transition-all"
+                          title="Regenerate caption"
+                          disabled={captionRegenerating === asset.id}
+                        >
+                          <RotateCw className={cn("w-3 h-3 text-muted-foreground", captionRegenerating === asset.id && "animate-spin")} />
+                        </button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleCopyCaption(caption); }}
+                          className="p-1 rounded hover:bg-secondary transition-all"
+                          title="Copy caption"
+                        >
+                          <Copy className="w-3 h-3 text-muted-foreground" />
+                        </button>
+                      </div>
+                      {captionRegenerating === asset.id && (
+                        <p className="text-[9px] text-primary mt-1 animate-pulse">Regenerating caption…</p>
+                      )}
                     </div>
-                  )}
+                  ) : null}
 
                   {/* Strategic rationale (collapsed) */}
                   {rationale?.direction && rationale.direction !== "default" && (
