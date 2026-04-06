@@ -120,7 +120,15 @@ const CampaignDetails = () => {
     return Array.from(platforms).sort();
   }, [assets]);
 
-  const generatedAssets = assets;
+  // Filter out user-uploaded source assets (no provider AND no meta tag = source input)
+  const generatedAssets = assets.filter((a) => {
+    // If it has a provider, it's AI-generated
+    if (a.provider) return true;
+    // If content_text has [meta:...] tag, it's a generation output
+    if (a.content_text && /^\[meta:/.test(a.content_text)) return true;
+    // Otherwise it's a user-uploaded source asset — hide from grid
+    return false;
+  });
   const filteredAssets = activePlatform === "all"
     ? generatedAssets
     : generatedAssets.filter((a) => parsePlatform(a) === activePlatform);
@@ -286,17 +294,6 @@ const CampaignDetails = () => {
           </div>
         )}
 
-        {/* Cost summary bar */}
-        {generatedAssets.length > 0 && generatedAssets.some((a: any) => a.provider) && (
-          <div className="flex items-center gap-3 mb-3 px-2.5 py-1.5 rounded-lg bg-secondary/50 text-[10px] text-muted-foreground">
-            <span className="font-medium text-foreground">Generation Summary</span>
-            <span>{generatedAssets.filter((a: any) => a.provider).length} AI-generated</span>
-            <span>·</span>
-            <span>${generatedAssets.reduce((sum: number, a: any) => sum + (Number((a as any).generation_cost) || 0), 0).toFixed(2)} total cost</span>
-            <span>·</span>
-            <span>{Array.from(new Set(generatedAssets.map((a: any) => a.provider).filter(Boolean))).join(", ")}</span>
-          </div>
-        )}
 
         {/* Asset grid */}
         {filteredAssets.length > 0 ? (
