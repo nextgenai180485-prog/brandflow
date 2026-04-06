@@ -15,6 +15,7 @@ import CalendarView from "./pages/CalendarView";
 import Onboarding from "./pages/Onboarding";
 import StrategyCommandCenter from "./pages/StrategyCommandCenter";
 import VisualDirector from "./pages/VisualDirector";
+import AdminLibraries from "./pages/AdminLibraries";
 import NotFound from "./pages/NotFound";
 import GlobalCMOChat from "./components/GlobalCMOChat";
 
@@ -79,6 +80,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <CalendarView />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/admin/libraries"
+              element={
+                <ProtectedRoute>
+                  <AdminLibraries />
                 </ProtectedRoute>
               }
             />
