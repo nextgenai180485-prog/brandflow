@@ -129,10 +129,10 @@ const StrategyCommandCenter = () => {
       brand_voice_detected: selectedArchetype.mood,
       visual_style: selectedArchetype.tagline,
       color_palette_suggestion: selectedArchetype.colors,
-      key_differentiators: [elevatorPitch],
-      content_themes: [selectedArchetype.mood, selectedArchetype.name.toLowerCase()],
-      target_audience_insights: "New brand — audience to be defined through initial campaigns",
-      competitor_landscape: "No competitive data yet — Genesis Mode active",
+      target_audience_detected: "New brand — audience to be defined through initial campaigns",
+      competitors: [],
+      key_themes: [selectedArchetype.mood, selectedArchetype.name.toLowerCase()],
+      content_pillars: [elevatorPitch],
     };
 
     await supabase.from("brand_memory").insert({

@@ -13,6 +13,7 @@ import CampaignDetails from "./pages/CampaignDetails";
 import NewCampaign from "./pages/NewCampaign";
 import CalendarView from "./pages/CalendarView";
 import Onboarding from "./pages/Onboarding";
+import StrategyCommandCenter from "./pages/StrategyCommandCenter";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
