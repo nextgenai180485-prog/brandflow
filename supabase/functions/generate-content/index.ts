@@ -49,9 +49,9 @@ function routeProvider(assetType: string) {
   switch (assetType) {
     case "image":
     case "carousel":
-      return { provider: "kie_ai", model: "seedream/4.5-text-to-image", estimatedCost: assetType === "carousel" ? 0.12 : 0.04 };
+      return { provider: "replicate", model: "seedream-5", estimatedCost: assetType === "carousel" ? 0.15 : 0.05 };
     case "video":
-      return { provider: "kie_ai", model: "bytedance/seedance-2", estimatedCost: 0.30 };
+      return { provider: "kie_ai", model: "kling-2.5", estimatedCost: 0.35 };
     default:
       return { provider: "lovable_ai", model: "google/gemini-3-flash-preview", estimatedCost: 0.002 };
   }
