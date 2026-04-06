@@ -681,7 +681,7 @@ function buildVideoPromptFromDirection(creativeDirection: any, sceneIndex: numbe
   return compileSealcamToPrompt(scene, creativeDirection.family, brandContext);
 }
 
-// ── Background Processing (now with Decision Engine) ─────────
+// ── Background Processing (with Decision Engine + Creative Direction) ─────────
 async function processAssetsInBackground(
   userId: string,
   campaignId: string,
@@ -691,7 +691,8 @@ async function processAssetsInBackground(
   brandContext: any,
   placeholderIds: string[],
   decisionTraceId: string | null,
-  decisionWinner: any
+  decisionWinner: any,
+  creativeDirection: any | null
 ) {
   const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
