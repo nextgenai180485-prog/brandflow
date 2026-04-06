@@ -1,12 +1,11 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowRight, Sparkles, Loader2, Palette, Type, Zap, Check } from "lucide-react";
+import { ArrowRight, Sparkles, Loader2, Palette, Type, Zap, Check, Brain } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import AppShell from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import CMOStrategyPanel from "@/components/CMOStrategyPanel";
@@ -23,37 +22,35 @@ interface BrandArchetype {
   mood: string;
 }
 
-const ARCHETYPES: Record<string, BrandArchetype[]> = {
-  default: [
-    {
-      id: "the-purist",
-      name: "The Purist",
-      tagline: "Minimalist · Clean · Trustworthy",
-      description: "Stripped-back aesthetic with maximum whitespace. Signals quality through restraint.",
-      colors: { primary: "#1A1A1A", secondary: "#FAFAFA", accent: "#3B82F6" },
-      font: "Inter",
-      mood: "premium-minimal",
-    },
-    {
-      id: "the-disruptor",
-      name: "The Disruptor",
-      tagline: "Bold · Electric · Unapologetic",
-      description: "High-contrast, attention-grabbing visuals. Built to stop the scroll.",
-      colors: { primary: "#FF6B35", secondary: "#0D0D0D", accent: "#FFD60A" },
-      font: "Space Grotesk",
-      mood: "bold-energetic",
-    },
-    {
-      id: "the-sage",
-      name: "The Sage",
-      tagline: "Refined · Warm · Authoritative",
-      description: "Earthy tones with editorial sophistication. Positions as the expert voice.",
-      colors: { primary: "#2C3E50", secondary: "#F8F5F1", accent: "#D35400" },
-      font: "Playfair Display",
-      mood: "editorial-warm",
-    },
-  ],
-};
+const FALLBACK_ARCHETYPES: BrandArchetype[] = [
+  {
+    id: "the-purist",
+    name: "The Purist",
+    tagline: "Minimalist · Clean · Trustworthy",
+    description: "Stripped-back aesthetic with maximum whitespace. Signals quality through restraint.",
+    colors: { primary: "#1A1A1A", secondary: "#FAFAFA", accent: "#3B82F6" },
+    font: "Inter",
+    mood: "premium-minimal",
+  },
+  {
+    id: "the-disruptor",
+    name: "The Disruptor",
+    tagline: "Bold · Electric · Unapologetic",
+    description: "High-contrast, attention-grabbing visuals. Built to stop the scroll.",
+    colors: { primary: "#FF6B35", secondary: "#0D0D0D", accent: "#FFD60A" },
+    font: "Space Grotesk",
+    mood: "bold-energetic",
+  },
+  {
+    id: "the-sage",
+    name: "The Sage",
+    tagline: "Refined · Warm · Authoritative",
+    description: "Earthy tones with editorial sophistication. Positions as the expert voice.",
+    colors: { primary: "#2C3E50", secondary: "#F8F5F1", accent: "#D35400" },
+    font: "Playfair Display",
+    mood: "editorial-warm",
+  },
+];
 
 type Mode = "OPTIMIZATION" | "GENESIS";
 
@@ -68,14 +65,17 @@ const StrategyCommandCenter = () => {
   // Genesis state
   const [elevatorPitch, setElevatorPitch] = useState("");
   const [selectedArchetype, setSelectedArchetype] = useState<BrandArchetype | null>(null);
-  const [archetypes, setArchetypes] = useState<BrandArchetype[]>(ARCHETYPES.default);
+  const [archetypes, setArchetypes] = useState<BrandArchetype[]>(FALLBACK_ARCHETYPES);
+  const [generatingArchetypes, setGeneratingArchetypes] = useState(false);
+  const [genesisAnalysis, setGenesisAnalysis] = useState("");
   const [savingArchetype, setSavingArchetype] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const lastPitchRef = useRef("");
 
   // Determine mode on mount
   useEffect(() => {
     if (!user) return;
     const load = async () => {
-      // Check for brand research data
       const { data: memoryData } = await supabase
         .from("brand_memory")
         .select("context")
@@ -89,41 +89,69 @@ const StrategyCommandCenter = () => {
         setBrandProfile(memoryData.context as unknown as BrandProfile);
         setMode("OPTIMIZATION");
       } else {
-        // Check if user has a website
         const { data: profile } = await supabase
           .from("profiles")
           .select("website_url")
           .eq("id", user.id)
           .single();
 
-        if (profile?.website_url?.trim()) {
-          // Has website but research not done yet — still optimization mode, CMO will show standby
-          setMode("OPTIMIZATION");
-        } else {
-          setMode("GENESIS");
-        }
+        setMode(profile?.website_url?.trim() ? "OPTIMIZATION" : "GENESIS");
       }
       setLoading(false);
     };
     load();
   }, [user]);
 
-  // Save archetype as brand profile
-  const handleSelectArchetype = useCallback(async (archetype: BrandArchetype) => {
-    setSelectedArchetype(archetype);
+  // Debounced LLM archetype generation
+  const generateArchetypes = useCallback(async (pitch: string) => {
+    if (pitch.trim().length < 15 || pitch.trim() === lastPitchRef.current) return;
+    lastPitchRef.current = pitch.trim();
+
+    setGeneratingArchetypes(true);
+    setSelectedArchetype(null);
+    setGenesisAnalysis("");
+
+    try {
+      const { data, error } = await supabase.functions.invoke("cmo-agent", {
+        body: { mode: "genesis", elevatorPitch: pitch.trim() },
+      });
+
+      if (error) {
+        console.error("[Genesis] CMO error:", error);
+        setArchetypes(FALLBACK_ARCHETYPES);
+        toast.error("Using default archetypes — AI generation temporarily unavailable.");
+      } else if (data?.genesis) {
+        setArchetypes(data.genesis.archetypes || FALLBACK_ARCHETYPES);
+        setGenesisAnalysis(data.genesis.analysis || "");
+      } else {
+        setArchetypes(FALLBACK_ARCHETYPES);
+      }
+    } catch (e) {
+      console.error("[Genesis] Error:", e);
+      setArchetypes(FALLBACK_ARCHETYPES);
+    } finally {
+      setGeneratingArchetypes(false);
+    }
   }, []);
 
+  // Trigger generation on pitch change (debounced 1.5s)
+  useEffect(() => {
+    if (mode !== "GENESIS" || elevatorPitch.trim().length < 15) return;
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => generateArchetypes(elevatorPitch), 1500);
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+  }, [elevatorPitch, mode, generateArchetypes]);
+
+  // Save archetype as brand profile
   const handleLockArchetype = useCallback(async () => {
     if (!user || !selectedArchetype) return;
     setSavingArchetype(true);
 
-    // Save as brand_colors in profile
     await supabase.from("profiles").update({
       brand_colors: selectedArchetype.colors,
       brand_voice_tone: selectedArchetype.mood,
     } as any).eq("id", user.id);
 
-    // Create a synthetic brand profile in brand_memory
     const syntheticProfile: BrandProfile = {
       summary: `${elevatorPitch}. Brand archetype: ${selectedArchetype.name} — ${selectedArchetype.description}`,
       brand_voice_detected: selectedArchetype.mood,
@@ -165,7 +193,7 @@ const StrategyCommandCenter = () => {
     return (
       <AppShell>
         <div className="flex h-[calc(100vh-3.5rem)] overflow-hidden">
-          {/* LEFT: Elevator Pitch Input */}
+          {/* LEFT: Elevator Pitch + Archetypes */}
           <div className="flex-1 overflow-y-auto">
             <div className="max-w-lg mx-auto py-12 px-6 space-y-8">
               <div>
@@ -193,15 +221,31 @@ const StrategyCommandCenter = () => {
                   className="text-base resize-none"
                   autoFocus
                 />
+                {elevatorPitch.trim().length > 0 && elevatorPitch.trim().length < 15 && (
+                  <p className="text-[11px] text-muted-foreground">Keep typing… need a bit more to analyze.</p>
+                )}
               </div>
 
+              {/* Loading state */}
+              {generatingArchetypes && (
+                <div className="flex items-center gap-3 py-6 animate-in fade-in duration-300">
+                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Brain className="w-5 h-5 text-primary animate-pulse" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">CMO is analyzing your concept…</p>
+                    <p className="text-xs text-muted-foreground">Generating 3 custom brand archetypes</p>
+                  </div>
+                </div>
+              )}
+
               {/* Archetype Cards */}
-              {elevatorPitch.trim().length > 10 && (
+              {!generatingArchetypes && elevatorPitch.trim().length >= 15 && (
                 <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
                   <div>
                     <h2 className="text-sm font-semibold text-foreground">Choose Your Visual DNA</h2>
                     <p className="text-xs text-muted-foreground mt-1">
-                      Select a provisional brand identity. You can refine later.
+                      {genesisAnalysis || "Select a provisional brand identity. You can refine later."}
                     </p>
                   </div>
 
@@ -211,7 +255,7 @@ const StrategyCommandCenter = () => {
                       return (
                         <button
                           key={arch.id}
-                          onClick={() => handleSelectArchetype(arch)}
+                          onClick={() => setSelectedArchetype(arch)}
                           className={`relative text-left rounded-xl border-2 p-5 transition-all ${
                             isSelected
                               ? "border-primary bg-primary/5 shadow-md"
@@ -225,7 +269,6 @@ const StrategyCommandCenter = () => {
                           )}
 
                           <div className="flex items-start gap-4">
-                            {/* Color swatches */}
                             <div className="flex flex-col gap-1.5 shrink-0 mt-0.5">
                               <div className="w-8 h-8 rounded-lg border border-border" style={{ backgroundColor: arch.colors.primary }} />
                               <div className="w-8 h-8 rounded-lg border border-border" style={{ backgroundColor: arch.colors.secondary }} />
@@ -276,10 +319,9 @@ const StrategyCommandCenter = () => {
           {/* RIGHT: CMO Genesis Brain */}
           <div className="hidden lg:flex w-[420px] xl:w-[480px] border-l border-border bg-secondary/20 flex-col shrink-0">
             <div className="h-full flex flex-col">
-              {/* Header */}
               <div className="flex items-center gap-3 border-b border-border px-5 py-3">
                 <div className="flex gap-1.5">
-                  <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                  <div className={`w-2 h-2 rounded-full ${generatingArchetypes ? "bg-amber-400 animate-pulse" : "bg-emerald-400"}`} />
                   <div className="w-2 h-2 rounded-full bg-amber-400" />
                   <div className="w-2 h-2 rounded-full bg-muted-foreground/30" />
                 </div>
@@ -297,9 +339,13 @@ const StrategyCommandCenter = () => {
                     </span>
                   </div>
                   <p className="text-sm text-foreground leading-relaxed">
-                    {elevatorPitch.trim().length > 10
-                      ? "I see you're building something new. I've prepared 3 Visual DNA archetypes based on your description. Select one and I'll configure your entire brand system."
-                      : "I see you're starting fresh. Tell me what you're building and I'll define your Visual DNA — colors, typography, and strategic positioning."}
+                    {generatingArchetypes
+                      ? "Analyzing your concept… Identifying market positioning, competitive gaps, and visual language opportunities."
+                      : genesisAnalysis
+                        ? genesisAnalysis
+                        : elevatorPitch.trim().length >= 15
+                          ? "I've prepared 3 Visual DNA archetypes based on your concept. Each represents a distinct strategic positioning. Select one to lock your brand identity."
+                          : "I see you're starting fresh. Tell me what you're building and I'll architect your Visual DNA — AI-generated colors, typography, and strategic positioning tailored to your concept."}
                   </p>
                 </div>
 
@@ -309,23 +355,26 @@ const StrategyCommandCenter = () => {
                     <p className="text-lg font-bold text-foreground">{selectedArchetype.name}</p>
                     <p className="text-xs text-muted-foreground">{selectedArchetype.description}</p>
                     <div className="flex gap-2 mt-2">
-                      {Object.values(selectedArchetype.colors).map((c, i) => (
-                        <div key={i} className="flex items-center gap-1.5">
+                      {Object.entries(selectedArchetype.colors).map(([key, c]) => (
+                        <div key={key} className="flex items-center gap-1.5">
                           <div className="w-4 h-4 rounded-full border border-border" style={{ backgroundColor: c }} />
                           <span className="text-[10px] font-mono text-muted-foreground">{c}</span>
                         </div>
                       ))}
+                    </div>
+                    <div className="flex gap-2 mt-1">
+                      <Badge variant="secondary" className="text-[9px]">
+                        <Type className="w-2.5 h-2.5 mr-1" /> {selectedArchetype.font}
+                      </Badge>
                     </div>
                   </div>
                 )}
 
                 {/* Safe Mode Protocol */}
                 <div className="rounded-xl border border-border bg-card p-4 space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="text-[9px] border-emerald-300 text-emerald-700 bg-emerald-50">
-                      Safe Mode Active
-                    </Badge>
-                  </div>
+                  <Badge variant="outline" className="text-[9px] border-emerald-300 text-emerald-700 bg-emerald-50">
+                    Safe Mode Active
+                  </Badge>
                   <p className="text-[10px] text-muted-foreground">
                     All generations will follow the Swiss-Grid protocol: 60-30-10 color law, typographic hierarchy, and Rule of Thirds composition.
                   </p>
@@ -338,11 +387,10 @@ const StrategyCommandCenter = () => {
     );
   }
 
-  // ── OPTIMIZATION MODE — redirect to campaign creation ──
+  // ── OPTIMIZATION MODE ──
   return (
     <AppShell>
       <div className="flex h-[calc(100vh-3.5rem)] overflow-hidden">
-        {/* LEFT: Quick Campaign Setup */}
         <div className="flex-1 overflow-y-auto">
           <div className="max-w-lg mx-auto py-12 px-6 space-y-8">
             <div>
@@ -392,7 +440,6 @@ const StrategyCommandCenter = () => {
           </div>
         </div>
 
-        {/* RIGHT: CMO Strategy Panel */}
         <div className="hidden lg:flex w-[420px] xl:w-[480px] border-l border-border bg-secondary/20 flex-col shrink-0">
           <CMOStrategyPanel
             brandProfile={brandProfile}
