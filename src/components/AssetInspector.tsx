@@ -171,27 +171,36 @@ const AssetInspector = ({
         <Badge variant="outline" className={`text-[10px] ${status.className}`}>{status.label}</Badge>
       </div>
 
-      {/* Preview image */}
+      {/* Platform-native WYSIWYG preview */}
       {asset.asset_type !== "copy" && (
-        <div className="px-4 pt-3">
+        <div className="px-4 pt-3 flex flex-col items-center">
+          {/* Platform frame label */}
+          {meta && (
+            <div className="flex items-center justify-between w-full mb-2">
+              <span className="text-[10px] font-medium text-foreground uppercase tracking-wide">
+                {platformLabel}
+              </span>
+              <span className="text-[10px] text-muted-foreground font-mono">{dimensionLabel}</span>
+            </div>
+          )}
+          {/* Native aspect ratio container — exactly how it appears on the platform */}
           <div
-            className="w-full rounded-lg overflow-hidden bg-muted border border-border"
-            style={{ aspectRatio, maxHeight: isMobile ? "40vh" : "50vh" }}
+            className="w-full rounded-lg overflow-hidden bg-muted border border-border shadow-sm"
+            style={{
+              aspectRatio: nativeAspect,
+              maxHeight: isMobile ? "55vh" : "50vh",
+            }}
           >
             {asset.content_url ? (
-              <img src={asset.content_url} alt={meta?.format || "Asset"} className="w-full h-full object-cover" />
+              <img
+                src={asset.content_url}
+                alt={meta?.format || "Asset"}
+                className="w-full h-full object-cover"
+              />
             ) : (
               <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs">Loading…</div>
             )}
           </div>
-          {meta && (
-            <div className="flex items-center gap-2 mt-2">
-              <span className="text-[10px] font-medium text-foreground uppercase tracking-wide">
-                {PLATFORM_LABELS[meta.platform as SocialPlatform]} · {meta.format}
-              </span>
-              <span className="text-[10px] text-muted-foreground font-mono">{meta.aspectRatio}</span>
-            </div>
-          )}
         </div>
       )}
 
