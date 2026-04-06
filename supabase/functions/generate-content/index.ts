@@ -720,7 +720,16 @@ async function processAssetsInBackground(
         actualCost = result.cost;
         generationTimeMs = result.timeMs;
       } else if (assetType === "video") {
-        generatedPrompt = buildVideoPrompt(platform, format, brandContext || {}, intelligenceBrief || {}, decisionWinner);
+        // Use SEALCaM scenes if creative direction exists, otherwise fallback to generic prompt
+        if (creativeDirection?.scenes?.length) {
+          // Generate one video per scene for multi-scene directions
+          const sceneIndex = i % creativeDirection.scenes.length;
+          generatedPrompt = buildVideoPromptFromDirection(creativeDirection, sceneIndex, brandContext || {});
+          console.log(`[Generate] video for ${platform}/${format} via SEALCaM scene ${sceneIndex + 1}/${creativeDirection.scenes.length} (${creativeDirection.family})`);
+        } else {
+          generatedPrompt = buildVideoPrompt(platform, format, brandContext || {}, intelligenceBrief || {}, decisionWinner);
+          console.log(`[Generate] video for ${platform}/${format} via generic prompt`);
+        }
         console.log(`[Generate] video for ${platform}/${format} via Kling 2.5`);
         const result = await generateVideo(generatedPrompt, width || 1080, height || 1920);
         contentUrl = result.url;
