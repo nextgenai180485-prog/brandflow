@@ -283,7 +283,7 @@ const Dashboard = () => {
                       ))}
                     </div>
                     {campaign.scheduled_at && (
-                      <p className="text-[10px] text-violet-600 mt-1">
+                      <p className="text-[10px] text-primary/70 mt-1">
                         Scheduled: {format(new Date(campaign.scheduled_at), "MMM d 'at' h:mm a")}
                       </p>
                     )}
