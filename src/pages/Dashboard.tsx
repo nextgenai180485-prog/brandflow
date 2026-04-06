@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { Plus, LayoutGrid, Clock, ImageIcon, Video, FileText, Layers } from "lucide-react";
+import { Plus, LayoutGrid, Clock, ImageIcon, Video, FileText, Layers, Brain, ChevronDown, Target, TrendingUp } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -10,6 +10,7 @@ import EmptyCampaigns from "@/components/EmptyCampaigns";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import type { Campaign, CampaignStatus, GeneratedAsset } from "@/types/campaigns";
 
 const statusConfig: Record<CampaignStatus, { label: string; className: string }> = {
@@ -32,6 +33,8 @@ const Dashboard = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [campaigns, setCampaigns] = useState<CampaignWithAssets[]>([]);
   const [loading, setLoading] = useState(true);
+  const [strategy, setStrategy] = useState<any>(null);
+  const [strategyOpen, setStrategyOpen] = useState(false);
 
   // Process C: The "Intrigue" Notification on first arrival from onboarding
   useEffect(() => {
@@ -48,6 +51,21 @@ const Dashboard = () => {
       return () => clearTimeout(timer);
     }
   }, [searchParams, setSearchParams]);
+
+  // Load brand strategy
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from("brand_strategy" as any)
+      .select("*")
+      .eq("profile_id", user.id)
+      .limit(1)
+      .then(({ data }) => {
+        if (data && data.length > 0 && (data[0] as any).strategy_generated) {
+          setStrategy(data[0]);
+        }
+      });
+  }, [user]);
 
   const fetchCampaigns = useCallback(async () => {
     if (!user) return;
@@ -107,6 +125,75 @@ const Dashboard = () => {
           </Button>
         </div>
 
+        {/* Strategy Widget */}
+        {strategy && (
+          <Collapsible open={strategyOpen} onOpenChange={setStrategyOpen} className="mb-6">
+            <CollapsibleTrigger className="w-full">
+              <div className="flex items-center justify-between rounded-xl border border-border bg-card px-5 py-3 hover:bg-secondary/50 transition-colors cursor-pointer">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Brain className="w-4 h-4 text-primary" />
+                  </div>
+                  <div className="text-left">
+                    <p className="text-xs font-bold text-foreground">
+                      Current Mission: {(strategy as any).core_identity?.archetype || "Strategy Active"}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground">
+                      Focus: {((strategy as any).current_focus || "tof") === "tof" ? "Top of Funnel — Awareness" : ((strategy as any).current_focus === "mof" ? "Mid Funnel — Trust" : "Bottom Funnel — Conversion")}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="text-[9px] border-primary/30 text-primary">
+                    {(strategy as any).launch_readiness || 0}% Ready
+                  </Badge>
+                  <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${strategyOpen ? "rotate-180" : ""}`} />
+                </div>
+              </div>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <div className="mt-2 rounded-xl border border-border bg-card p-5 space-y-4 animate-in fade-in duration-300">
+                {/* Persona */}
+                {(strategy as any).persona_card?.name && (
+                  <div className="flex items-start gap-3">
+                    <Target className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+                    <div>
+                      <p className="text-[9px] uppercase tracking-wider text-muted-foreground font-bold">Target Persona</p>
+                      <p className="text-xs font-bold text-foreground">{(strategy as any).persona_card.name}</p>
+                      <p className="text-[10px] text-muted-foreground">{(strategy as any).persona_card.psychographic}</p>
+                    </div>
+                  </div>
+                )}
+                {/* Funnel */}
+                {(strategy as any).funnel_stages && (
+                  <div className="flex items-start gap-3">
+                    <TrendingUp className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+                    <div className="space-y-1">
+                      <p className="text-[9px] uppercase tracking-wider text-muted-foreground font-bold">Funnel Strategy</p>
+                      {["tof", "mof", "bof"].map((stage) => {
+                        const s = (strategy as any).funnel_stages?.[stage];
+                        if (!s) return null;
+                        return (
+                          <p key={stage} className="text-[10px] text-foreground">
+                            <span className="font-semibold capitalize">{stage === "tof" ? "Awareness" : stage === "mof" ? "Trust" : "Conversion"}:</span>{" "}
+                            {s.strategy_name}
+                          </p>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+                {/* CMO Directive */}
+                {(strategy as any).cmo_directive && (
+                  <div className="border-t border-border pt-3">
+                    <p className="text-[10px] text-foreground italic">{(strategy as any).cmo_directive}</p>
+                  </div>
+                )}
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+        )}
+
         {loading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {Array.from({ length: 8 }).map((_, i) => (
@@ -153,9 +240,9 @@ const Dashboard = () => {
                           <div key={t.id} className={`relative overflow-hidden ${thumbnails.length === 3 && i === 0 ? "row-span-2" : ""}`}>
                             <img src={t.content_url!} alt="" className="w-full h-full object-cover" />
                             {t.asset_type === "video" && (
-                              <div className="absolute inset-0 flex items-center justify-center">
-                                <div className="w-6 h-6 rounded-full bg-black/40 flex items-center justify-center">
-                                  <Video className="w-3 h-3 text-white" />
+                            <div className="absolute inset-0 flex items-center justify-center">
+                                <div className="w-6 h-6 rounded-full bg-foreground/40 flex items-center justify-center">
+                                  <Video className="w-3 h-3 text-background" />
                                 </div>
                               </div>
                             )}
@@ -196,7 +283,7 @@ const Dashboard = () => {
                       ))}
                     </div>
                     {campaign.scheduled_at && (
-                      <p className="text-[10px] text-violet-600 mt-1">
+                      <p className="text-[10px] text-primary/70 mt-1">
                         Scheduled: {format(new Date(campaign.scheduled_at), "MMM d 'at' h:mm a")}
                       </p>
                     )}

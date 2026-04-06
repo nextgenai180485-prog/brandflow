@@ -80,6 +80,63 @@ export type Database = {
         }
         Relationships: []
       }
+      brand_strategy: {
+        Row: {
+          core_identity: Json
+          core_value: string | null
+          created_at: string
+          current_focus: string
+          enemy: string | null
+          funnel_stages: Json
+          id: string
+          interview_completed: boolean
+          launch_readiness: number
+          launch_roadmap: Json
+          mode: string
+          persona_card: Json
+          profile_id: string
+          secret_weapon: string | null
+          strategy_generated: boolean
+          updated_at: string
+        }
+        Insert: {
+          core_identity?: Json
+          core_value?: string | null
+          created_at?: string
+          current_focus?: string
+          enemy?: string | null
+          funnel_stages?: Json
+          id?: string
+          interview_completed?: boolean
+          launch_readiness?: number
+          launch_roadmap?: Json
+          mode?: string
+          persona_card?: Json
+          profile_id: string
+          secret_weapon?: string | null
+          strategy_generated?: boolean
+          updated_at?: string
+        }
+        Update: {
+          core_identity?: Json
+          core_value?: string | null
+          created_at?: string
+          current_focus?: string
+          enemy?: string | null
+          funnel_stages?: Json
+          id?: string
+          interview_completed?: boolean
+          launch_readiness?: number
+          launch_roadmap?: Json
+          mode?: string
+          persona_card?: Json
+          profile_id?: string
+          secret_weapon?: string | null
+          strategy_generated?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
       campaign_research: {
         Row: {
           campaign_id: string
