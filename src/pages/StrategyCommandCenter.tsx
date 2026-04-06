@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import CMOStrategyPanel from "@/components/CMOStrategyPanel";
-import CMOChat from "@/components/CMOChat";
 import FounderInterview from "@/components/FounderInterview";
 import type { BrandProfile } from "@/types/campaigns";
 
@@ -308,31 +307,26 @@ const StrategyCommandCenter = () => {
         </div>
 
         <div className="hidden lg:flex w-[420px] xl:w-[480px] border-l border-border bg-secondary/20 flex-col shrink-0">
-          <Tabs defaultValue="chat" className="flex flex-col h-full">
-            <TabsList className="w-full rounded-none border-b border-border bg-transparent h-9 px-2 shrink-0">
-              <TabsTrigger value="chat" className="text-[10px] gap-1.5 data-[state=active]:bg-primary/10">
-                <MessageSquare className="w-3 h-3" />
-                CSO Chat
-              </TabsTrigger>
-              <TabsTrigger value="intel" className="text-[10px] gap-1.5 data-[state=active]:bg-primary/10">
-                <BarChart3 className="w-3 h-3" />
-                Intelligence
-              </TabsTrigger>
-            </TabsList>
-            <TabsContent value="chat" className="flex-1 mt-0 overflow-hidden">
-              <CMOChat />
-            </TabsContent>
-            <TabsContent value="intel" className="flex-1 mt-0 overflow-hidden">
-              <CMOStrategyPanel
-                brandProfile={brandProfile}
-                loadingProfile={researchLoading}
-                selectedPlatforms={[]}
-                selectedContentTypes={[]}
-                campaignTitle=""
-                campaignInstructions=""
-              />
-            </TabsContent>
-          </Tabs>
+          <div className="flex items-center gap-3 border-b border-border px-5 py-3">
+            <div className="flex gap-1.5">
+              <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+              <div className="w-2 h-2 rounded-full bg-muted-foreground/40" />
+              <div className="w-2 h-2 rounded-full bg-muted-foreground/30" />
+            </div>
+            <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-[0.15em]">
+              CSO Intelligence
+            </span>
+          </div>
+          <div className="flex-1 overflow-hidden">
+            <CMOStrategyPanel
+              brandProfile={brandProfile}
+              loadingProfile={researchLoading}
+              selectedPlatforms={[]}
+              selectedContentTypes={[]}
+              campaignTitle=""
+              campaignInstructions=""
+            />
+          </div>
         </div>
       </div>
     </AppShell>
