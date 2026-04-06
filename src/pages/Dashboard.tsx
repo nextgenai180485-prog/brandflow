@@ -240,9 +240,9 @@ const Dashboard = () => {
                           <div key={t.id} className={`relative overflow-hidden ${thumbnails.length === 3 && i === 0 ? "row-span-2" : ""}`}>
                             <img src={t.content_url!} alt="" className="w-full h-full object-cover" />
                             {t.asset_type === "video" && (
-                              <div className="absolute inset-0 flex items-center justify-center">
-                                <div className="w-6 h-6 rounded-full bg-black/40 flex items-center justify-center">
-                                  <Video className="w-3 h-3 text-white" />
+                            <div className="absolute inset-0 flex items-center justify-center">
+                                <div className="w-6 h-6 rounded-full bg-foreground/40 flex items-center justify-center">
+                                  <Video className="w-3 h-3 text-background" />
                                 </div>
                               </div>
                             )}
