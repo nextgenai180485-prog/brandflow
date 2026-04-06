@@ -196,11 +196,11 @@ const FounderInterview = ({ businessName, industry, onStrategyGenerated }: Found
             <TrendingUp className="w-4 h-4 text-primary" />
             <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Funnel Architecture</span>
           </div>
-          {[
-            { key: "tof", label: "Top of Funnel", sublabel: "Awareness", data: funnel_stages.tof, color: "bg-blue-500" },
-            { key: "mof", label: "Mid Funnel", sublabel: "Trust", data: funnel_stages.mof, color: "bg-amber-500" },
-            { key: "bof", label: "Bottom Funnel", sublabel: "Conversion", data: funnel_stages.bof, color: "bg-emerald-500" },
-          ].map(({ key, label, sublabel, data, color }) => (
+          {([
+            { key: "tof", label: "Top of Funnel", sublabel: "Awareness", data: funnel_stages.tof as Record<string, string>, color: "bg-primary/60" },
+            { key: "mof", label: "Mid Funnel", sublabel: "Trust", data: funnel_stages.mof as Record<string, string>, color: "bg-accent-foreground/40" },
+            { key: "bof", label: "Bottom Funnel", sublabel: "Conversion", data: funnel_stages.bof as Record<string, string>, color: "bg-primary" },
+          ] as const).map(({ key, label, sublabel, data, color }) => (
             <div key={key} className="flex items-start gap-3">
               <div className={`w-2 h-2 rounded-full ${color} mt-1.5 shrink-0`} />
               <div className="flex-1">
@@ -211,9 +211,9 @@ const FounderInterview = ({ businessName, industry, onStrategyGenerated }: Found
                 <p className="text-[10px] font-semibold text-primary mt-0.5">"{data.strategy_name}"</p>
                 <p className="text-[10px] text-muted-foreground">
                   {data.best_format || data.offer_type} · {data.channel || ""}
-                  {(data as any).psychological_hook && ` · ${(data as any).psychological_hook}`}
-                  {(data as any).proof_mechanism && ` · ${(data as any).proof_mechanism}`}
-                  {(data as any).urgency_mechanism && ` · ${(data as any).urgency_mechanism}`}
+                  {data.psychological_hook && ` · ${data.psychological_hook}`}
+                  {data.proof_mechanism && ` · ${data.proof_mechanism}`}
+                  {data.urgency_mechanism && ` · ${data.urgency_mechanism}`}
                 </p>
               </div>
             </div>
