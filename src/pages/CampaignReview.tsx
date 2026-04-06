@@ -391,6 +391,16 @@ const CampaignReview = () => {
                           <RefreshCw className="w-3 h-3" /> Regenerate
                         </Button>
                       )}
+                      {!isVideo && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 px-2 text-[10px] gap-1 text-violet-600 hover:text-violet-700 hover:bg-violet-50"
+                          onClick={(e) => { e.stopPropagation(); setEditingAssetId(asset.id); }}
+                        >
+                          <Wand2 className="w-3 h-3" /> Edit
+                        </Button>
+                      )}
                       <Button
                         size="sm"
                         variant="ghost"
