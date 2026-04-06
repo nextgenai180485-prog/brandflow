@@ -46,10 +46,14 @@ const GlobalCMOChat = () => {
     load();
   }, [open, loaded, user]);
 
-  // Auto-scroll
+  // Auto-scroll to bottom on messages change or initial load
   useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
-  }, [messages]);
+    if (scrollRef.current) {
+      requestAnimationFrame(() => {
+        scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+      });
+    }
+  }, [messages, loaded]);
 
   // Focus input when opened
   useEffect(() => {
