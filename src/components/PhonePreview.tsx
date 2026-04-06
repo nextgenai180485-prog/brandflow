@@ -421,21 +421,21 @@ export default function PhonePreview({
         </button>
       )}
 
-      {/* Close */}
-      <button
-        onClick={onClose}
-        className="absolute top-4 right-4 md:top-6 md:right-6 w-10 h-10 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center hover:bg-white/20 transition-colors z-10"
-      >
-        <X className="w-5 h-5 text-white" />
-      </button>
-
       {/* Phone frame */}
       <div
         className="relative animate-in fade-in zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Close — inside frame wrapper so it's above stopPropagation */}
+        <button
+          onClick={(e) => { e.stopPropagation(); onClose(); }}
+          className="absolute -top-3 -right-3 sm:top-2 sm:right-2 w-9 h-9 rounded-full bg-black/70 backdrop-blur-sm flex items-center justify-center hover:bg-black/90 transition-colors z-[60] border border-white/20"
+        >
+          <X className="w-4 h-4 text-white" />
+        </button>
+
         {/* Device shell */}
-        <div className="relative w-[375px] h-[812px] rounded-[50px] border-[6px] border-neutral-800 bg-black shadow-2xl shadow-black/60 overflow-hidden">
+        <div className="relative w-[375px] h-[812px] max-h-[90vh] rounded-[50px] border-[6px] border-neutral-800 bg-black shadow-2xl shadow-black/60 overflow-hidden">
           {/* Notch / Dynamic Island */}
           <div className="absolute top-0 left-1/2 -translate-x-1/2 z-50 w-[126px] h-[34px] bg-black rounded-b-[20px]" />
 
