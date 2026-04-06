@@ -204,6 +204,84 @@ async function generateVideo(
     return { ...fallback, provider: fallback.provider + "_video_fallback" };
   }
 }
+// ── Image Editing via WaveSpeed AI SeedEdit 3.0 ──────────────
+async function editImageSeedEdit(
+  imageUrl: string,
+  editPrompt: string,
+  guidanceScale = 0.5
+): Promise<{ url: string; provider: string; cost: number; timeMs: number }> {
+  const WAVESPEED_API_KEY = Deno.env.get("WAVESPEED_API_KEY");
+  if (!WAVESPEED_API_KEY) throw new Error("WAVESPEED_API_KEY not configured");
+
+  const startTime = Date.now();
+  console.log(`[SeedEdit 3.0] Editing image via WaveSpeed AI`);
+
+  // Submit task
+  const response = await fetch("https://api.wavespeed.ai/api/v3/bytedance/seededit-v3", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${WAVESPEED_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      image: imageUrl,
+      prompt: editPrompt,
+      guidance_scale: guidanceScale,
+      seed: -1,
+      enable_base64_output: false,
+    }),
+  });
+
+  if (!response.ok) {
+    const err = await response.text();
+    throw new Error(`WaveSpeed SeedEdit submit failed [${response.status}]: ${err}`);
+  }
+
+  const submitData = await response.json();
+  const requestId = submitData.data?.id;
+  const getUrl = submitData.data?.urls?.get;
+
+  if (!requestId) {
+    throw new Error("WaveSpeed SeedEdit returned no request ID");
+  }
+
+  // Poll for result
+  const pollEndpoint = getUrl || `https://api.wavespeed.ai/api/v3/predictions/${requestId}/result`;
+  for (let i = 0; i < 60; i++) {
+    await new Promise((r) => setTimeout(r, 2000));
+    const pollResp = await fetch(pollEndpoint, {
+      headers: { Authorization: `Bearer ${WAVESPEED_API_KEY}` },
+    });
+
+    if (!pollResp.ok) {
+      const err = await pollResp.text();
+      console.error(`[SeedEdit 3.0] Poll error [${pollResp.status}]:`, err);
+      continue;
+    }
+
+    const pollData = await pollResp.json();
+    const status = pollData.data?.status;
+
+    if (status === "completed") {
+      const outputs = pollData.data?.outputs;
+      if (outputs && outputs.length > 0) {
+        return {
+          url: outputs[0],
+          provider: "wavespeed_seededit_3.0",
+          cost: 0.027,
+          timeMs: pollData.data?.timings?.inference || (Date.now() - startTime),
+        };
+      }
+      throw new Error("SeedEdit completed but returned no outputs");
+    }
+
+    if (status === "failed") {
+      throw new Error(`SeedEdit failed: ${pollData.data?.error || "Unknown"}`);
+    }
+  }
+
+  throw new Error("SeedEdit 3.0 timed out");
+}
 
 // ── Fallback: FAL AI ─────────────────────────────────────────
 async function generateImageFallback(
@@ -454,7 +532,57 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    const { campaignId, assets, researchId, intelligenceBrief, brandContext } = await req.json();
+    const body = await req.json();
+    const { action } = body;
+
+    // ── Edit Action (SeedEdit 3.0 via WaveSpeed) ──────────────
+    if (action === "edit") {
+      const { assetId, imageUrl, editPrompt, guidanceScale } = body;
+      if (!assetId || !imageUrl || !editPrompt) {
+        return new Response(
+          JSON.stringify({ error: "assetId, imageUrl, and editPrompt required for edit action" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      try {
+        const result = await editImageSeedEdit(imageUrl, editPrompt, guidanceScale || 0.5);
+
+        // Update the asset with the new edited image
+        const { data: updatedAsset, error: updateError } = await supabase
+          .from("generated_assets")
+          .update({
+            content_url: result.url,
+            provider: result.provider,
+            generation_cost: result.cost,
+            generation_time_ms: result.timeMs,
+            rationale: `Edited: ${editPrompt}`,
+            status: "pending_review",
+          })
+          .eq("id", assetId)
+          .eq("profile_id", userId)
+          .select()
+          .single();
+
+        if (updateError) {
+          throw new Error(`Failed to save edit: ${updateError.message}`);
+        }
+
+        return new Response(
+          JSON.stringify({ success: true, asset: updatedAsset, provider: result.provider, cost: result.cost }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      } catch (e) {
+        console.error("[SeedEdit 3.0] Edit failed:", e);
+        return new Response(
+          JSON.stringify({ error: e instanceof Error ? e.message : "Edit failed" }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+
+    // ── Generate Action (default) ─────────────────────────────
+    const { campaignId, assets, researchId, intelligenceBrief, brandContext } = body;
 
     if (!campaignId || !assets || !Array.isArray(assets)) {
       return new Response(
