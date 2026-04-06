@@ -17,10 +17,36 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import type { GeneratedAsset, AssetStatus, SocialPlatform } from "@/types/campaigns";
 import { PLATFORM_LABELS } from "@/types/campaigns";
 
+/** Platform-native dimensions for pixel-perfect preview */
+const PLATFORM_DIMENSIONS: Record<string, { width: number; height: number; aspectRatio: string }> = {
+  "instagram|story": { width: 1080, height: 1920, aspectRatio: "9 / 16" },
+  "instagram|reel": { width: 1080, height: 1920, aspectRatio: "9 / 16" },
+  "instagram|post": { width: 1080, height: 1350, aspectRatio: "4 / 5" },
+  "instagram|carousel": { width: 1080, height: 1350, aspectRatio: "4 / 5" },
+  "tiktok|video": { width: 1080, height: 1920, aspectRatio: "9 / 16" },
+  "tiktok|story": { width: 1080, height: 1920, aspectRatio: "9 / 16" },
+  "facebook|post": { width: 1200, height: 1200, aspectRatio: "1 / 1" },
+  "facebook|story": { width: 1080, height: 1920, aspectRatio: "9 / 16" },
+  "linkedin|post": { width: 1200, height: 1200, aspectRatio: "1 / 1" },
+  "youtube|thumbnail": { width: 1280, height: 720, aspectRatio: "16 / 9" },
+  "x|post": { width: 1200, height: 675, aspectRatio: "16 / 9" },
+  "snapchat|story": { width: 1080, height: 1920, aspectRatio: "9 / 16" },
+};
+
 const parseSocialMeta = (asset: GeneratedAsset) => {
   const text = asset.content_text || "";
   const match = text.match(/^\[meta:([a-z]+)\|([a-z]+)\|([0-9/]+)\]/);
-  if (match) return { platform: match[1], format: match[2], aspectRatio: match[3] };
+  if (match) {
+    const key = `${match[1]}|${match[2]}`;
+    const dims = PLATFORM_DIMENSIONS[key];
+    return {
+      platform: match[1],
+      format: match[2],
+      aspectRatio: dims?.aspectRatio || match[3].replace("/", " / "),
+      width: dims?.width || 0,
+      height: dims?.height || 0,
+    };
+  }
   return null;
 };
 
