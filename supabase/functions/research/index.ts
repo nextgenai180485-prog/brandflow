@@ -278,7 +278,7 @@ Output JSON with these fields:
         profile_id: userId,
         research_type: "market_trends",
         query: `${competitorQuery} | ${trendQuery}${domain ? ` | site:${domain}` : ""}`,
-        results: { brandWebsite: brandWebsiteInsights, competitors: competitorResults, trends: trendResults },
+        results: { directWebsite: directWebsiteContent?.substring(0, 1500) || null, brandWebsite: brandWebsiteInsights, competitors: competitorResults, trends: trendResults },
         intelligence_brief: intelligenceBrief,
         provider: "exa",
       })
