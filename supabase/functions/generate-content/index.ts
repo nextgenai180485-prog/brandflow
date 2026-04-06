@@ -1013,7 +1013,7 @@ serve(async (req) => {
 
     // Fire background processing
     EdgeRuntime.waitUntil(
-      processAssetsInBackground(userId, campaignId, assets, researchId || null, intelligenceBrief || {}, brandContext || {}, placeholderIds, decisionTraceId, decisionWinner)
+      processAssetsInBackground(userId, campaignId, assets, researchId || null, intelligenceBrief || {}, brandContext || {}, placeholderIds, decisionTraceId, decisionWinner, creativeDirection || null)
         .catch((e) => console.error("[BG] Fatal error:", e))
     );
 
