@@ -159,10 +159,10 @@ const CMOStrategyPanel = ({
         <div className="flex gap-1.5">
           <div className="w-2 h-2 rounded-full bg-red-400" />
           <div className="w-2 h-2 rounded-full bg-amber-400" />
-          <div className={cn("w-2 h-2 rounded-full", strategy ? "bg-emerald-400 animate-pulse" : "bg-muted-foreground/30")} />
+          <div className={cn("w-2 h-2 rounded-full", strategy ? "bg-emerald-400 animate-pulse" : brandProfile ? "bg-emerald-400" : "bg-muted-foreground/30")} />
         </div>
         <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-[0.15em]">
-          CMO Intelligence — {strategy ? "Active" : "Standby"}
+          CMO Intelligence — {strategy ? "Active" : brandProfile ? "Ready" : "Standby"}
         </span>
         {loadingStrategy && <Loader2 className="w-3 h-3 animate-spin text-muted-foreground ml-auto" />}
       </div>
