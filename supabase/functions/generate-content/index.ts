@@ -532,7 +532,57 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    const { campaignId, assets, researchId, intelligenceBrief, brandContext } = await req.json();
+    const body = await req.json();
+    const { action } = body;
+
+    // ── Edit Action (SeedEdit 3.0 via WaveSpeed) ──────────────
+    if (action === "edit") {
+      const { assetId, imageUrl, editPrompt, guidanceScale } = body;
+      if (!assetId || !imageUrl || !editPrompt) {
+        return new Response(
+          JSON.stringify({ error: "assetId, imageUrl, and editPrompt required for edit action" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      try {
+        const result = await editImageSeedEdit(imageUrl, editPrompt, guidanceScale || 0.5);
+
+        // Update the asset with the new edited image
+        const { data: updatedAsset, error: updateError } = await supabase
+          .from("generated_assets")
+          .update({
+            content_url: result.url,
+            provider: result.provider,
+            generation_cost: result.cost,
+            generation_time_ms: result.timeMs,
+            rationale: `Edited: ${editPrompt}`,
+            status: "pending_review",
+          })
+          .eq("id", assetId)
+          .eq("profile_id", userId)
+          .select()
+          .single();
+
+        if (updateError) {
+          throw new Error(`Failed to save edit: ${updateError.message}`);
+        }
+
+        return new Response(
+          JSON.stringify({ success: true, asset: updatedAsset, provider: result.provider, cost: result.cost }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      } catch (e) {
+        console.error("[SeedEdit 3.0] Edit failed:", e);
+        return new Response(
+          JSON.stringify({ error: e instanceof Error ? e.message : "Edit failed" }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+
+    // ── Generate Action (default) ─────────────────────────────
+    const { campaignId, assets, researchId, intelligenceBrief, brandContext } = body;
 
     if (!campaignId || !assets || !Array.isArray(assets)) {
       return new Response(
