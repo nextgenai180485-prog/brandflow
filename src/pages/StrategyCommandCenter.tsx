@@ -1,13 +1,15 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowRight, Sparkles, Loader2, Zap, Brain } from "lucide-react";
+import { ArrowRight, Sparkles, Loader2, Zap, Brain, MessageSquare, BarChart3 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import AppShell from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import CMOStrategyPanel from "@/components/CMOStrategyPanel";
+import CMOChat from "@/components/CMOChat";
 import FounderInterview from "@/components/FounderInterview";
 import type { BrandProfile } from "@/types/campaigns";
 
