@@ -1,67 +1,113 @@
-import { useState, useEffect, useRef } from "react";
-import { Sparkles, Loader2 } from "lucide-react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { Sparkles, Loader2, Search } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { SOCIAL_FORMATS } from "@/types/campaigns";
+import type { IntelligenceBrief } from "@/components/ResearchPreviewPanel";
 
 interface GenerateButtonProps {
   campaignId: string;
   onGenerated: () => void;
+  onResearchReady?: (brief: IntelligenceBrief, researchId: string) => void;
+  onResearchLoading?: (loading: boolean) => void;
   disabled?: boolean;
+  researchApproved?: boolean;
+  researchId?: string | null;
+  intelligenceBrief?: IntelligenceBrief | null;
 }
 
-const GenerateButton = ({ campaignId, onGenerated, disabled }: GenerateButtonProps) => {
+const GenerateButton = ({
+  campaignId, onGenerated, onResearchReady, onResearchLoading,
+  disabled, researchApproved, researchId: existingResearchId, intelligenceBrief: existingBrief,
+}: GenerateButtonProps) => {
   const { user } = useAuth();
+  const [researching, setResearching] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [status, setStatus] = useState("");
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Cleanup polling on unmount
   useEffect(() => {
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, []);
 
-  const handleGenerate = async () => {
-    if (!user || generating) return;
-    setGenerating(true);
-    setStatus("Researching market trends…");
+  const loadBrandContext = useCallback(async () => {
+    if (!user) return null;
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("brand_colors, brand_palette, brand_voice_tone, business_name, industry, target_audience, website_url")
+      .eq("id", user.id)
+      .single();
+    return {
+      businessName: (profile as any)?.business_name || "Brand",
+      industry: (profile as any)?.industry || "beauty",
+      brandVoice: (profile as any)?.brand_voice_tone || "professional, warm",
+      targetAudience: (profile as any)?.target_audience || "health-conscious consumers",
+      websiteUrl: (profile as any)?.website_url || null,
+    };
+  }, [user]);
+
+  // Step 1: Run research
+  const handleResearch = async () => {
+    if (!user || researching) return;
+    setResearching(true);
+    onResearchLoading?.(true);
+    setStatus("Analyzing your brand & market…");
 
     try {
-      // 1. Load brand context
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("brand_colors, brand_palette, brand_voice_tone, business_name, industry, target_audience")
-        .eq("id", user.id)
-        .single();
+      const brandContext = await loadBrandContext();
+      if (!brandContext) throw new Error("No brand context");
 
-      const brandContext = {
-        businessName: (profile as any)?.business_name || "Brand",
-        industry: (profile as any)?.industry || "beauty",
-        brandVoice: (profile as any)?.brand_voice_tone || "professional, warm",
-        targetAudience: (profile as any)?.target_audience || "health-conscious consumers",
-      };
+      // Get uploaded assets for this campaign
+      const { data: campaignAssets } = await supabase
+        .from("generated_assets")
+        .select("content_url")
+        .eq("campaign_id", campaignId)
+        .not("content_url", "is", null);
 
-      // 2. Research phase
-      setStatus("Analyzing market intelligence…");
+      const uploadedAssetUrls = campaignAssets?.map((a: any) => a.content_url).filter(Boolean) || [];
+
       const { data: researchData, error: researchError } = await supabase.functions.invoke("research", {
-        body: { campaignId, ...brandContext },
+        body: {
+          campaignId,
+          ...brandContext,
+          uploadedAssetUrls,
+        },
       });
 
       if (researchError) {
         console.error("Research error:", researchError);
-        toast.error("Research phase failed — generating with default intelligence");
+        toast.error("Research failed. Please try again.");
+        return;
       }
 
-      const researchId = researchData?.research?.id || null;
-      const intelligenceBrief = researchData?.intelligenceBrief || null;
+      const brief = researchData?.intelligenceBrief;
+      const researchId = researchData?.research?.id;
 
-      if (intelligenceBrief) {
-        toast.success(`Research complete: ${intelligenceBrief.trending_topics?.length || 0} trends found`);
+      if (brief && researchId) {
+        toast.success(`Research complete — ${brief.trending_topics?.length || 0} trends, ${brief.competitors?.length || 0} competitors found`);
+        onResearchReady?.(brief, researchId);
       }
+    } catch (e) {
+      console.error("Research error:", e);
+      toast.error("Research failed. Please try again.");
+    } finally {
+      setResearching(false);
+      onResearchLoading?.(false);
+      setStatus("");
+    }
+  };
 
-      // 3. Build asset list
+  // Step 2: Generate content (only after research approved)
+  const handleGenerate = async () => {
+    if (!user || generating || !researchApproved) return;
+    setGenerating(true);
+
+    try {
+      const brandContext = await loadBrandContext();
+      if (!brandContext) throw new Error("No brand context");
+
       const assets = SOCIAL_FORMATS.map((fmt) => {
         const isVideo = fmt.format === "reel";
         const isCarousel = fmt.format === "carousel";
@@ -75,10 +121,15 @@ const GenerateButton = ({ campaignId, onGenerated, disabled }: GenerateButtonPro
         };
       });
 
-      // 4. Kick off generation (returns immediately now)
       setStatus(`Starting generation of ${assets.length} assets…`);
       const { data: genData, error: genError } = await supabase.functions.invoke("generate-content", {
-        body: { campaignId, assets, researchId, intelligenceBrief, brandContext },
+        body: {
+          campaignId,
+          assets,
+          researchId: existingResearchId || null,
+          intelligenceBrief: existingBrief || null,
+          brandContext,
+        },
       });
 
       if (genError) {
@@ -89,10 +140,10 @@ const GenerateButton = ({ campaignId, onGenerated, disabled }: GenerateButtonPro
         return;
       }
 
-      toast.success(`Generation started for ${genData?.placeholders || assets.length} assets. They'll appear as they complete.`);
-      onGenerated(); // Refresh to show placeholders
+      toast.success(`Generation started for ${genData?.placeholders || assets.length} assets.`);
+      onGenerated();
 
-      // 5. Poll for completion
+      // Poll for completion
       setStatus("Assets generating in background…");
       let completedCount = 0;
       const totalAssets = assets.length;
@@ -107,7 +158,7 @@ const GenerateButton = ({ campaignId, onGenerated, disabled }: GenerateButtonPro
 
         if (done > completedCount) {
           completedCount = done;
-          onGenerated(); // Refresh UI
+          onGenerated();
           setStatus(`${completedCount}/${totalAssets} assets ready…`);
         }
 
@@ -117,27 +168,22 @@ const GenerateButton = ({ campaignId, onGenerated, disabled }: GenerateButtonPro
           setGenerating(false);
           setStatus("");
           const errors = genAssets?.filter((a: any) => a.provider === "error").length || 0;
-          if (errors > 0) {
-            toast.warning(`${done - errors}/${totalAssets} assets generated · ${errors} failed`);
-          } else {
-            toast.success(`All ${totalAssets} assets generated!`);
-          }
+          if (errors > 0) toast.warning(`${done - errors}/${totalAssets} generated · ${errors} failed`);
+          else toast.success(`All ${totalAssets} assets generated!`);
           onGenerated();
         }
       }, 4000);
 
-      // Safety timeout: stop polling after 8 minutes
       setTimeout(() => {
         if (pollRef.current) {
           clearInterval(pollRef.current);
           pollRef.current = null;
           setGenerating(false);
           setStatus("");
-          toast.info("Generation is still running in the background. Refresh to see updates.");
+          toast.info("Generation still running. Refresh to see updates.");
           onGenerated();
         }
       }, 8 * 60 * 1000);
-
     } catch (e) {
       console.error("Generate error:", e);
       toast.error("Something went wrong. Please try again.");
@@ -146,17 +192,44 @@ const GenerateButton = ({ campaignId, onGenerated, disabled }: GenerateButtonPro
     }
   };
 
+  const isWorking = researching || generating;
+
   return (
     <div className="flex flex-col items-end gap-1">
-      <Button size="sm" onClick={handleGenerate} disabled={disabled || generating} className="gap-1.5 h-8 text-xs">
-        {generating ? (
-          <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Generating…</>
-        ) : (
-          <><Sparkles className="w-3.5 h-3.5" /> Generate Content</>
+      <div className="flex items-center gap-1.5">
+        {/* Research button — always show when no research yet */}
+        {!researchApproved && !existingBrief && (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleResearch}
+            disabled={disabled || isWorking}
+            className="gap-1.5 h-8 text-xs"
+          >
+            {researching ? (
+              <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Researching…</>
+            ) : (
+              <><Search className="w-3.5 h-3.5" /> Research Market</>
+            )}
+          </Button>
         )}
-      </Button>
+
+        {/* Generate button — only enabled after research approved */}
+        <Button
+          size="sm"
+          onClick={handleGenerate}
+          disabled={disabled || isWorking || !researchApproved}
+          className="gap-1.5 h-8 text-xs"
+        >
+          {generating ? (
+            <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Generating…</>
+          ) : (
+            <><Sparkles className="w-3.5 h-3.5" /> Generate Content</>
+          )}
+        </Button>
+      </div>
       {status && (
-        <span className="text-[10px] text-muted-foreground animate-pulse max-w-[200px] text-right">
+        <span className="text-[10px] text-muted-foreground animate-pulse max-w-[250px] text-right">
           {status}
         </span>
       )}
