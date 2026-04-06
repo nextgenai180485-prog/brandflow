@@ -1,4 +1,4 @@
-import { Check, Pencil } from "lucide-react";
+import { Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface ReviewData {
@@ -19,19 +19,30 @@ interface Props {
 
 const toneLabels: Record<string, string> = {
   warm_professional: "Warm & Professional",
-  bold_edgy: "Bold & Edgy",
+  bold_edgy: "Bold & Disruptive",
   luxurious_refined: "Luxurious & Refined",
   friendly_casual: "Friendly & Casual",
-  clinical_trustworthy: "Clinical & Trustworthy",
-  playful_fun: "Playful & Fun",
+  clinical_trustworthy: "Authoritative & Expert",
+  playful_fun: "Playful & Energetic",
 };
 
 const industryLabels: Record<string, string> = {
-  medspa: "Medical Spa",
+  ecommerce: "E-Commerce / DTC",
+  saas: "SaaS / Tech",
+  fashion: "Fashion / Luxury",
+  beauty: "Beauty / Skincare",
+  medspa: "Medical Spa / Aesthetics",
+  health: "Health / Wellness",
+  fitness: "Fitness / Sports",
+  food: "Food / Beverage",
+  real_estate: "Real Estate",
+  finance: "Finance / Fintech",
+  education: "Education / Coaching",
+  agency: "Agency / Consulting",
+  creator: "Creator / Personal Brand",
+  nonprofit: "Non-Profit",
   dental: "Dental",
   wellness: "Wellness",
-  fitness: "Fitness",
-  beauty: "Beauty",
   other: "Other",
 };
 
@@ -39,20 +50,27 @@ const ReviewLaunch = ({ data, onEdit }: Props) => {
   return (
     <div className="space-y-8">
       <div>
-        <h2 className="text-2xl font-semibold text-foreground mb-1">Review your brand profile</h2>
-        <p className="text-muted-foreground text-sm">Everything looks good? Let's launch.</p>
+        <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-3">
+          Final Review
+        </p>
+        <h2 className="text-2xl font-bold text-foreground tracking-tight mb-1">
+          Your brand profile is ready
+        </h2>
+        <p className="text-sm text-muted-foreground">
+          Your CSO will use this to generate research-backed strategies and on-brand content.
+        </p>
       </div>
 
       {/* Business */}
-      <Section title="Business" onEdit={() => onEdit(0)}>
-        <Field label="Name" value={data.business_name || "—"} />
-        <Field label="Website" value={data.website_url || "Not provided"} />
+      <Section title="Brand Intake" onEdit={() => onEdit(0)}>
+        <Field label="Brand" value={data.business_name || "—"} />
+        <Field label="Website" value={data.website_url || "None — Genesis Mode"} />
         <Field label="Industry" value={industryLabels[data.industry] || data.industry} />
-        <Field label="Audience" value={data.target_audience || "Not provided"} />
+        <Field label="Audience" value={data.target_audience || "CSO will define"} />
       </Section>
 
       {/* Brand Identity */}
-      <Section title="Brand Identity" onEdit={() => onEdit(1)}>
+      <Section title="Visual System" onEdit={() => onEdit(1)}>
         <div className="flex items-center gap-3">
           <span className="text-sm text-muted-foreground">Colors:</span>
           {(["primary", "secondary", "accent"] as const).map((k) => (
@@ -72,7 +90,7 @@ const ReviewLaunch = ({ data, onEdit }: Props) => {
       </Section>
 
       {/* Brand Voice */}
-      <Section title="Brand Voice" onEdit={() => onEdit(2)}>
+      <Section title="Voice Calibration" onEdit={() => onEdit(2)}>
         <Field label="Tone" value={toneLabels[data.tone] || data.tone || "Not selected"} />
         {data.keywords.length > 0 && (
           <div className="flex flex-wrap gap-2 mt-2">
@@ -89,7 +107,7 @@ const ReviewLaunch = ({ data, onEdit }: Props) => {
 const Section = ({ title, onEdit, children }: { title: string; onEdit: () => void; children: React.ReactNode }) => (
   <div className="rounded-xl border border-border bg-card p-6">
     <div className="flex items-center justify-between mb-4">
-      <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">{title}</h3>
+      <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{title}</h3>
       <Button variant="ghost" size="sm" onClick={onEdit} className="gap-1.5 text-xs">
         <Pencil className="w-3 h-3" /> Edit
       </Button>
