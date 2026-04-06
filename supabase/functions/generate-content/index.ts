@@ -609,14 +609,22 @@ serve(async (req) => {
     }
     const userId = userData.user.id;
     const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-    const body = await req.json();
+    let body: any;
+    try {
+      body = await req.json();
+    } catch {
+      return new Response(JSON.stringify({ error: "Invalid JSON body" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
     const { action } = body;
 
     // ── Edit Action (SeedEdit 3.0 via WaveSpeed) ──────────────
     if (action === "edit") {
       const { assetId, imageUrl, editPrompt, guidanceScale } = body;
-      if (!assetId || !imageUrl || !editPrompt) {
-        return new Response(JSON.stringify({ error: "assetId, imageUrl, and editPrompt required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      if (!assetId || typeof assetId !== "string" || !imageUrl || typeof imageUrl !== "string" || !editPrompt || typeof editPrompt !== "string") {
+        return new Response(JSON.stringify({ error: "assetId (string), imageUrl (string), and editPrompt (string) required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      if (editPrompt.length > 2000) {
+        return new Response(JSON.stringify({ error: "editPrompt must be under 2000 characters" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
       EdgeRuntime.waitUntil((async () => {
         try {
@@ -633,8 +641,15 @@ serve(async (req) => {
     // ── Brand Memory Action — record approval/rejection ───────
     if (action === "record_memory") {
       const { memoryType, patternCategory, patternValue, context: memCtx } = body;
+      const ALLOWED_MEMORY_TYPES = ["approval", "rejection", "preference", "brand_profile"];
       if (!memoryType || !patternCategory || !patternValue) {
         return new Response(JSON.stringify({ error: "memoryType, patternCategory, patternValue required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      if (!ALLOWED_MEMORY_TYPES.includes(memoryType)) {
+        return new Response(JSON.stringify({ error: `memoryType must be one of: ${ALLOWED_MEMORY_TYPES.join(", ")}` }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      if (typeof patternCategory !== "string" || patternCategory.length > 255 || typeof patternValue !== "string" || patternValue.length > 500) {
+        return new Response(JSON.stringify({ error: "patternCategory (max 255) and patternValue (max 500) must be strings" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
 
       // Upsert: increment frequency if pattern already exists
@@ -664,8 +679,18 @@ serve(async (req) => {
     // ── Generate Action (with full four-layer pipeline) ───────
     const { campaignId, assets, researchId, intelligenceBrief, brandContext } = body;
 
-    if (!campaignId || !assets || !Array.isArray(assets)) {
-      return new Response(JSON.stringify({ error: "campaignId and assets[] required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    if (!campaignId || typeof campaignId !== "string" || !assets || !Array.isArray(assets) || assets.length === 0) {
+      return new Response(JSON.stringify({ error: "campaignId (string) and non-empty assets[] required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    if (assets.length > 50) {
+      return new Response(JSON.stringify({ error: "Maximum 50 assets per generation request" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    // Validate each asset entry
+    const VALID_ASSET_TYPES = ["image", "video", "carousel", "copy"];
+    for (const a of assets) {
+      if (!a.platform || !a.format || !a.assetType || !VALID_ASSET_TYPES.includes(a.assetType)) {
+        return new Response(JSON.stringify({ error: `Each asset requires platform, format, and assetType (${VALID_ASSET_TYPES.join("|")})` }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
     }
 
     // Update campaign to generating
