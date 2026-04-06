@@ -218,8 +218,8 @@ const NewCampaign = () => {
         </div>
 
         <div className="space-y-8">
-          {/* ═══ Step 0: Details ═══ */}
-          {step === 0 && (
+          {/* ═══ Details ═══ */}
+          {currentStepName === "Details" && (
             <>
               <div className="space-y-2">
                 <Label htmlFor="campaign-title" className="text-sm font-medium">Campaign Name</Label>
@@ -235,8 +235,8 @@ const NewCampaign = () => {
             </>
           )}
 
-          {/* ═══ Step 1: Platforms ═══ */}
-          {step === 1 && (
+          {/* ═══ Platforms ═══ */}
+          {currentStepName === "Platforms" && (
             <div className="space-y-4">
               <div>
                 <h2 className="text-lg font-semibold text-foreground">Target Platforms</h2>
@@ -251,8 +251,8 @@ const NewCampaign = () => {
             </div>
           )}
 
-          {/* ═══ Step 2: Content Type ═══ */}
-          {step === 2 && (
+          {/* ═══ Content Type ═══ */}
+          {currentStepName === "Content Type" && (
             <div className="space-y-4">
               <div>
                 <h2 className="text-lg font-semibold text-foreground">Content Types</h2>
@@ -290,8 +290,22 @@ const NewCampaign = () => {
             </div>
           )}
 
-          {/* ═══ Step 3: Review ═══ */}
-          {step === 3 && (
+          {/* ═══ Creative Direction (conditional — video only) ═══ */}
+          {currentStepName === "Creative Direction" && (
+            <CreativeDirectionStep
+              brief={creativeBrief}
+              onBriefChange={setCreativeBrief}
+              referenceAssets={creativeReferenceAssets}
+              onReferenceAssetsChange={setCreativeReferenceAssets}
+              direction={creativeDirection}
+              onDirectionChange={setCreativeDirection}
+              platform={primaryPlatform}
+              format={primaryFormat}
+            />
+          )}
+
+          {/* ═══ Review ═══ */}
+          {currentStepName === "Review" && (
             <div className="space-y-6">
               <div>
                 <h2 className="text-lg font-semibold text-foreground">Review & Launch</h2>
@@ -324,6 +338,15 @@ const NewCampaign = () => {
                     ))}
                   </div>
                 </div>
+                {creativeDirection && (
+                  <div className="p-4">
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">Creative Direction</p>
+                    <div className="flex items-center gap-2">
+                      <span className="px-2 py-0.5 rounded-full bg-secondary text-[11px] font-medium text-foreground">{creativeDirection.family_label}</span>
+                      <span className="text-[10px] text-muted-foreground">{creativeDirection.scenes.length} scenes · {creativeDirection.estimated_duration_s}s · {creativeDirection.aspect_ratio}</span>
+                    </div>
+                  </div>
+                )}
                 {selectedAssets.length > 0 && (
                   <div className="p-4">
                     <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">Reference Assets ({selectedAssets.length})</p>
