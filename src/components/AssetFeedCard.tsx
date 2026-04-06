@@ -123,10 +123,14 @@ const AssetFeedCard = ({ asset, onStatusChange, isSelected, onClick }: AssetFeed
         </div>
       )}
 
-      {/* Minimal footer — caption preview only */}
-      {isVisual && displayCaption && (
-        <div className="px-2 py-1.5">
-          <p className="text-[10px] text-muted-foreground leading-snug line-clamp-2">{displayCaption}</p>
+      {/* Caption footer */}
+      {isVisual && (
+        <div className="px-2.5 py-2 border-t border-border/50">
+          {displayCaption ? (
+            <p className="text-[11px] text-foreground/80 leading-relaxed line-clamp-3">{displayCaption}</p>
+          ) : (
+            <p className="text-[10px] text-muted-foreground/50 italic">No caption</p>
+          )}
         </div>
       )}
     </article>
