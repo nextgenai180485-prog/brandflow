@@ -220,6 +220,7 @@ interface AssetInspectorProps {
   onNavigate?: (direction: "prev" | "next") => void;
   hasPrev?: boolean;
   hasNext?: boolean;
+  researchBrief?: IntelligenceBrief | null;
 }
 
 const AssetInspector = ({
