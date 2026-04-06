@@ -215,7 +215,7 @@ const GlobalCMOChat = () => {
 
       {/* Chat Panel */}
       {open && (
-        <div className={`fixed bottom-6 right-6 z-[100] ${widgetSize} rounded-2xl border border-border bg-background shadow-2xl flex flex-col overflow-hidden transition-all duration-200`}>
+        <div className={`fixed z-[100] inset-0 sm:inset-auto sm:bottom-6 sm:right-6 ${widgetSize} rounded-none sm:rounded-2xl border-0 sm:border border-border bg-background shadow-2xl flex flex-col overflow-hidden transition-all duration-200`}>
           {/* Header */}
           <div className="flex items-center justify-between border-b border-border px-4 py-2.5 shrink-0 bg-background">
             <div className="flex items-center gap-2">
