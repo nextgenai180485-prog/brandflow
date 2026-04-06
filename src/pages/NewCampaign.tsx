@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import AssetPlatformSelector from "@/components/AssetPlatformSelector";
+import CMOStrategyPanel from "@/components/CMOStrategyPanel";
 import type { SocialPlatform, ContentType, BrandProfile } from "@/types/campaigns";
 import { CONTENT_TYPE_LABELS } from "@/types/campaigns";
 
@@ -120,9 +121,7 @@ const NewCampaign = () => {
     if (!user || !title.trim()) return;
     setCreating(true);
 
-    // Store selected platform|format pairs so generation uses ONLY these
     const publishPlatforms = platforms.map((p) => `${p.platform}|${p.format}`);
-    // Also store content types as ct: prefixed entries
     const ctEntries = contentTypes.map((ct) => `ct:${ct}`);
 
     const { data: campaign, error } = await supabase
@@ -179,14 +178,15 @@ const NewCampaign = () => {
     setStep(step + 1);
   };
 
-  return (
-    <AppShell>
-      <div className="max-w-4xl mx-auto py-6 px-4 sm:px-6 lg:py-10">
+  // ── Left Panel (Tactical Builder) ──
+  const renderLeftPanel = () => (
+    <div className="flex-1 overflow-y-auto">
+      <div className="max-w-xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
         <button onClick={() => navigate("/dashboard")} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6">
           <ArrowLeft className="w-4 h-4" /> Back to Campaigns
         </button>
 
-        <h1 className="text-2xl sm:text-3xl font-semibold text-foreground mb-2">Create New Campaign</h1>
+        <h1 className="text-2xl font-semibold text-foreground mb-2">Create New Campaign</h1>
 
         {/* Progress Steps */}
         <div className="flex gap-2 mb-8">
@@ -197,24 +197,6 @@ const NewCampaign = () => {
             </div>
           ))}
         </div>
-
-        {/* Brand Insights Card — shown if brand research exists */}
-        {brandProfile && step === 0 && (
-          <div className="mb-6 rounded-xl border border-primary/20 bg-primary/5 p-4 space-y-2">
-            <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-primary" />
-              <span className="text-sm font-semibold text-foreground">Brand Intelligence Ready</span>
-            </div>
-            <p className="text-xs text-muted-foreground">{brandProfile.summary}</p>
-            <div className="flex flex-wrap gap-2 mt-2">
-              <span className="px-2 py-0.5 rounded-full bg-secondary text-[10px] font-medium text-foreground">Voice: {brandProfile.brand_voice_detected}</span>
-              <span className="px-2 py-0.5 rounded-full bg-secondary text-[10px] font-medium text-foreground">Style: {brandProfile.visual_style}</span>
-              {brandProfile.key_themes?.slice(0, 3).map((t) => (
-                <span key={t} className="px-2 py-0.5 rounded-full bg-secondary text-[10px] text-muted-foreground">{t}</span>
-              ))}
-            </div>
-          </div>
-        )}
 
         <div className="space-y-8">
           {/* ═══ Step 0: Details ═══ */}
@@ -251,8 +233,8 @@ const NewCampaign = () => {
                 )}
 
                 {files.length > 0 ? (
-                  <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-2">
-                    {files.map((f, idx) => (
+                  <div className="grid grid-cols-4 sm:grid-cols-5 gap-2">
+                    {files.map((f) => (
                       <div key={f.id} className="relative group aspect-square rounded-lg border overflow-hidden bg-muted border-border">
                         {f.uploading ? (
                           <div className="absolute inset-0 flex items-center justify-center bg-muted"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>
@@ -276,9 +258,9 @@ const NewCampaign = () => {
                     onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
                     onDragLeave={() => setDragOver(false)}
                     onDrop={handleDrop}
-                    className={`flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed py-12 cursor-pointer transition-all ${dragOver ? "border-foreground/50 bg-secondary/80" : "border-border hover:border-foreground/30 hover:bg-secondary/50"}`}
+                    className={`flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed py-10 cursor-pointer transition-all ${dragOver ? "border-foreground/50 bg-secondary/80" : "border-border hover:border-foreground/30 hover:bg-secondary/50"}`}
                   >
-                    <div className="w-12 h-12 rounded-full bg-secondary flex items-center justify-center"><Upload className="w-5 h-5 text-muted-foreground" /></div>
+                    <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center"><Upload className="w-4 h-4 text-muted-foreground" /></div>
                     <div className="text-center">
                       <p className="text-sm font-medium text-foreground">Drag & drop images or videos</p>
                       <p className="text-xs text-muted-foreground mt-1">These will guide the AI generation style</p>
@@ -295,13 +277,13 @@ const NewCampaign = () => {
             <div className="space-y-4">
               <div>
                 <h2 className="text-lg font-semibold text-foreground">Select Target Platforms</h2>
-                <p className="text-sm text-muted-foreground mt-1">Choose where you want to publish this campaign. Only selected platforms will get generated content.</p>
+                <p className="text-sm text-muted-foreground mt-1">Choose where you want to publish. Only selected platforms get generated content.</p>
               </div>
               <div className="rounded-xl border border-border bg-card p-5">
                 <AssetPlatformSelector selected={platforms} onChange={setPlatforms} assetType="image" />
               </div>
               {platforms.length > 0 && (
-                <p className="text-xs text-muted-foreground">{platforms.length} format{platforms.length !== 1 ? "s" : ""} selected — content will be generated at native dimensions for each.</p>
+                <p className="text-xs text-muted-foreground">{platforms.length} format{platforms.length !== 1 ? "s" : ""} selected</p>
               )}
             </div>
           )}
@@ -311,7 +293,7 @@ const NewCampaign = () => {
             <div className="space-y-4">
               <div>
                 <h2 className="text-lg font-semibold text-foreground">Select Content Types</h2>
-                <p className="text-sm text-muted-foreground mt-1">What kind of content should the AI generate for each platform?</p>
+                <p className="text-sm text-muted-foreground mt-1">What kind of content should the AI generate?</p>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 {(Object.keys(CONTENT_TYPE_LABELS) as ContentType[]).map((ct) => {
@@ -397,18 +379,8 @@ const NewCampaign = () => {
                 )}
               </div>
 
-              {brandProfile && (
-                <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-primary" />
-                    <span className="text-xs font-semibold text-foreground">AI will use your brand intelligence</span>
-                  </div>
-                  <p className="text-[11px] text-muted-foreground">{brandProfile.summary}</p>
-                </div>
-              )}
-
               <p className="text-xs text-muted-foreground">
-                Total generations: {platforms.length} platform format{platforms.length !== 1 ? "s" : ""} × {contentTypes.length} type{contentTypes.length !== 1 ? "s" : ""} = <strong>{platforms.length * contentTypes.length}</strong> assets
+                Total generations: {platforms.length} × {contentTypes.length} = <strong>{platforms.length * contentTypes.length}</strong> assets
               </p>
             </div>
           )}
@@ -435,6 +407,27 @@ const NewCampaign = () => {
               )}
             </Button>
           )}
+        </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <AppShell>
+      <div className="flex h-[calc(100vh-3.5rem)] overflow-hidden">
+        {/* LEFT: Tactical Builder */}
+        {renderLeftPanel()}
+
+        {/* RIGHT: CMO Strategy Mirror */}
+        <div className="hidden lg:flex w-[420px] xl:w-[480px] border-l border-border bg-secondary/20 flex-col shrink-0">
+          <CMOStrategyPanel
+            brandProfile={brandProfile}
+            loadingProfile={loadingProfile}
+            selectedPlatforms={platforms}
+            selectedContentTypes={contentTypes}
+            campaignTitle={title}
+            campaignInstructions={instructions}
+          />
         </div>
       </div>
     </AppShell>

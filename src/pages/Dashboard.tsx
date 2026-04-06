@@ -1,7 +1,8 @@
 import { useEffect, useState, useCallback } from "react";
 import { Plus, LayoutGrid, Clock, ImageIcon, Video, FileText, Layers } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { format } from "date-fns";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import AppShell from "@/components/AppShell";
@@ -28,8 +29,25 @@ interface CampaignWithAssets extends Campaign {
 const Dashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [campaigns, setCampaigns] = useState<CampaignWithAssets[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Process C: The "Intrigue" Notification on first arrival from onboarding
+  useEffect(() => {
+    if (searchParams.get("welcome") === "1") {
+      // Remove param to avoid re-triggering
+      setSearchParams({}, { replace: true });
+      // Delayed toast for dramatic effect
+      const timer = setTimeout(() => {
+        toast("I've analyzed your market position. I have 3 strategies ready for your first campaign.", {
+          icon: "🧠",
+          duration: 8000,
+        });
+      }, 2500);
+      return () => clearTimeout(timer);
+    }
+  }, [searchParams, setSearchParams]);
 
   const fetchCampaigns = useCallback(async () => {
     if (!user) return;
