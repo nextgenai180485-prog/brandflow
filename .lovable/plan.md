@@ -1,58 +1,35 @@
-## Phase 10 — Real AI Provider Integration
+## Phase: Proactive Intelligence Engine
 
-**MVP Alignment:** This is Phase 4 of the MVP roadmap ("First Generated Batch") — the critical "wow" moment.
+### Task 1: Silent Research on Onboarding
+- Update `Onboarding.tsx` to trigger background research when website URL is entered (Step 1 → Step 2 transition)
+- Create `auto-brand-research` edge function that:
+  - Fetches website via direct HTTP (extract brand text, colors, imagery)
+  - Runs Exa competitor search
+  - Stores results in `campaign_research` or a new `brand_research` table
+- Show "Brand Summary Card" on dashboard after onboarding completes
 
-**Engines/Modules being built (MVP versions):**
-- Module #25 (Research & Competitor Intelligence) — MVP: Exa search → brief
-- Module #26 (Decision Engine) — MVP: Simple scoring from research
-- Module #9 (Provider & Tier Routing) — MVP: Primary provider selection with 1 fallback
-- Module #17 (Post-Production) — Deferred to later phase
+### Task 2: Selective Platform + Content Type Selection
+- Redesign `NewCampaign.tsx` as multi-step:
+  - **Step 1**: Select Platforms (Instagram, TikTok, LinkedIn, X, Facebook, Snapchat, YouTube)
+  - **Step 2**: Select Content Types per platform (Image, UGC Video, Pro Video)
+  - **Step 3**: Review Brand Insights (show pre-fetched research)
+- Generate button only active when ≥1 platform AND ≥1 content type selected
+- Generation payload sends ONLY selected platform+format combos (no shadow jobs)
 
----
+### Task 3: Brand Insights in Campaign Builder
+- Show "Brand Summary Card" at top of campaign details with AI-sourced brand identity
+- "3 visual directions" preview based on research data
+- "Why This" rationale integrated into direction cards
 
-### Step 1: Database Migration
-Add tables for research and cost tracking:
-- `campaign_research` — stores Exa research results per campaign
-- Add `provider`, `generation_cost`, `generation_time_ms` columns to `generated_assets`
+### Task 4: Website Crawling for Brand Assets
+- Use direct fetch in edge function to extract brand colors, images, text from user's website
+- Store extracted brand assets as reference material for generation prompts
+- Pass reference images to generation provider
 
-### Step 2: Add API Secrets
-Request all 5 provider keys:
-- `KIE_AI_API_KEY` (Veo3 video, GPT-4o image, Suno audio)
-- `FAL_AI_API_KEY` (Kling, LatentSync, Whisper)
-- `ELEVENLABS_API_KEY` (TTS, voice)
-- `EXA_API_KEY` (research/search)
-- `REPLICATE_API_KEY` (SDXL fallback)
-
-### Step 3: Edge Function — `research`
-- Accepts campaign context (industry, brand voice, target audience)
-- Calls Exa API for market trends + competitor patterns
-- Returns structured `intelligence_brief` JSON
-- Saves to `campaign_research` table
-
-### Step 4: Edge Function — `generate-content`
-- Accepts campaign ID, asset type, platform, format
-- Loads research brief from DB
-- Routes to provider based on asset type:
-  - **Image:** Kie AI (GPT-4o Image) → FAL AI fallback → Replicate fallback
-  - **Video:** Kie AI (Veo3) → FAL AI (Kling) fallback
-  - **Audio/Voice:** ElevenLabs → Kie AI (Suno) for music
-  - **Copy:** Lovable AI (gemini-3-flash) — already available
-- Generates caption via Lovable AI alongside media
-- Uploads to Supabase Storage
-- Saves asset record with provider, cost, time tracking
-
-### Step 5: Update GenerateButton
-- Replace stub logic with edge function calls
-- Flow: Research → Generate all assets → Save → Update status
-- Show progress indicator per asset type
-
-### Step 6: Cost Summary UI
-- Display provider used + cost per asset in Campaign Details
-- Simple cost summary card
-
-### What's NOT in this phase:
-- Full tier routing (draft/production) — single tier for now
-- Post-production pipeline (subtitles, watermarks, enhancement)
-- Campaign Multiplication workflow
-- Social Publishing Engine (Meta/TikTok API)
-- Advanced Decision Engine scoring
+### Files to modify:
+- `src/pages/Onboarding.tsx` — trigger auto-research
+- `src/pages/NewCampaign.tsx` — multi-step platform/format selection  
+- `src/pages/CampaignDetails.tsx` — brand insights card
+- `supabase/functions/auto-brand-research/index.ts` — new edge function
+- `supabase/functions/generate-content/index.ts` — selective payload
+- `src/types/campaigns.ts` — content type definitions
