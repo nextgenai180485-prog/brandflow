@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
+import { SOCIAL_FORMATS } from "@/types/campaigns";
 
 interface GenerateButtonProps {
   campaignId: string;
@@ -19,7 +20,6 @@ const GenerateButton = ({ campaignId, onGenerated, disabled }: GenerateButtonPro
     if (!user || generating) return;
     setGenerating(true);
 
-    // Fetch the user's brand palette for generation context
     const { data: profile } = await supabase
       .from("profiles")
       .select("brand_colors, brand_palette, brand_voice_tone, business_name")
@@ -29,7 +29,6 @@ const GenerateButton = ({ campaignId, onGenerated, disabled }: GenerateButtonPro
     const palette = (profile as any)?.brand_palette;
     const brandColors = (profile as any)?.brand_colors;
 
-    // Extract vibrant mixer colors (steps 300-500) for generation prompts
     const vibrantMixers: string[] = [];
     if (palette?.primary) {
       for (const step of palette.primary) {
@@ -39,64 +38,80 @@ const GenerateButton = ({ campaignId, onGenerated, disabled }: GenerateButtonPro
       }
     }
 
-    // Build brand color directive for AI prompts
-    const colorDirective = vibrantMixers.length > 0
-      ? `Use brand colors: ${vibrantMixers.join(", ")} as the primary color palette. Mix these vibrant brand tones for visual consistency.`
-      : brandColors?.primary
-        ? `Use ${brandColors.primary} as the primary brand color.`
-        : "";
+    const primaryHex = brandColors?.primary || "#D35400";
+    const accentHex = brandColors?.accent || "#2C3E50";
 
-    const brandContext = [
-      profile?.business_name ? `Brand: ${profile.business_name}` : "",
-      profile?.brand_voice_tone ? `Tone: ${profile.brand_voice_tone}` : "",
-      colorDirective,
-    ].filter(Boolean).join(". ");
+    await supabase.from("campaigns").update({ status: "generating" }).eq("id", campaignId);
 
-    // Set campaign to generating
-    await supabase
-      .from("campaigns")
-      .update({ status: "generating" })
-      .eq("id", campaignId);
+    const captions = [
+      "✨ Transform your look this season! Book your complimentary consultation today. #MedSpa #Beauty #SelfCare",
+      "🌟 Your transformation journey starts now. Expert-led treatments, stunning results. #GlowUp #Wellness",
+      "💫 Radiance redefined. Personalized treatment plans designed just for you. #SkinCare #Confidence",
+      "🔥 Exclusive this month — complimentary skin analysis with every booking. DM us! #MedSpa #BeautyGoals",
+      "💎 Discover the glow that turns heads. Premium treatments, real results. #Luxury #SelfCare",
+      "✨ New year, new you. Start your beauty journey with our expert team today. #Transformation #Beauty",
+    ];
 
-    // Simulate AI generation with brand-aware context
+    // Generate assets for multiple social formats
+    const stubAssets = [
+      // Instagram Post (4:5)
+      {
+        campaign_id: campaignId,
+        profile_id: user.id,
+        asset_type: "image",
+        content_url: `https://placehold.co/1080x1350/${primaryHex.replace("#", "")}/${accentHex.replace("#", "")}?text=IG+Post`,
+        content_text: `[meta:instagram|post|4/5] ${captions[0]}`,
+        status: "pending_review",
+      },
+      // Instagram Story (9:16)
+      {
+        campaign_id: campaignId,
+        profile_id: user.id,
+        asset_type: "image",
+        content_url: `https://placehold.co/1080x1920/${primaryHex.replace("#", "")}/${accentHex.replace("#", "")}?text=IG+Story`,
+        content_text: `[meta:instagram|story|9/16] ${captions[1]}`,
+        status: "pending_review",
+      },
+      // Instagram Reel (9:16)
+      {
+        campaign_id: campaignId,
+        profile_id: user.id,
+        asset_type: "video",
+        content_url: `https://placehold.co/1080x1920/${primaryHex.replace("#", "")}/${accentHex.replace("#", "")}?text=IG+Reel`,
+        content_text: `[meta:instagram|reel|9/16] ${captions[2]}`,
+        status: "pending_review",
+      },
+      // TikTok Video (9:16)
+      {
+        campaign_id: campaignId,
+        profile_id: user.id,
+        asset_type: "video",
+        content_url: `https://placehold.co/1080x1920/${primaryHex.replace("#", "")}/${accentHex.replace("#", "")}?text=TikTok`,
+        content_text: `[meta:tiktok|reel|9/16] ${captions[3]}`,
+        status: "pending_review",
+      },
+      // Facebook Post (1:1)
+      {
+        campaign_id: campaignId,
+        profile_id: user.id,
+        asset_type: "image",
+        content_url: `https://placehold.co/1080x1080/${primaryHex.replace("#", "")}/${accentHex.replace("#", "")}?text=FB+Post`,
+        content_text: `[meta:facebook|post|1/1] ${captions[4]}`,
+        status: "pending_review",
+      },
+      // Caption Copy
+      {
+        campaign_id: campaignId,
+        profile_id: user.id,
+        asset_type: "copy",
+        content_text: captions[5],
+        status: "pending_review",
+      },
+    ];
+
     setTimeout(async () => {
-      const primaryHex = brandColors?.primary || "#D35400";
-      const accentHex = brandColors?.accent || "#2C3E50";
-
-      const stubAssets = [
-        {
-          campaign_id: campaignId,
-          profile_id: user.id,
-          asset_type: "image",
-          content_url: `https://placehold.co/1080x1080/${primaryHex.replace("#", "")}/${accentHex.replace("#", "")}?text=Brand+Image`,
-          content_text: "✨ Transform your look this season! Book your complimentary consultation today and discover our exclusive treatment packages. Limited spots available. #MedSpa #Beauty #SelfCare",
-          status: "pending_review",
-        },
-        {
-          campaign_id: campaignId,
-          profile_id: user.id,
-          asset_type: "video",
-          content_url: `https://placehold.co/1080x1920/${primaryHex.replace("#", "")}/${accentHex.replace("#", "")}?text=Brand+Video`,
-          content_text: "🌟 Your transformation journey starts now. Watch how our expert team delivers results you'll love. Book today — link in bio. #GlowUp #BeautyGoals #Wellness",
-          status: "pending_review",
-        },
-        {
-          campaign_id: campaignId,
-          profile_id: user.id,
-          asset_type: "copy",
-          content_text:
-            "💫 Radiance redefined. Experience the difference our personalized treatment plans can make. DM us for a free consultation. #MedSpa #SkinCare #Confidence",
-          status: "pending_review",
-        },
-      ];
-
       await supabase.from("generated_assets").insert(stubAssets);
-
-      await supabase
-        .from("campaigns")
-        .update({ status: "review" })
-        .eq("id", campaignId);
-
+      await supabase.from("campaigns").update({ status: "review" }).eq("id", campaignId);
       setGenerating(false);
       toast.success("Content generated! Ready for your review.");
       onGenerated();
@@ -104,22 +119,11 @@ const GenerateButton = ({ campaignId, onGenerated, disabled }: GenerateButtonPro
   };
 
   return (
-    <Button
-      size="lg"
-      onClick={handleGenerate}
-      disabled={disabled || generating}
-      className="gap-2"
-    >
+    <Button size="lg" onClick={handleGenerate} disabled={disabled || generating} className="gap-2">
       {generating ? (
-        <>
-          <Loader2 className="w-4 h-4 animate-spin" />
-          Generating…
-        </>
+        <><Loader2 className="w-4 h-4 animate-spin" /> Generating…</>
       ) : (
-        <>
-          <Sparkles className="w-4 h-4" />
-          Generate Content
-        </>
+        <><Sparkles className="w-4 h-4" /> Generate Content</>
       )}
     </Button>
   );

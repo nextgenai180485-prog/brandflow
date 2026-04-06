@@ -42,7 +42,6 @@ const CampaignDetails = () => {
       const newAssets = assetsRes.data as GeneratedAsset[];
       setAssets(newAssets);
 
-      // Auto-transition: all assets approved → campaign approved
       if (newAssets.length > 0 && newAssets.every((a) => a.status === "approved")) {
         const currentCampaign = campaignRes.data as Campaign;
         if (currentCampaign && currentCampaign.status === "review") {
@@ -61,16 +60,17 @@ const CampaignDetails = () => {
 
   const sourceAssets = assets.filter((a) => a.content_url && !a.content_url.includes("placehold"));
   const generatedAssets = assets.filter((a) => a.content_url?.includes("placehold") || a.asset_type === "copy");
+  const pendingAssets = generatedAssets.filter((a) => a.status === "pending_review");
 
   if (loading) {
     return (
       <AppShell>
-        <div className="max-w-3xl mx-auto py-8 px-4 sm:px-6">
+        <div className="p-4 sm:p-6">
           <Skeleton className="h-8 w-48 mb-4" />
-          <Skeleton className="h-6 w-24 mb-8" />
-          <div className="space-y-6">
-            <Skeleton className="h-[400px] rounded-2xl" />
-            <Skeleton className="h-[400px] rounded-2xl" />
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Skeleton key={i} className="aspect-[4/5] rounded-xl" />
+            ))}
           </div>
         </div>
       </AppShell>
@@ -80,10 +80,9 @@ const CampaignDetails = () => {
   if (!campaign) {
     return (
       <AppShell>
-        <div className="max-w-3xl mx-auto py-8 px-4 sm:px-6">
+        <div className="p-4 sm:p-6">
           <button onClick={() => navigate("/dashboard")} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-8">
-            <ArrowLeft className="w-4 h-4" />
-            Back to Campaigns
+            <ArrowLeft className="w-4 h-4" /> Back to Campaigns
           </button>
           <p className="text-muted-foreground">Campaign not found.</p>
         </div>
@@ -95,34 +94,26 @@ const CampaignDetails = () => {
 
   return (
     <AppShell>
-      <div className="max-w-3xl mx-auto py-6 px-4 sm:px-6 lg:py-10">
-        {/* Back nav */}
-        <button
-          onClick={() => navigate("/dashboard")}
-          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Back to Campaigns
-        </button>
-
-        {/* Campaign Header Card */}
-        <div className="bg-card rounded-2xl border border-border p-5 sm:p-8 mb-6 shadow-sm">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="p-4 sm:p-6 lg:p-8">
+        {/* Compact Header Bar */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+          <div className="flex items-center gap-3 min-w-0">
+            <button
+              onClick={() => navigate("/dashboard")}
+              className="p-2 -ml-2 rounded-lg hover:bg-secondary transition-colors shrink-0"
+            >
+              <ArrowLeft className="w-4 h-4 text-muted-foreground" />
+            </button>
             <div className="min-w-0">
-              <h1 className="text-2xl sm:text-3xl font-semibold text-foreground truncate">{campaign.title}</h1>
-              <p className="text-xs text-muted-foreground font-mono mt-1">ID: {campaign.id.slice(0, 12)}…</p>
+              <h1 className="text-xl sm:text-2xl font-semibold text-foreground truncate">{campaign.title}</h1>
+              {campaign.instructions && (
+                <p className="text-xs text-muted-foreground truncate mt-0.5">{campaign.instructions}</p>
+              )}
             </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <Badge variant="outline" className={status.className}>{status.label}</Badge>
-            </div>
+            <Badge variant="outline" className={`${status.className} shrink-0`}>{status.label}</Badge>
           </div>
 
-          {campaign.instructions && (
-            <p className="text-sm text-muted-foreground mt-4 leading-relaxed">{campaign.instructions}</p>
-          )}
-
-          {/* Action bar */}
-          <div className="flex flex-col sm:flex-row gap-2 mt-6 pt-4 border-t border-border/50">
+          <div className="flex items-center gap-2 shrink-0">
             {campaign.status === "draft" && (
               <GenerateButton campaignId={campaign.id} onGenerated={fetchData} />
             )}
@@ -131,26 +122,22 @@ const CampaignDetails = () => {
               variant="outline"
               onClick={() => setScheduleOpen(true)}
               disabled={campaign.status !== "approved"}
-              className="gap-2"
+              className="gap-1.5"
             >
-              <Send className="w-3.5 h-3.5" />
-              Publish All Approved
+              <Send className="w-3.5 h-3.5" /> Publish
             </Button>
           </div>
         </div>
 
-        {/* Source assets — compact row */}
+        {/* Source assets filmstrip */}
         {sourceAssets.length > 0 && (
-          <div className="mb-6">
-            <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-3 px-1">Uploaded Assets</h2>
-            <div className="flex gap-3 overflow-x-auto pb-2">
+          <div className="mb-5">
+            <h2 className="text-[10px] font-medium text-muted-foreground uppercase tracking-widest mb-2">Source Assets</h2>
+            <div className="flex gap-2 overflow-x-auto pb-1">
               {sourceAssets.map((asset) => (
-                <div key={asset.id} className="shrink-0 w-20 h-20 rounded-xl border border-border overflow-hidden bg-card">
-                  {asset.asset_type === "image" && asset.content_url && (
+                <div key={asset.id} className="shrink-0 w-16 h-16 rounded-lg border border-border overflow-hidden bg-card">
+                  {asset.content_url && (
                     <img src={asset.content_url} alt="Source" className="w-full h-full object-cover" />
-                  )}
-                  {asset.asset_type === "video" && asset.content_url && (
-                    <video src={asset.content_url} className="w-full h-full object-cover" />
                   )}
                 </div>
               ))}
@@ -158,60 +145,56 @@ const CampaignDetails = () => {
           </div>
         )}
 
-        {/* Feed Section Label + Bulk Actions */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 px-1">
-          <div className="flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-brand" />
-            <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Generated Content Feed</h2>
-            {generatedAssets.length > 0 && (
-              <span className="text-[10px] text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">
-                {generatedAssets.length} item{generatedAssets.length !== 1 ? "s" : ""}
+        {/* Feed header + bulk actions */}
+        {generatedAssets.length > 0 && (
+          <div className="flex items-center justify-between gap-3 mb-4">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-3.5 h-3.5 text-muted-foreground" />
+              <span className="text-xs font-medium text-muted-foreground uppercase tracking-widest">
+                Generated · {generatedAssets.length}
               </span>
+            </div>
+
+            {pendingAssets.length > 1 && (
+              <div className="flex gap-1.5">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 text-[10px] gap-1 text-emerald-700 border-emerald-200 hover:bg-emerald-50"
+                  onClick={async () => {
+                    await supabase
+                      .from("generated_assets")
+                      .update({ status: "approved" })
+                      .in("id", pendingAssets.map((a) => a.id));
+                    toast.success(`${pendingAssets.length} assets approved!`);
+                    fetchData();
+                  }}
+                >
+                  <CheckCheck className="w-3 h-3" /> Accept All
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 text-[10px] gap-1 text-red-700 border-red-200 hover:bg-red-50"
+                  onClick={async () => {
+                    await supabase
+                      .from("generated_assets")
+                      .update({ status: "rejected" })
+                      .in("id", pendingAssets.map((a) => a.id));
+                    toast.success(`${pendingAssets.length} assets rejected.`);
+                    fetchData();
+                  }}
+                >
+                  <XCircle className="w-3 h-3" /> Reject All
+                </Button>
+              </div>
             )}
           </div>
+        )}
 
-          {/* Bulk Actions */}
-          {generatedAssets.filter((a) => a.status === "pending_review").length > 1 && (
-            <div className="flex gap-2">
-              <Button
-                size="sm"
-                variant="outline"
-                className="text-xs gap-1.5 text-emerald-700 border-emerald-200 hover:bg-emerald-50"
-                onClick={async () => {
-                  const pending = generatedAssets.filter((a) => a.status === "pending_review");
-                  await supabase
-                    .from("generated_assets")
-                    .update({ status: "approved" })
-                    .in("id", pending.map((a) => a.id));
-                  toast.success(`${pending.length} assets approved!`);
-                  fetchData();
-                }}
-              >
-                <CheckCheck className="w-3.5 h-3.5" /> Accept All
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                className="text-xs gap-1.5 text-red-700 border-red-200 hover:bg-red-50"
-                onClick={async () => {
-                  const pending = generatedAssets.filter((a) => a.status === "pending_review");
-                  await supabase
-                    .from("generated_assets")
-                    .update({ status: "rejected" })
-                    .in("id", pending.map((a) => a.id));
-                  toast.success(`${pending.length} assets rejected.`);
-                  fetchData();
-                }}
-              >
-                <XCircle className="w-3.5 h-3.5" /> Reject All
-              </Button>
-            </div>
-          )}
-        </div>
-
-        {/* Feed Grid — responsive */}
+        {/* Adobe-style dense grid */}
         {generatedAssets.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3">
             {generatedAssets.map((asset) => (
               <AssetFeedCard
                 key={asset.id}
