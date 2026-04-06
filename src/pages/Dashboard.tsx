@@ -52,6 +52,21 @@ const Dashboard = () => {
     }
   }, [searchParams, setSearchParams]);
 
+  // Load brand strategy
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from("brand_strategy" as any)
+      .select("*")
+      .eq("profile_id", user.id)
+      .limit(1)
+      .then(({ data }) => {
+        if (data && data.length > 0 && (data[0] as any).strategy_generated) {
+          setStrategy(data[0]);
+        }
+      });
+  }, [user]);
+
   const fetchCampaigns = useCallback(async () => {
     if (!user) return;
     const { data: campaignData } = await supabase
