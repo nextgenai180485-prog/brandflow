@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { Plus, LayoutGrid, Clock, ImageIcon, Video, FileText, Layers } from "lucide-react";
+import { Plus, LayoutGrid, Clock, ImageIcon, Video, FileText, Layers, Brain, ChevronDown, Target, TrendingUp } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -10,6 +10,7 @@ import EmptyCampaigns from "@/components/EmptyCampaigns";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import type { Campaign, CampaignStatus, GeneratedAsset } from "@/types/campaigns";
 
 const statusConfig: Record<CampaignStatus, { label: string; className: string }> = {
