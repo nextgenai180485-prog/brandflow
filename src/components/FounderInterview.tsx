@@ -84,7 +84,8 @@ const FounderInterview = ({ businessName, industry, onStrategyGenerated }: Found
     } else {
       setCurrentStep((s) => s + 1);
     }
-  }, [currentStep, answers, isLastQuestion]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLastQuestion]);
 
   const generateStrategy = async () => {
     setGenerating(true);

@@ -95,7 +95,7 @@ const CalendarView = () => {
                     {dayCampaigns.map((campaign) => (
                       <div
                         key={campaign.id}
-                        onClick={() => navigate(`/dashboard/strategy/new?campaign=${campaign.id}`)}
+                        onClick={() => navigate(`/dashboard/campaign/${campaign.id}`)}
                         className="rounded-lg bg-background border border-border p-2 cursor-pointer hover:shadow-sm transition-shadow"
                       >
                         <p className="text-xs font-medium text-foreground truncate">{campaign.title}</p>
@@ -104,11 +104,16 @@ const CalendarView = () => {
                         </p>
                         {campaign.publish_platforms && campaign.publish_platforms.length > 0 && (
                           <div className="flex gap-1 mt-1 flex-wrap">
-                            {campaign.publish_platforms.map((p) => (
-                              <Badge key={p} variant="secondary" className="text-[9px] px-1.5 py-0">
-                                {p}
-                              </Badge>
-                            ))}
+                            {campaign.publish_platforms
+                              .filter((p) => !p.startsWith("ct:"))
+                              .map((p) => {
+                                const [plat, fmt] = p.split("|");
+                                return (
+                                  <Badge key={p} variant="secondary" className="text-[9px] px-1.5 py-0 capitalize">
+                                    {plat}{fmt ? ` · ${fmt}` : ""}
+                                  </Badge>
+                                );
+                              })}
                           </div>
                         )}
                       </div>
