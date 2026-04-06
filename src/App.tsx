@@ -57,6 +57,14 @@ const App = () => (
               }
             />
             <Route
+              path="/dashboard/strategy/new"
+              element={
+                <ProtectedRoute>
+                  <StrategyCommandCenter />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/calendar"
               element={
                 <ProtectedRoute>
