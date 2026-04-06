@@ -199,6 +199,7 @@ serve(async (req) => {
                 role: "user",
                 content: `Based on the following research, create a comprehensive intelligence brief for social media content targeting "${targetAudience || "general audience"}" with brand voice: "${brandVoice || "professional"}".
 
+${directWebsiteContent ? `DIRECT WEBSITE CONTENT (${domain}):\n${directWebsiteContent.substring(0, 2000)}\n\n` : ""}
 ${brandWebsiteInsights ? `BRAND WEBSITE ANALYSIS (${domain}):\n${JSON.stringify(brandWebsiteInsights, null, 2)}\n\n` : ""}
 COMPETITOR & MARKET DATA:
 ${JSON.stringify(competitorResults, null, 2)}
