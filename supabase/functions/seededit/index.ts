@@ -12,21 +12,19 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
 
   try {
-    // Auth
-    const authHeader = req.headers.get("authorization");
-    const anonKey = Deno.env.get("SUPABASE_ANON_KEY") || Deno.env.get("SUPABASE_PUBLISHABLE_KEY")!;
-    const supabase = createClient(
+    // Auth — use service role to verify the JWT
+    const authHeader = req.headers.get("authorization") || "";
+    const serviceClient = createClient(
       Deno.env.get("SUPABASE_URL")!,
-      anonKey,
-      { global: { headers: { Authorization: authHeader! } } }
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
+
+    // Extract user from the token
+    const token = authHeader.replace("Bearer ", "");
+    const { data: { user }, error: authError } = await serviceClient.auth.getUser(token);
 
     if (authError || !user) {
-      console.error("Auth error:", authError?.message);
+      console.error("Auth error:", authError?.message, "Token prefix:", token.substring(0, 20));
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
