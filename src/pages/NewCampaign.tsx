@@ -154,7 +154,20 @@ const NewCampaign = () => {
       targetAudience: brandProfile?.target_audience_detected || "general audience",
     };
 
-    // 5. Trigger generation pipeline
+    // 5. Persist creative history if direction exists
+    if (creativeDirection) {
+      await supabase.from("creative_history" as any).insert({
+        profile_id: user.id,
+        campaign_id: campaign.id,
+        family: creativeDirection.family,
+        sealcam_scenes: creativeDirection.scenes,
+        direction_output: creativeDirection,
+        generation_params: { platform: primaryPlatform, format: primaryFormat },
+        result_status: "pending",
+      });
+    }
+
+    // 6. Trigger generation pipeline
     toast.success("Campaign created — generation starting…");
 
     supabase.functions.invoke("generate-content", {
@@ -169,6 +182,7 @@ const NewCampaign = () => {
           content_angles: brandProfile.key_themes || [],
           visual_direction: brandProfile.visual_style,
         } : null,
+        creativeDirection: creativeDirection || null,
       },
     }).then(({ error: genError }) => {
       if (genError) console.error("[Generation] Trigger error:", genError);
