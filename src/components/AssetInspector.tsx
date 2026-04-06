@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { format } from "date-fns";
-import { Check, X, RefreshCw, Pencil, CalendarIcon, Send, ChevronLeft, ChevronRight } from "lucide-react";
+import { Check, X, RefreshCw, Pencil, CalendarIcon, Send, ChevronLeft, ChevronRight, Play, Pause, Volume2, VolumeX } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Slider } from "@/components/ui/slider";
 import { Drawer, DrawerContent } from "@/components/ui/drawer";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -24,11 +25,14 @@ const PLATFORM_DIMENSIONS: Record<string, { width: number; height: number; aspec
   "instagram|post": { width: 1080, height: 1350, aspectRatio: "4 / 5" },
   "instagram|carousel": { width: 1080, height: 1350, aspectRatio: "4 / 5" },
   "tiktok|video": { width: 1080, height: 1920, aspectRatio: "9 / 16" },
+  "tiktok|reel": { width: 1080, height: 1920, aspectRatio: "9 / 16" },
   "tiktok|story": { width: 1080, height: 1920, aspectRatio: "9 / 16" },
   "facebook|post": { width: 1200, height: 1200, aspectRatio: "1 / 1" },
   "facebook|story": { width: 1080, height: 1920, aspectRatio: "9 / 16" },
   "linkedin|post": { width: 1200, height: 1200, aspectRatio: "1 / 1" },
+  "linkedin|carousel": { width: 1080, height: 1350, aspectRatio: "4 / 5" },
   "youtube|thumbnail": { width: 1280, height: 720, aspectRatio: "16 / 9" },
+  "youtube|post": { width: 1280, height: 720, aspectRatio: "16 / 9" },
   "x|post": { width: 1200, height: 675, aspectRatio: "16 / 9" },
   "snapchat|story": { width: 1080, height: 1920, aspectRatio: "9 / 16" },
 };
@@ -70,6 +74,140 @@ const schedulePlatforms = [
   { id: "x" as const, label: "X" },
 ];
 
+/** Video Player with play/pause, scrub, and mute controls */
+const VideoPlayer = ({ src, aspectRatio, maxHeight }: { src: string; aspectRatio: string; maxHeight: string }) => {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [playing, setPlaying] = useState(false);
+  const [muted, setMuted] = useState(true);
+  const [progress, setProgress] = useState(0);
+  const [duration, setDuration] = useState(0);
+
+  const togglePlay = () => {
+    const v = videoRef.current;
+    if (!v) return;
+    if (v.paused) { v.play(); setPlaying(true); }
+    else { v.pause(); setPlaying(false); }
+  };
+
+  const handleTimeUpdate = () => {
+    const v = videoRef.current;
+    if (!v || !v.duration) return;
+    setProgress((v.currentTime / v.duration) * 100);
+  };
+
+  const handleScrub = (val: number[]) => {
+    const v = videoRef.current;
+    if (!v || !v.duration) return;
+    v.currentTime = (val[0] / 100) * v.duration;
+    setProgress(val[0]);
+  };
+
+  const formatTime = (s: number) => {
+    const m = Math.floor(s / 60);
+    const sec = Math.floor(s % 60);
+    return `${m}:${sec.toString().padStart(2, "0")}`;
+  };
+
+  return (
+    <div className="relative w-full rounded-lg overflow-hidden bg-black border border-border shadow-sm" style={{ aspectRatio, maxHeight }}>
+      <video
+        ref={videoRef}
+        src={src}
+        muted={muted}
+        loop
+        playsInline
+        className="w-full h-full object-cover"
+        onTimeUpdate={handleTimeUpdate}
+        onLoadedMetadata={() => setDuration(videoRef.current?.duration || 0)}
+        onEnded={() => setPlaying(false)}
+      />
+      {/* Controls overlay */}
+      <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/80 to-transparent p-3 pt-8">
+        {/* Scrub bar */}
+        <Slider
+          value={[progress]}
+          max={100}
+          step={0.1}
+          onValueChange={handleScrub}
+          className="mb-2 [&_[role=slider]]:h-3 [&_[role=slider]]:w-3"
+        />
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <button onClick={togglePlay} className="w-7 h-7 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center text-white hover:bg-white/30 transition-colors">
+              {playing ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 ml-0.5" />}
+            </button>
+            <button onClick={() => setMuted(!muted)} className="w-7 h-7 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center text-white hover:bg-white/30 transition-colors">
+              {muted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
+            </button>
+            <span className="text-[10px] text-white/80 font-mono">
+              {formatTime((progress / 100) * duration)} / {formatTime(duration)}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/** Carousel Slide Navigator */
+const CarouselNavigator = ({
+  contentUrl,
+  aspectRatio,
+  maxHeight,
+  slideCount = 5,
+}: {
+  contentUrl: string;
+  aspectRatio: string;
+  maxHeight: string;
+  slideCount?: number;
+}) => {
+  const [currentSlide, setCurrentSlide] = useState(0);
+
+  // For now, use the same image with different overlays to simulate slides
+  return (
+    <div className="relative w-full rounded-lg overflow-hidden bg-muted border border-border shadow-sm" style={{ aspectRatio, maxHeight }}>
+      <img src={contentUrl} alt={`Slide ${currentSlide + 1}`} className="w-full h-full object-cover" />
+
+      {/* Slide indicator dots */}
+      <div className="absolute bottom-3 inset-x-0 flex items-center justify-center gap-1.5">
+        {Array.from({ length: slideCount }).map((_, i) => (
+          <button
+            key={i}
+            onClick={() => setCurrentSlide(i)}
+            className={cn(
+              "w-1.5 h-1.5 rounded-full transition-all",
+              i === currentSlide ? "bg-white w-3" : "bg-white/50 hover:bg-white/70"
+            )}
+          />
+        ))}
+      </div>
+
+      {/* Prev/Next buttons */}
+      {currentSlide > 0 && (
+        <button
+          onClick={() => setCurrentSlide((s) => s - 1)}
+          className="absolute left-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/60 transition-colors"
+        >
+          <ChevronLeft className="w-4 h-4" />
+        </button>
+      )}
+      {currentSlide < slideCount - 1 && (
+        <button
+          onClick={() => setCurrentSlide((s) => s + 1)}
+          className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/60 transition-colors"
+        >
+          <ChevronRight className="w-4 h-4" />
+        </button>
+      )}
+
+      {/* Slide counter badge */}
+      <div className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-black/50 backdrop-blur-sm text-[10px] text-white font-medium">
+        {currentSlide + 1} / {slideCount}
+      </div>
+    </div>
+  );
+};
+
 interface AssetInspectorProps {
   asset: GeneratedAsset | null;
   open: boolean;
@@ -78,7 +216,6 @@ interface AssetInspectorProps {
   campaignId: string;
   campaignStatus: string;
   onScheduled: () => void;
-  /** Navigate to adjacent assets */
   onNavigate?: (direction: "prev" | "next") => void;
   hasPrev?: boolean;
   hasNext?: boolean;
@@ -93,7 +230,6 @@ const AssetInspector = ({
   const [updating, setUpdating] = useState(false);
   const [editingCaption, setEditingCaption] = useState(false);
   const [captionDraft, setCaptionDraft] = useState("");
-  // Schedule state
   const [schedDate, setSchedDate] = useState<Date | undefined>(undefined);
   const [schedTime, setSchedTime] = useState("09:00");
   const [schedPlatforms, setSchedPlatforms] = useState<string[]>(["instagram"]);
@@ -107,6 +243,9 @@ const AssetInspector = ({
   const nativeAspect = meta?.aspectRatio || "4 / 5";
   const platformLabel = meta ? `${PLATFORM_LABELS[meta.platform as SocialPlatform]} · ${meta.format}` : "";
   const dimensionLabel = meta ? `${meta.width}×${meta.height}` : "";
+
+  const isVideo = asset.asset_type === "video";
+  const isCarousel = asset.asset_type === "carousel";
 
   const updateStatus = async (newStatus: AssetStatus) => {
     setUpdating(true);
@@ -174,7 +313,6 @@ const AssetInspector = ({
       {/* Platform-native WYSIWYG preview */}
       {asset.asset_type !== "copy" && (
         <div className="px-4 pt-3 flex flex-col items-center">
-          {/* Platform frame label */}
           {meta && (
             <div className="flex items-center justify-between w-full mb-2">
               <span className="text-[10px] font-medium text-foreground uppercase tracking-wide">
@@ -183,24 +321,32 @@ const AssetInspector = ({
               <span className="text-[10px] text-muted-foreground font-mono">{dimensionLabel}</span>
             </div>
           )}
-          {/* Native aspect ratio container — exactly how it appears on the platform */}
-          <div
-            className="w-full rounded-lg overflow-hidden bg-muted border border-border shadow-sm"
-            style={{
-              aspectRatio: nativeAspect,
-              maxHeight: isMobile ? "55vh" : "50vh",
-            }}
-          >
-            {asset.content_url ? (
-              <img
-                src={asset.content_url}
-                alt={meta?.format || "Asset"}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs">Loading…</div>
-            )}
-          </div>
+
+          {/* Video Player */}
+          {isVideo && asset.content_url ? (
+            <VideoPlayer
+              src={asset.content_url}
+              aspectRatio={nativeAspect}
+              maxHeight={isMobile ? "55vh" : "50vh"}
+            />
+          ) : isCarousel && asset.content_url ? (
+            <CarouselNavigator
+              contentUrl={asset.content_url}
+              aspectRatio={nativeAspect}
+              maxHeight={isMobile ? "55vh" : "50vh"}
+            />
+          ) : (
+            <div
+              className="w-full rounded-lg overflow-hidden bg-muted border border-border shadow-sm"
+              style={{ aspectRatio: nativeAspect, maxHeight: isMobile ? "55vh" : "50vh" }}
+            >
+              {asset.content_url ? (
+                <img src={asset.content_url} alt={meta?.format || "Asset"} className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs">Loading…</div>
+              )}
+            </div>
+          )}
         </div>
       )}
 
@@ -214,7 +360,6 @@ const AssetInspector = ({
 
         {/* PREVIEW TAB */}
         <TabsContent value="preview" className="flex-1 mt-3 space-y-3">
-          {/* Caption */}
           {caption && !editingCaption && (
             <div className="space-y-1">
               <div className="flex items-center justify-between">
@@ -223,7 +368,7 @@ const AssetInspector = ({
                   <Pencil className="w-3 h-3" />
                 </Button>
               </div>
-              <p className="text-xs text-foreground leading-relaxed">{caption}</p>
+              <p className="text-xs text-foreground leading-relaxed whitespace-pre-line">{caption}</p>
             </div>
           )}
           {editingCaption && (
@@ -279,7 +424,7 @@ const AssetInspector = ({
               <span className="text-xs font-semibold text-foreground">—</span>
             </div>
             <p className="text-[11px] text-muted-foreground leading-relaxed">
-              Strategy insights will appear here once the Research & Decision Engine is connected. Each generation will show why this creative direction was chosen, competitor signals, and alternative paths considered.
+              Strategy insights will appear here once the Research & Decision Engine is connected.
             </p>
           </div>
           <div className="rounded-lg border border-dashed border-border p-3">
