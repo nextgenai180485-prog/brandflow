@@ -95,7 +95,7 @@ const CalendarView = () => {
                     {dayCampaigns.map((campaign) => (
                       <div
                         key={campaign.id}
-                        onClick={() => navigate(`/dashboard/campaigns/${campaign.id}`)}
+                        onClick={() => navigate(`/dashboard/strategy/new?campaign=${campaign.id}`)}
                         className="rounded-lg bg-background border border-border p-2 cursor-pointer hover:shadow-sm transition-shadow"
                       >
                         <p className="text-xs font-medium text-foreground truncate">{campaign.title}</p>

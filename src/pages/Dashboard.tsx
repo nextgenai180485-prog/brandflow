@@ -101,7 +101,7 @@ const Dashboard = () => {
               {campaigns.length} campaign{campaigns.length !== 1 ? "s" : ""} · {campaigns.reduce((s, c) => s + c.assetCount, 0)} total assets
             </p>
           </div>
-          <Button size="sm" onClick={() => navigate("/dashboard/campaigns/new")} className="h-8 text-xs gap-1.5">
+          <Button size="sm" onClick={() => navigate("/dashboard/strategy/new")} className="h-8 text-xs gap-1.5">
             <Plus className="w-3.5 h-3.5" />
             New Campaign
           </Button>
@@ -120,7 +120,7 @@ const Dashboard = () => {
             ))}
           </div>
         ) : campaigns.length === 0 ? (
-          <EmptyCampaigns onCreateClick={() => navigate("/dashboard/campaigns/new")} />
+          <EmptyCampaigns onCreateClick={() => navigate("/dashboard/strategy/new")} />
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {campaigns.map((campaign) => {
@@ -136,7 +136,7 @@ const Dashboard = () => {
               return (
                 <div
                   key={campaign.id}
-                  onClick={() => navigate(`/dashboard/campaigns/${campaign.id}`)}
+                  onClick={() => navigate(`/dashboard/strategy/new?campaign=${campaign.id}`)}
                   className="group rounded-xl border border-border bg-card overflow-hidden cursor-pointer transition-all hover:shadow-lg hover:border-foreground/15 hover:-translate-y-0.5"
                 >
                   {/* Thumbnail Grid */}
