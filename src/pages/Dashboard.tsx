@@ -1,19 +1,19 @@
 import { useEffect, useState, useCallback } from "react";
 import { Plus } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import AppShell from "@/components/AppShell";
 import EmptyCampaigns from "@/components/EmptyCampaigns";
 import CampaignList from "@/components/CampaignList";
-import CreateCampaignDialog from "@/components/CreateCampaignDialog";
 import { Button } from "@/components/ui/button";
 import type { Campaign } from "@/types/campaigns";
 
 const Dashboard = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
-  const [dialogOpen, setDialogOpen] = useState(false);
 
   const fetchCampaigns = useCallback(async () => {
     if (!user) return;
@@ -43,7 +43,7 @@ const Dashboard = () => {
             </p>
           </div>
           {campaigns.length > 0 && (
-            <Button onClick={() => setDialogOpen(true)}>
+            <Button onClick={() => navigate("/dashboard/campaigns/new")}>
               <Plus className="w-4 h-4 mr-2" />
               New Campaign
             </Button>
@@ -55,17 +55,11 @@ const Dashboard = () => {
             <div className="w-6 h-6 border-2 border-foreground border-t-transparent rounded-full animate-spin" />
           </div>
         ) : campaigns.length === 0 ? (
-          <EmptyCampaigns onCreateClick={() => setDialogOpen(true)} />
+          <EmptyCampaigns onCreateClick={() => navigate("/dashboard/campaigns/new")} />
         ) : (
           <CampaignList campaigns={campaigns} />
         )}
       </div>
-
-      <CreateCampaignDialog
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        onCreated={fetchCampaigns}
-      />
     </AppShell>
   );
 };
