@@ -226,7 +226,7 @@ interface AssetInspectorProps {
 const AssetInspector = ({
   asset, open, onOpenChange, onStatusChange,
   campaignId, campaignStatus, onScheduled,
-  onNavigate, hasPrev, hasNext,
+  onNavigate, hasPrev, hasNext, researchBrief,
 }: AssetInspectorProps) => {
   const isMobile = useIsMobile();
   const [updating, setUpdating] = useState(false);
