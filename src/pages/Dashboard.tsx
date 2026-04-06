@@ -120,7 +120,7 @@ const Dashboard = () => {
             ))}
           </div>
         ) : campaigns.length === 0 ? (
-          <EmptyCampaigns onCreateClick={() => navigate("/dashboard/campaigns/new")} />
+          <EmptyCampaigns onCreateClick={() => navigate("/dashboard/strategy/new")} />
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {campaigns.map((campaign) => {

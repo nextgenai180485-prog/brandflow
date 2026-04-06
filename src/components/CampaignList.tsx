@@ -78,7 +78,7 @@ const CampaignList = ({ campaigns, onDelete }: CampaignListProps) => {
         return (
           <div
             key={campaign.id}
-            onClick={() => navigate(`/dashboard/campaigns/${campaign.id}`)}
+            onClick={() => navigate(`/dashboard/strategy/new?campaign=${campaign.id}`)}
             className="group flex items-center justify-between rounded-lg border border-border bg-card px-4 py-3 cursor-pointer transition-all hover:shadow-sm hover:border-foreground/10"
           >
             <div className="flex-1 min-w-0">
