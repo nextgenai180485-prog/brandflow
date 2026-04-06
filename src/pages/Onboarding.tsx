@@ -193,7 +193,7 @@ const Onboarding = () => {
     toast.success("Welcome to Brandflow! 🚀");
     setSaving(false);
     // Route immediately — no loading screen (Process A)
-    navigate("/dashboard?welcome=1");
+    navigate("/dashboard/strategy/new");
   };
 
   if (loading) {
