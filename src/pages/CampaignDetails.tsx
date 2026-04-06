@@ -80,7 +80,8 @@ const CampaignDetails = () => {
     return Array.from(platforms).sort();
   }, [assets]);
 
-  const generatedAssets = assets.filter((a) => a.content_url?.includes("placehold") || a.asset_type === "copy");
+  // All assets are shown — no filtering by URL pattern
+  const generatedAssets = assets;
   const filteredAssets = activePlatform === "all"
     ? generatedAssets
     : generatedAssets.filter((a) => parsePlatform(a) === activePlatform);
