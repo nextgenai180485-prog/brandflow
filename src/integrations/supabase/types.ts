@@ -41,6 +41,45 @@ export type Database = {
         }
         Relationships: []
       }
+      brand_memory: {
+        Row: {
+          context: Json
+          created_at: string
+          frequency: number
+          id: string
+          last_seen_at: string
+          memory_type: string
+          pattern_category: string
+          pattern_value: string
+          profile_id: string
+          updated_at: string
+        }
+        Insert: {
+          context?: Json
+          created_at?: string
+          frequency?: number
+          id?: string
+          last_seen_at?: string
+          memory_type?: string
+          pattern_category: string
+          pattern_value: string
+          profile_id: string
+          updated_at?: string
+        }
+        Update: {
+          context?: Json
+          created_at?: string
+          frequency?: number
+          id?: string
+          last_seen_at?: string
+          memory_type?: string
+          pattern_category?: string
+          pattern_value?: string
+          profile_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       campaign_research: {
         Row: {
           campaign_id: string
@@ -128,6 +167,63 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      decision_traces: {
+        Row: {
+          asset_id: string | null
+          assumptions: Json
+          brand_memory_influences: Json
+          campaign_id: string
+          confidence_score: number
+          created_at: string
+          creative_directions: Json
+          decision_summary: string
+          id: string
+          next_test_recommendation: Json | null
+          profile_id: string
+          rejected_alternatives: Json
+          research_id: string | null
+          research_sources: Json
+          scoring_criteria: Json
+          winner: Json
+        }
+        Insert: {
+          asset_id?: string | null
+          assumptions?: Json
+          brand_memory_influences?: Json
+          campaign_id: string
+          confidence_score?: number
+          created_at?: string
+          creative_directions?: Json
+          decision_summary: string
+          id?: string
+          next_test_recommendation?: Json | null
+          profile_id: string
+          rejected_alternatives?: Json
+          research_id?: string | null
+          research_sources?: Json
+          scoring_criteria?: Json
+          winner?: Json
+        }
+        Update: {
+          asset_id?: string | null
+          assumptions?: Json
+          brand_memory_influences?: Json
+          campaign_id?: string
+          confidence_score?: number
+          created_at?: string
+          creative_directions?: Json
+          decision_summary?: string
+          id?: string
+          next_test_recommendation?: Json | null
+          profile_id?: string
+          rejected_alternatives?: Json
+          research_id?: string | null
+          research_sources?: Json
+          scoring_criteria?: Json
+          winner?: Json
+        }
+        Relationships: []
       }
       generated_assets: {
         Row: {
