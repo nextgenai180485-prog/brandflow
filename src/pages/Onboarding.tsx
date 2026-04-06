@@ -209,8 +209,10 @@ const Onboarding = () => {
       {/* Header */}
       <header className="border-b border-border bg-card/80 backdrop-blur-sm">
         <div className="max-w-2xl mx-auto px-6 py-4 flex items-center justify-between">
-          <span className="text-lg font-semibold text-foreground tracking-tight">Brandflow</span>
-          <span className="text-xs text-muted-foreground">Step {step + 1} of {STEPS.length}</span>
+          <span className="text-lg font-bold text-foreground tracking-tight">Brandflow</span>
+          <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+            Step {step + 1} of {STEPS.length}
+          </span>
         </div>
       </header>
 
