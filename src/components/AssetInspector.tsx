@@ -1,7 +1,10 @@
 import { useState, useRef, useEffect } from "react";
 import { format } from "date-fns";
 import type { IntelligenceBrief } from "@/components/ResearchPreviewPanel";
-import { Check, X, RefreshCw, Pencil, CalendarIcon, Send, ChevronLeft, ChevronRight, Play, Pause, Volume2, VolumeX, Star, Sparkles } from "lucide-react";
+import {
+  Check, X, RefreshCw, Pencil, CalendarIcon, Send, ChevronLeft, ChevronRight,
+  Play, Pause, Volume2, VolumeX, Star, Sparkles, HelpCircle, Brain, Shield, Loader2
+} from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
@@ -14,6 +17,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Drawer, DrawerContent } from "@/components/ui/drawer";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 import type { GeneratedAsset, AssetStatus, SocialPlatform } from "@/types/campaigns";
@@ -86,52 +90,18 @@ const VideoPlayer = ({ src, aspectRatio, maxHeight }: { src: string; aspectRatio
   const togglePlay = () => {
     const v = videoRef.current;
     if (!v) return;
-    if (v.paused) { v.play(); setPlaying(true); }
-    else { v.pause(); setPlaying(false); }
+    if (v.paused) { v.play(); setPlaying(true); } else { v.pause(); setPlaying(false); }
   };
 
-  const handleTimeUpdate = () => {
-    const v = videoRef.current;
-    if (!v || !v.duration) return;
-    setProgress((v.currentTime / v.duration) * 100);
-  };
-
-  const handleScrub = (val: number[]) => {
-    const v = videoRef.current;
-    if (!v || !v.duration) return;
-    v.currentTime = (val[0] / 100) * v.duration;
-    setProgress(val[0]);
-  };
-
-  const formatTime = (s: number) => {
-    const m = Math.floor(s / 60);
-    const sec = Math.floor(s % 60);
-    return `${m}:${sec.toString().padStart(2, "0")}`;
-  };
+  const handleTimeUpdate = () => { const v = videoRef.current; if (!v || !v.duration) return; setProgress((v.currentTime / v.duration) * 100); };
+  const handleScrub = (val: number[]) => { const v = videoRef.current; if (!v || !v.duration) return; v.currentTime = (val[0] / 100) * v.duration; setProgress(val[0]); };
+  const formatTime = (s: number) => { const m = Math.floor(s / 60); const sec = Math.floor(s % 60); return `${m}:${sec.toString().padStart(2, "0")}`; };
 
   return (
     <div className="relative w-full rounded-lg overflow-hidden bg-black border border-border shadow-sm" style={{ aspectRatio, maxHeight }}>
-      <video
-        ref={videoRef}
-        src={src}
-        muted={muted}
-        loop
-        playsInline
-        className="w-full h-full object-cover"
-        onTimeUpdate={handleTimeUpdate}
-        onLoadedMetadata={() => setDuration(videoRef.current?.duration || 0)}
-        onEnded={() => setPlaying(false)}
-      />
-      {/* Controls overlay */}
+      <video ref={videoRef} src={src} muted={muted} loop playsInline className="w-full h-full object-cover" onTimeUpdate={handleTimeUpdate} onLoadedMetadata={() => setDuration(videoRef.current?.duration || 0)} onEnded={() => setPlaying(false)} />
       <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/80 to-transparent p-3 pt-8">
-        {/* Scrub bar */}
-        <Slider
-          value={[progress]}
-          max={100}
-          step={0.1}
-          onValueChange={handleScrub}
-          className="mb-2 [&_[role=slider]]:h-3 [&_[role=slider]]:w-3"
-        />
+        <Slider value={[progress]} max={100} step={0.1} onValueChange={handleScrub} className="mb-2 [&_[role=slider]]:h-3 [&_[role=slider]]:w-3" />
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <button onClick={togglePlay} className="w-7 h-7 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center text-white hover:bg-white/30 transition-colors">
@@ -140,9 +110,7 @@ const VideoPlayer = ({ src, aspectRatio, maxHeight }: { src: string; aspectRatio
             <button onClick={() => setMuted(!muted)} className="w-7 h-7 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center text-white hover:bg-white/30 transition-colors">
               {muted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
             </button>
-            <span className="text-[10px] text-white/80 font-mono">
-              {formatTime((progress / 100) * duration)} / {formatTime(duration)}
-            </span>
+            <span className="text-[10px] text-white/80 font-mono">{formatTime((progress / 100) * duration)} / {formatTime(duration)}</span>
           </div>
         </div>
       </div>
@@ -151,63 +119,210 @@ const VideoPlayer = ({ src, aspectRatio, maxHeight }: { src: string; aspectRatio
 };
 
 /** Carousel Slide Navigator */
-const CarouselNavigator = ({
-  contentUrl,
-  aspectRatio,
-  maxHeight,
-  slideCount = 5,
-}: {
-  contentUrl: string;
-  aspectRatio: string;
-  maxHeight: string;
-  slideCount?: number;
-}) => {
+const CarouselNavigator = ({ contentUrl, aspectRatio, maxHeight, slideCount = 5 }: { contentUrl: string; aspectRatio: string; maxHeight: string; slideCount?: number }) => {
   const [currentSlide, setCurrentSlide] = useState(0);
-
-  // For now, use the same image with different overlays to simulate slides
   return (
     <div className="relative w-full rounded-lg overflow-hidden bg-muted border border-border shadow-sm" style={{ aspectRatio, maxHeight }}>
       <img src={contentUrl} alt={`Slide ${currentSlide + 1}`} className="w-full h-full object-cover" />
-
-      {/* Slide indicator dots */}
       <div className="absolute bottom-3 inset-x-0 flex items-center justify-center gap-1.5">
         {Array.from({ length: slideCount }).map((_, i) => (
-          <button
-            key={i}
-            onClick={() => setCurrentSlide(i)}
-            className={cn(
-              "w-1.5 h-1.5 rounded-full transition-all",
-              i === currentSlide ? "bg-white w-3" : "bg-white/50 hover:bg-white/70"
-            )}
-          />
+          <button key={i} onClick={() => setCurrentSlide(i)} className={cn("w-1.5 h-1.5 rounded-full transition-all", i === currentSlide ? "bg-white w-3" : "bg-white/50 hover:bg-white/70")} />
         ))}
       </div>
-
-      {/* Prev/Next buttons */}
       {currentSlide > 0 && (
-        <button
-          onClick={() => setCurrentSlide((s) => s - 1)}
-          className="absolute left-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/60 transition-colors"
-        >
+        <button onClick={() => setCurrentSlide((s) => s - 1)} className="absolute left-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/60 transition-colors">
           <ChevronLeft className="w-4 h-4" />
         </button>
       )}
       {currentSlide < slideCount - 1 && (
-        <button
-          onClick={() => setCurrentSlide((s) => s + 1)}
-          className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/60 transition-colors"
-        >
+        <button onClick={() => setCurrentSlide((s) => s + 1)} className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/60 transition-colors">
           <ChevronRight className="w-4 h-4" />
         </button>
       )}
-
-      {/* Slide counter badge */}
-      <div className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-black/50 backdrop-blur-sm text-[10px] text-white font-medium">
-        {currentSlide + 1} / {slideCount}
-      </div>
+      <div className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-black/50 backdrop-blur-sm text-[10px] text-white font-medium">{currentSlide + 1} / {slideCount}</div>
     </div>
   );
 };
+
+// ══════════════════════════════════════════════════════════════
+// Decision Trace Dialog — "Why This?" transparency layer
+// ══════════════════════════════════════════════════════════════
+interface DecisionTrace {
+  id: string;
+  decision_summary: string;
+  creative_directions: any[];
+  scoring_criteria: any;
+  winner: any;
+  rejected_alternatives: any[];
+  confidence_score: number;
+  brand_memory_influences: any[];
+  research_sources: any[];
+  assumptions: string[];
+  next_test_recommendation: any;
+}
+
+const DecisionTraceDialog = ({ traceId, open, onOpenChange }: { traceId: string | null; open: boolean; onOpenChange: (open: boolean) => void }) => {
+  const [trace, setTrace] = useState<DecisionTrace | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!traceId || !open) return;
+    setLoading(true);
+    supabase
+      .from("decision_traces")
+      .select("*")
+      .eq("id", traceId)
+      .single()
+      .then(({ data }) => {
+        if (data) setTrace(data as any);
+        setLoading(false);
+      });
+  }, [traceId, open]);
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-sm">
+            <Shield className="w-4 h-4 text-primary" />
+            Decision Trace — Why This?
+          </DialogTitle>
+        </DialogHeader>
+
+        {loading && (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="w-5 h-5 animate-spin text-primary" />
+          </div>
+        )}
+
+        {trace && (
+          <div className="space-y-4">
+            {/* Summary */}
+            <div className="rounded-lg bg-secondary/50 border border-border p-3">
+              <p className="text-xs text-foreground leading-relaxed">{trace.decision_summary}</p>
+              <div className="flex items-center gap-2 mt-2">
+                <Badge variant="outline" className="text-[9px]">
+                  Confidence: {(trace.confidence_score * 100).toFixed(0)}%
+                </Badge>
+              </div>
+            </div>
+
+            {/* Creative Directions Scored */}
+            {trace.creative_directions?.length > 0 && (
+              <div className="space-y-2">
+                <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Creative Directions Evaluated</span>
+                {trace.creative_directions.map((d: any, i: number) => {
+                  const isWinner = i === trace.winner?.total_score ? false : d.name === trace.winner?.name;
+                  return (
+                    <div key={i} className={cn("rounded-lg border p-3", isWinner ? "border-primary bg-primary/5" : "border-border bg-card")}>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-[11px] font-semibold text-foreground">{d.name}</span>
+                        <div className="flex items-center gap-1.5">
+                          {isWinner && <Badge className="text-[8px] h-4 bg-primary text-primary-foreground">Winner</Badge>}
+                          <Badge variant="outline" className="text-[8px] h-4">{d.total_score || "—"}</Badge>
+                        </div>
+                      </div>
+                      <p className="text-[10px] text-muted-foreground">{d.description}</p>
+                      {d.scoring && (
+                        <div className="grid grid-cols-4 gap-1 mt-2">
+                          {Object.entries(d.scoring).map(([k, v]) => (
+                            <div key={k} className="text-center">
+                              <div className="text-[8px] text-muted-foreground capitalize">{k.replace(/_/g, " ")}</div>
+                              <div className="text-[10px] font-semibold text-foreground">{String(v)}</div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {d.hook_suggestion && (
+                        <div className="mt-1.5 text-[9px] text-primary italic">Hook: "{d.hook_suggestion}"</div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Winner Rationale */}
+            {trace.winner?.rationale && (
+              <div className="rounded-lg border border-primary/30 bg-primary/5 p-3">
+                <span className="text-[10px] font-semibold text-primary uppercase tracking-wide">Why This Direction Won</span>
+                <p className="text-[11px] text-foreground leading-relaxed mt-1">{trace.winner.rationale}</p>
+              </div>
+            )}
+
+            {/* Rejected Alternatives */}
+            {trace.rejected_alternatives?.length > 0 && (
+              <div className="space-y-1.5">
+                <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Rejected Alternatives</span>
+                {trace.rejected_alternatives.map((r: any, i: number) => (
+                  <div key={i} className="rounded-lg border border-border bg-card p-2.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-medium text-foreground">{r.name}</span>
+                      <Badge variant="outline" className="text-[8px] h-3.5 text-red-600 border-red-200">Score: {r.total_score}</Badge>
+                    </div>
+                    <p className="text-[9px] text-muted-foreground mt-0.5">{r.reason_rejected}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Brand Memory Influences */}
+            {trace.brand_memory_influences?.length > 0 && (
+              <div className="space-y-1.5">
+                <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1">
+                  <Brain className="w-3 h-3" /> Brand Memory Influences
+                </span>
+                <div className="flex flex-wrap gap-1">
+                  {trace.brand_memory_influences.map((m: any, i: number) => (
+                    <Badge key={i} variant="outline" className={cn("text-[9px]", m.type === "approval" ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-red-50 text-red-700 border-red-200")}>
+                      {m.type === "approval" ? "✓" : "✗"} {m.category}: {m.value} ({m.frequency}x)
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Assumptions */}
+            {trace.assumptions?.length > 0 && (
+              <div className="rounded-lg border border-dashed border-amber-300 bg-amber-50/50 p-3">
+                <span className="text-[10px] font-semibold text-amber-700 uppercase tracking-wide">Assumptions Made</span>
+                <ul className="mt-1 space-y-0.5">
+                  {trace.assumptions.map((a: string, i: number) => (
+                    <li key={i} className="text-[10px] text-amber-800">• {a}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Next Test */}
+            {trace.next_test_recommendation?.description && (
+              <div className="rounded-lg border border-blue-200 bg-blue-50/50 p-3">
+                <span className="text-[10px] font-semibold text-blue-700 uppercase tracking-wide">Recommended Next Test</span>
+                <p className="text-[10px] text-blue-800 mt-1">{trace.next_test_recommendation.description}</p>
+              </div>
+            )}
+
+            {/* Research Sources */}
+            {trace.research_sources?.length > 0 && (
+              <div className="space-y-1">
+                <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Research Sources ({trace.research_sources.length})</span>
+                {trace.research_sources.slice(0, 6).map((s: any, i: number) => (
+                  <a key={i} href={s.url} target="_blank" rel="noopener noreferrer" className="block text-[9px] text-primary hover:underline truncate">{s.title || s.url}</a>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {!loading && !trace && (
+          <p className="text-xs text-muted-foreground py-8 text-center">No decision trace found for this asset.</p>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+// ══════════════════════════════════════════════════════════════
 
 interface AssetInspectorProps {
   asset: GeneratedAsset | null;
@@ -236,6 +351,7 @@ const AssetInspector = ({
   const [schedTime, setSchedTime] = useState("09:00");
   const [schedPlatforms, setSchedPlatforms] = useState<string[]>(["instagram"]);
   const [scheduling, setScheduling] = useState(false);
+  const [showDecisionTrace, setShowDecisionTrace] = useState(false);
 
   if (!asset) return null;
 
@@ -245,9 +361,19 @@ const AssetInspector = ({
   const nativeAspect = meta?.aspectRatio || "4 / 5";
   const platformLabel = meta ? `${PLATFORM_LABELS[meta.platform as SocialPlatform]} · ${meta.format}` : "";
   const dimensionLabel = meta ? `${meta.width}×${meta.height}` : "";
-
   const isVideo = asset.asset_type === "video";
   const isCarousel = asset.asset_type === "carousel";
+
+  // Parse rationale for decision trace ID
+  let decisionTraceId: string | null = null;
+  let decisionMeta: any = null;
+  try {
+    if (asset.rationale) {
+      const parsed = JSON.parse(asset.rationale);
+      decisionTraceId = parsed.trace_id || null;
+      decisionMeta = parsed;
+    }
+  } catch { /* rationale is plain text */ }
 
   const updateStatus = async (newStatus: AssetStatus) => {
     setUpdating(true);
@@ -255,6 +381,25 @@ const AssetInspector = ({
     if (error) toast.error("Failed to update.");
     else {
       toast.success(newStatus === "approved" ? "Approved!" : "Rejected.");
+
+      // LAYER 4: Record brand memory
+      const memoryPatterns = extractPatternsFromAsset(asset, meta, decisionMeta);
+      for (const pattern of memoryPatterns) {
+        try {
+          await supabase.functions.invoke("generate-content", {
+            body: {
+              action: "record_memory",
+              memoryType: newStatus === "approved" ? "approval" : "rejection",
+              patternCategory: pattern.category,
+              patternValue: pattern.value,
+              context: { campaignId, assetId: asset.id, platform: meta?.platform },
+            },
+          });
+        } catch (e) {
+          console.error("Memory recording failed:", e);
+        }
+      }
+
       onStatusChange();
     }
     setUpdating(false);
@@ -286,15 +431,10 @@ const AssetInspector = ({
     const [h, m] = schedTime.split(":").map(Number);
     const at = new Date(schedDate);
     at.setHours(h, m, 0, 0);
-    const { error } = await supabase.from("campaigns").update({
-      status: "scheduled", scheduled_at: at.toISOString(), publish_platforms: schedPlatforms,
-    }).eq("id", campaignId);
+    const { error } = await supabase.from("campaigns").update({ status: "scheduled", scheduled_at: at.toISOString(), publish_platforms: schedPlatforms }).eq("id", campaignId);
     setScheduling(false);
     if (error) toast.error("Failed to schedule.");
-    else {
-      toast.success(`Scheduled for ${format(at, "MMM d 'at' h:mm a")}`);
-      onScheduled();
-    }
+    else { toast.success(`Scheduled for ${format(at, "MMM d 'at' h:mm a")}`); onScheduled(); }
   };
 
   const content = (
@@ -309,39 +449,49 @@ const AssetInspector = ({
             <ChevronRight className="w-4 h-4" />
           </Button>
         </div>
-        <Badge variant="outline" className={`text-[10px] ${status.className}`}>{status.label}</Badge>
+        <div className="flex items-center gap-1.5">
+          {/* "Why This?" button — Trust Engine transparency */}
+          {decisionTraceId && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-6 text-[9px] gap-1 text-primary border-primary/30 hover:bg-primary/5"
+              onClick={() => setShowDecisionTrace(true)}
+            >
+              <HelpCircle className="w-3 h-3" /> Why This?
+            </Button>
+          )}
+          <Badge variant="outline" className={`text-[10px] ${status.className}`}>{status.label}</Badge>
+        </div>
       </div>
+
+      {/* Decision context bar */}
+      {decisionMeta?.direction && decisionMeta.direction !== "default" && (
+        <div className="mx-4 mt-2 px-3 py-1.5 rounded-lg bg-primary/5 border border-primary/20 flex items-center gap-2">
+          <Brain className="w-3 h-3 text-primary shrink-0" />
+          <span className="text-[9px] text-foreground">
+            <span className="font-semibold">{decisionMeta.direction}</span>
+            {decisionMeta.angle && <span className="text-muted-foreground"> · {decisionMeta.angle}</span>}
+            {decisionMeta.confidence > 0 && <span className="text-muted-foreground"> · {decisionMeta.confidence}pts</span>}
+          </span>
+        </div>
+      )}
 
       {/* Platform-native WYSIWYG preview */}
       {asset.asset_type !== "copy" && (
         <div className="px-4 pt-3 flex flex-col items-center">
           {meta && (
             <div className="flex items-center justify-between w-full mb-2">
-              <span className="text-[10px] font-medium text-foreground uppercase tracking-wide">
-                {platformLabel}
-              </span>
+              <span className="text-[10px] font-medium text-foreground uppercase tracking-wide">{platformLabel}</span>
               <span className="text-[10px] text-muted-foreground font-mono">{dimensionLabel}</span>
             </div>
           )}
-
-          {/* Video Player */}
           {isVideo && asset.content_url ? (
-            <VideoPlayer
-              src={asset.content_url}
-              aspectRatio={nativeAspect}
-              maxHeight={isMobile ? "55vh" : "50vh"}
-            />
+            <VideoPlayer src={asset.content_url} aspectRatio={nativeAspect} maxHeight={isMobile ? "55vh" : "50vh"} />
           ) : isCarousel && asset.content_url ? (
-            <CarouselNavigator
-              contentUrl={asset.content_url}
-              aspectRatio={nativeAspect}
-              maxHeight={isMobile ? "55vh" : "50vh"}
-            />
+            <CarouselNavigator contentUrl={asset.content_url} aspectRatio={nativeAspect} maxHeight={isMobile ? "55vh" : "50vh"} />
           ) : (
-            <div
-              className="w-full rounded-lg overflow-hidden bg-muted border border-border shadow-sm"
-              style={{ aspectRatio: nativeAspect, maxHeight: isMobile ? "55vh" : "50vh" }}
-            >
+            <div className="w-full rounded-lg overflow-hidden bg-muted border border-border shadow-sm" style={{ aspectRatio: nativeAspect, maxHeight: isMobile ? "55vh" : "50vh" }}>
               {asset.content_url ? (
                 <img src={asset.content_url} alt={meta?.format || "Asset"} className="w-full h-full object-cover" />
               ) : (
@@ -387,19 +537,10 @@ const AssetInspector = ({
           <div className="pt-2 space-y-2">
             {asset.status === "pending_review" && (
               <div className="flex gap-2">
-                <Button
-                  className="flex-1 h-9 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white"
-                  onClick={() => updateStatus("approved")}
-                  disabled={updating}
-                >
+                <Button className="flex-1 h-9 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => updateStatus("approved")} disabled={updating}>
                   <Check className="w-3.5 h-3.5 mr-1" /> Approve
                 </Button>
-                <Button
-                  variant="outline"
-                  className="flex-1 h-9 text-xs font-semibold text-red-700 border-red-200 hover:bg-red-50"
-                  onClick={() => updateStatus("rejected")}
-                  disabled={updating}
-                >
+                <Button variant="outline" className="flex-1 h-9 text-xs font-semibold text-red-700 border-red-200 hover:bg-red-50" onClick={() => updateStatus("rejected")} disabled={updating}>
                   <X className="w-3.5 h-3.5 mr-1" /> Reject
                 </Button>
               </div>
@@ -420,9 +561,40 @@ const AssetInspector = ({
 
         {/* STRATEGY TAB */}
         <TabsContent value="strategy" className="flex-1 mt-3 space-y-3 overflow-y-auto">
+          {/* Decision Engine Output */}
+          {decisionMeta?.direction && decisionMeta.direction !== "default" && (
+            <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-medium text-primary uppercase tracking-wide flex items-center gap-1">
+                  <Brain className="w-3 h-3" /> Decision Engine
+                </span>
+                {decisionMeta.confidence > 0 && (
+                  <Badge variant="outline" className="text-[9px] border-primary/30 text-primary">
+                    Score: {decisionMeta.confidence}
+                  </Badge>
+                )}
+              </div>
+              <p className="text-[11px] text-foreground font-semibold">{decisionMeta.direction}</p>
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary" className="text-[9px]">{decisionMeta.angle}</Badge>
+                {decisionMeta.hook && <span className="text-[9px] text-muted-foreground italic">"{decisionMeta.hook}"</span>}
+              </div>
+              {decisionTraceId && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-6 text-[9px] gap-1 text-primary p-0"
+                  onClick={() => setShowDecisionTrace(true)}
+                >
+                  <Shield className="w-3 h-3" /> View Full Decision Trace
+                </Button>
+              )}
+            </div>
+          )}
+
           {researchBrief ? (
             <>
-              {/* Decision Confidence */}
+              {/* Research Quality */}
               <div className="rounded-lg border border-border bg-secondary/30 p-3 space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Research Quality</span>
@@ -435,7 +607,6 @@ const AssetInspector = ({
                 <p className="text-[11px] text-foreground leading-relaxed">{researchBrief.summary}</p>
               </div>
 
-              {/* Visual Direction */}
               {researchBrief.visual_direction && (
                 <div className="rounded-lg border border-border bg-secondary/30 p-3">
                   <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Visual Direction</span>
@@ -443,22 +614,19 @@ const AssetInspector = ({
                 </div>
               )}
 
-              {/* Content Angles Used */}
               {researchBrief.content_angles?.length > 0 && (
                 <div className="rounded-lg border border-border bg-secondary/30 p-3">
                   <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Content Angles</span>
                   <ul className="mt-1.5 space-y-1">
                     {researchBrief.content_angles.map((angle: string, i: number) => (
                       <li key={i} className="text-[10px] text-foreground flex items-start gap-1.5">
-                        <Sparkles className="w-3 h-3 text-primary mt-0.5 shrink-0" />
-                        {angle}
+                        <Sparkles className="w-3 h-3 text-primary mt-0.5 shrink-0" /> {angle}
                       </li>
                     ))}
                   </ul>
                 </div>
               )}
 
-              {/* Brand Gap */}
               {researchBrief.brand_gap_analysis && (
                 <div className="rounded-lg border border-border bg-secondary/30 p-3">
                   <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Brand Gap Analysis</span>
@@ -466,36 +634,25 @@ const AssetInspector = ({
                 </div>
               )}
 
-              {/* Sources */}
               {researchBrief.sources?.length > 0 && (
                 <div className="rounded-lg border border-dashed border-border p-3">
-                  <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">
-                    Research Sources ({researchBrief.sources.length})
-                  </span>
+                  <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Research Sources ({researchBrief.sources.length})</span>
                   <ul className="mt-1.5 space-y-1">
                     {researchBrief.sources.slice(0, 8).map((s: any, i: number) => (
-                      <li key={i}>
-                        <a href={s.url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-primary hover:underline truncate block">
-                          {s.title || s.url}
-                        </a>
-                      </li>
+                      <li key={i}><a href={s.url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-primary hover:underline truncate block">{s.title || s.url}</a></li>
                     ))}
                   </ul>
                 </div>
               )}
             </>
-          ) : (
-            <>
-              <div className="rounded-lg border border-border bg-secondary/30 p-3 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Decision Confidence</span>
-                  <span className="text-xs font-semibold text-foreground">—</span>
-                </div>
-                <p className="text-[11px] text-muted-foreground leading-relaxed">
-                  Run research first to see strategy insights for this asset.
-                </p>
+          ) : !decisionMeta?.direction && (
+            <div className="rounded-lg border border-border bg-secondary/30 p-3 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Decision Confidence</span>
+                <span className="text-xs font-semibold text-foreground">—</span>
               </div>
-            </>
+              <p className="text-[11px] text-muted-foreground leading-relaxed">Run research first to see strategy insights for this asset.</p>
+            </div>
           )}
         </TabsContent>
 
@@ -503,45 +660,33 @@ const AssetInspector = ({
         <TabsContent value="schedule" className="flex-1 mt-3 space-y-4">
           <div className="space-y-2">
             <Label className="text-xs">Publish Date</Label>
-            <Calendar
-              mode="single"
-              selected={schedDate}
-              onSelect={setSchedDate}
-              disabled={(d) => d < new Date()}
-              className={cn("rounded-md border pointer-events-auto")}
-            />
+            <Calendar mode="single" selected={schedDate} onSelect={setSchedDate} disabled={(d) => d < new Date()} className={cn("rounded-md border pointer-events-auto")} />
           </div>
           <div className="space-y-2">
             <Label className="text-xs">Time</Label>
-            <input
-              type="time"
-              value={schedTime}
-              onChange={(e) => setSchedTime(e.target.value)}
-              className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-2 text-xs"
-            />
+            <input type="time" value={schedTime} onChange={(e) => setSchedTime(e.target.value)} className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-2 text-xs" />
           </div>
           <div className="space-y-2">
             <Label className="text-xs">Platforms</Label>
             {schedulePlatforms.map((p) => (
               <div key={p.id} className="flex items-center justify-between py-1">
                 <span className="text-xs text-foreground">{p.label}</span>
-                <Switch
-                  checked={schedPlatforms.includes(p.id)}
-                  onCheckedChange={() =>
-                    setSchedPlatforms((prev) =>
-                      prev.includes(p.id) ? prev.filter((x) => x !== p.id) : [...prev, p.id]
-                    )
-                  }
-                />
+                <Switch checked={schedPlatforms.includes(p.id)} onCheckedChange={() => setSchedPlatforms((prev) => prev.includes(p.id) ? prev.filter((x) => x !== p.id) : [...prev, p.id])} />
               </div>
             ))}
           </div>
           <Button onClick={handleSchedule} disabled={scheduling} className="w-full h-9 text-xs gap-1.5">
-            <Send className="w-3.5 h-3.5" />
-            {scheduling ? "Scheduling…" : "Schedule Campaign"}
+            <Send className="w-3.5 h-3.5" /> {scheduling ? "Scheduling…" : "Schedule Campaign"}
           </Button>
         </TabsContent>
       </Tabs>
+
+      {/* Decision Trace Dialog */}
+      <DecisionTraceDialog
+        traceId={decisionTraceId}
+        open={showDecisionTrace}
+        onOpenChange={setShowDecisionTrace}
+      />
     </div>
   );
 
@@ -550,9 +695,7 @@ const AssetInspector = ({
     return (
       <Drawer open={open} onOpenChange={onOpenChange}>
         <DrawerContent className={isTallFormat ? "max-h-[95vh]" : "max-h-[85vh]"}>
-          <div className={`overflow-y-auto pb-6 ${isTallFormat ? "max-h-[92vh]" : "max-h-[80vh]"}`}>
-            {content}
-          </div>
+          <div className={`overflow-y-auto pb-6 ${isTallFormat ? "max-h-[92vh]" : "max-h-[80vh]"}`}>{content}</div>
         </DrawerContent>
       </Drawer>
     );
@@ -560,11 +703,39 @@ const AssetInspector = ({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-[400px] sm:w-[420px] p-0 overflow-y-auto">
-        {content}
-      </SheetContent>
+      <SheetContent side="right" className="w-[400px] sm:w-[420px] p-0 overflow-y-auto">{content}</SheetContent>
     </Sheet>
   );
 };
+
+// ── Pattern extraction for Brand Memory ──────────────────────
+function extractPatternsFromAsset(asset: GeneratedAsset, meta: any, decisionMeta: any) {
+  const patterns: Array<{ category: string; value: string }> = [];
+
+  // Platform + format pattern
+  if (meta?.platform && meta?.format) {
+    patterns.push({ category: "format", value: `${meta.platform}_${meta.format}` });
+  }
+
+  // Asset type pattern
+  patterns.push({ category: "asset_type", value: asset.asset_type });
+
+  // Angle pattern from decision engine
+  if (decisionMeta?.angle) {
+    patterns.push({ category: "angle", value: decisionMeta.angle });
+  }
+
+  // Hook pattern
+  if (decisionMeta?.hook) {
+    patterns.push({ category: "hook", value: decisionMeta.hook });
+  }
+
+  // Direction pattern
+  if (decisionMeta?.direction && decisionMeta.direction !== "default") {
+    patterns.push({ category: "direction", value: decisionMeta.direction });
+  }
+
+  return patterns;
+}
 
 export default AssetInspector;
