@@ -222,6 +222,24 @@ const CampaignDetails = () => {
           </div>
         )}
 
+        {/* Cost summary bar */}
+        {generatedAssets.length > 0 && generatedAssets.some((a: any) => a.provider) && (
+          <div className="flex items-center gap-3 mb-3 px-2.5 py-1.5 rounded-lg bg-secondary/50 text-[10px] text-muted-foreground">
+            <span className="font-medium text-foreground">Generation Summary</span>
+            <span>
+              {generatedAssets.filter((a: any) => a.provider).length} AI-generated
+            </span>
+            <span>·</span>
+            <span>
+              ${generatedAssets.reduce((sum: number, a: any) => sum + (Number((a as any).generation_cost) || 0), 0).toFixed(2)} total cost
+            </span>
+            <span>·</span>
+            <span>
+              {Array.from(new Set(generatedAssets.map((a: any) => a.provider).filter(Boolean))).join(", ")}
+            </span>
+          </div>
+        )}
+
         {/* Asset grid — high-density masonry-style */}
         {filteredAssets.length > 0 ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
