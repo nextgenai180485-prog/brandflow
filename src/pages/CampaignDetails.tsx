@@ -330,10 +330,17 @@ const CampaignDetails = () => {
           <div className="flex items-center justify-center py-16">
             <p className="text-xs text-muted-foreground">No assets for this platform.</p>
           </div>
-        ) : campaign.status === "generating" ? (
-          <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-border bg-card py-16">
-            <div className="w-5 h-5 border-2 border-foreground border-t-transparent rounded-full animate-spin mb-3" />
-            <p className="text-muted-foreground text-xs">Generating…</p>
+      ) : campaign.status === "generating" ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="rounded-lg border border-border bg-card overflow-hidden">
+                <Skeleton className="aspect-[4/5] w-full" />
+                <div className="px-2.5 py-2 border-t border-border/50 space-y-1.5">
+                  <Skeleton className="h-2.5 w-full" />
+                  <Skeleton className="h-2.5 w-2/3" />
+                </div>
+              </div>
+            ))}
           </div>
         ) : null}
       </div>
