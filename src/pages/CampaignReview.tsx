@@ -172,6 +172,82 @@ const CampaignReview = () => {
     toast.success("Caption copied");
   };
 
+  const handleStartEditCaption = (assetId: string, currentCaption: string) => {
+    setEditingCaptionId(assetId);
+    setEditedCaption(currentCaption);
+    setTimeout(() => captionRef.current?.focus(), 50);
+  };
+
+  const handleSaveCaption = async (assetId: string) => {
+    setCaptionSaving(true);
+    const asset = assets.find((a) => a.id === assetId);
+    const metaMatch = asset?.content_text?.match(/^\[meta:[^\]]*\]/);
+    const metaPrefix = metaMatch?.[0] ? `${metaMatch[0]} ` : "";
+    const newContentText = `${metaPrefix}${editedCaption}`;
+
+    const { error } = await supabase
+      .from("generated_assets")
+      .update({ content_text: newContentText })
+      .eq("id", assetId);
+
+    if (error) {
+      toast.error("Failed to save caption");
+    } else {
+      setAssets((prev) => prev.map((a) => a.id === assetId ? { ...a, content_text: newContentText } : a));
+      toast.success("Caption saved");
+    }
+    setEditingCaptionId(null);
+    setCaptionSaving(false);
+  };
+
+  const handleRegenerateCaption = async (assetId: string) => {
+    setCaptionRegenerating(assetId);
+    const asset = assets.find((a) => a.id === assetId);
+    if (!asset) { setCaptionRegenerating(null); return; }
+
+    const metaMatch = asset.content_text?.match(/^\[meta:([^|]*)\|([^|]*)\|([^\]]*)\]/);
+    const platform = metaMatch?.[1] || asset.platform || "instagram";
+    const format = metaMatch?.[2] || asset.format || "post";
+
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-content", {
+        body: {
+          action: "regenerate_caption",
+          assetId: asset.id,
+          platform,
+          format,
+        },
+      });
+
+      if (error) throw error;
+
+      // Poll for the updated caption
+      let attempts = 0;
+      const poll = setInterval(async () => {
+        attempts++;
+        const { data: updated } = await supabase
+          .from("generated_assets")
+          .select("content_text")
+          .eq("id", assetId)
+          .single();
+        const newCaption = parseCaption(updated?.content_text || "");
+        const oldCaption = parseCaption(asset.content_text);
+        if (newCaption !== oldCaption || attempts > 15) {
+          clearInterval(poll);
+          if (updated) {
+            setAssets((prev) => prev.map((a) => a.id === assetId ? { ...a, content_text: updated.content_text } : a));
+          }
+          setCaptionRegenerating(null);
+          toast.success("Caption regenerated");
+        }
+      }, 2000);
+    } catch (e) {
+      console.error("Caption regen error:", e);
+      setCaptionRegenerating(null);
+      toast.error("Failed to regenerate caption");
+    }
+  };
+
   const handleDownload = async (url: string, filename: string) => {
     try {
       const response = await fetch(url);
