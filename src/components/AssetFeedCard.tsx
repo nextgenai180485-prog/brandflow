@@ -157,11 +157,14 @@ const AssetFeedCard = ({ asset, onStatusChange, isSelected, onClick }: AssetFeed
         </div>
       )}
 
-      {/* Caption footer */}
+      {/* Caption footer — typewriter effect */}
       {isVisual && (
         <div className="px-2.5 py-2 border-t border-border/50">
           {displayCaption ? (
-            <p className="text-[11px] text-foreground/80 leading-relaxed line-clamp-3">{displayCaption}</p>
+            <p className="text-[11px] text-foreground/80 leading-relaxed line-clamp-3 whitespace-pre-line">
+              {typedCaption}
+              {!typingDone && <span className="inline-block w-[2px] h-3 bg-foreground/60 ml-0.5 animate-pulse align-middle" />}
+            </p>
           ) : (
             <p className="text-[10px] text-muted-foreground/50 italic">No caption</p>
           )}
