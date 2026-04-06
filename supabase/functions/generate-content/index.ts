@@ -511,12 +511,25 @@ async function storeDecisionTrace(
 }
 
 // ── Caption Generation via Lovable AI ────────────────────────
-async function generateCaption(platform: string, format: string, brandContext: any, intelligenceBrief: any, decisionWinner: any): Promise<string> {
+async function generateCaption(platform: string, format: string, brandContext: any, intelligenceBrief: any, decisionWinner: any, imagePrompt: string): Promise<string> {
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
   if (!LOVABLE_API_KEY) return `Content for ${platform} ${format}`;
 
   const hookSuggestion = decisionWinner?.hook_suggestion || "";
   const angle = decisionWinner?.angle_type || "";
+  const directionName = decisionWinner?.name || "brand showcase";
+  const directionDesc = decisionWinner?.description || "";
+
+  const platformRules: Record<string, string> = {
+    instagram: "Use relevant hashtags (5-10), line breaks for readability, emojis that match the tone. Start with a hook that stops the scroll. Keep under 2200 chars. End with a CTA.",
+    tiktok: "Short, punchy, trend-aware. Use 3-5 hashtags. Include a hook question or statement. Keep conversational and Gen-Z friendly. Under 300 chars ideal.",
+    linkedin: "Professional but personable. No hashtags in the body (add 3-5 at the end). Use line breaks. Start with a bold statement or insight. 1300 chars max.",
+    facebook: "Conversational, community-focused. 1-3 hashtags max. Ask a question to drive engagement. Medium length.",
+    twitter: "Concise, punchy. Under 280 chars. 1-2 hashtags max. Make every word count.",
+    youtube: "Descriptive title + description format. Include relevant keywords naturally. Add timestamps if applicable.",
+  };
+
+  const platformRule = platformRules[platform.toLowerCase()] || platformRules.instagram;
 
   const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
@@ -524,26 +537,45 @@ async function generateCaption(platform: string, format: string, brandContext: a
     body: JSON.stringify({
       model: "google/gemini-3-flash-preview",
       messages: [
-        { role: "system", content: `You are a social media copywriter for "${brandContext.businessName || "the brand"}" in the ${brandContext.industry || "beauty"} industry. Brand voice: ${brandContext.brandVoice || "professional, warm"}. Write captions that are native to each platform.` },
-        { role: "user", content: `Write a single ${platform} ${format} caption for this brand.
-Target audience: ${brandContext.targetAudience || "general audience"}
-Creative direction: ${decisionWinner?.name || "brand showcase"}
-Angle: ${angle}
-Hook inspiration: ${hookSuggestion}
-${intelligenceBrief?.content_angles ? `Trending angles: ${intelligenceBrief.content_angles.join(", ")}` : ""}
-${intelligenceBrief?.hooks ? `Hook library: ${intelligenceBrief.hooks.join("; ")}` : ""}
+        {
+          role: "system",
+          content: `You are an elite social media copywriter for "${brandContext.businessName || "the brand"}" in the ${brandContext.industry || "beauty"} industry. 
+Brand voice: ${brandContext.brandVoice || "professional, warm"}.
+Target audience: ${brandContext.targetAudience || "general audience"}.
 
-Requirements:
-- Platform-native formatting (hashtags for IG, professional tone for LinkedIn, etc.)
-- Include relevant emojis
-- Include a call-to-action
-- Keep it concise and engaging
-- Output ONLY the caption text, no explanations` },
+You write captions that feel NATIVE to each platform — not generic marketing copy. Every caption must:
+1. Open with a scroll-stopping hook
+2. Connect emotionally with the target audience
+3. Include a clear but subtle call-to-action
+4. Match the platform's culture and formatting norms
+5. Be directly relevant to the visual content being posted`,
+        },
+        {
+          role: "user",
+          content: `Write a caption for this ${platform} ${format} post.
+
+THE VISUAL CONTENT: ${imagePrompt}
+
+CREATIVE DIRECTION: "${directionName}" — ${directionDesc}
+ANGLE: ${angle}
+HOOK INSPIRATION: ${hookSuggestion}
+
+${intelligenceBrief?.content_angles ? `TRENDING ANGLES IN THIS SPACE: ${intelligenceBrief.content_angles.slice(0, 5).join(", ")}` : ""}
+${intelligenceBrief?.hooks ? `COMPETITOR HOOKS WORKING NOW: ${intelligenceBrief.hooks.slice(0, 5).join(" | ")}` : ""}
+${intelligenceBrief?.avoid ? `AVOID THESE APPROACHES: ${intelligenceBrief.avoid.join(", ")}` : ""}
+
+PLATFORM RULES: ${platformRule}
+
+Output ONLY the caption text. No explanations, no quotes around it. Just the raw caption ready to paste.`,
+        },
       ],
     }),
   });
 
-  if (!response.ok) { await response.text(); return `Discover the difference at ${brandContext.businessName || "our studio"}. ✨ #${brandContext.industry || "beauty"}`; }
+  if (!response.ok) {
+    await response.text();
+    return `Discover the difference at ${brandContext.businessName || "our studio"}. ✨ #${brandContext.industry || "beauty"}`;
+  }
   const data = await response.json();
   return data.choices?.[0]?.message?.content?.trim() || `Content for ${platform}`;
 }
