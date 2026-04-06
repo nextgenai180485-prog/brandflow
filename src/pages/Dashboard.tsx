@@ -33,6 +33,8 @@ const Dashboard = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [campaigns, setCampaigns] = useState<CampaignWithAssets[]>([]);
   const [loading, setLoading] = useState(true);
+  const [strategy, setStrategy] = useState<any>(null);
+  const [strategyOpen, setStrategyOpen] = useState(false);
 
   // Process C: The "Intrigue" Notification on first arrival from onboarding
   useEffect(() => {
