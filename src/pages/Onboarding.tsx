@@ -103,8 +103,39 @@ const Onboarding = () => {
       toast.error("Please enter your business name.");
       return;
     }
+    // Trigger silent brand research when leaving Step 1 (Business) with a website URL
+    if (step === 0 && business.website_url.trim()) {
+      triggerSilentResearch();
+    }
     await saveProgress(step + 1);
     setStep(step + 1);
+  };
+
+  const triggerSilentResearch = async () => {
+    try {
+      console.log("[Onboarding] Triggering silent brand research for:", business.website_url);
+      supabase.functions.invoke("auto-brand-research", {
+        body: {
+          websiteUrl: business.website_url.trim(),
+          businessName: business.business_name.trim(),
+          industry: business.industry,
+          targetAudience: business.target_audience,
+          brandVoice: tone || "professional",
+        },
+      }).then(({ data, error }) => {
+        if (error) {
+          console.error("[Onboarding] Silent research failed:", error);
+          return;
+        }
+        console.log("[Onboarding] Silent research complete:", data?.brandProfile?.summary);
+        // Auto-populate detected voice if user hasn't set one
+        if (data?.brandProfile?.brand_voice_detected && !tone) {
+          setTone(data.brandProfile.brand_voice_detected);
+        }
+      });
+    } catch (e) {
+      console.error("[Onboarding] Silent research trigger error:", e);
+    }
   };
 
   const handleBack = () => setStep(step - 1);
