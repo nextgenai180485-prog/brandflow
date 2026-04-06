@@ -1,31 +1,58 @@
+## Phase 10 — Real AI Provider Integration
 
-# Master-Detail Review Canvas — Phased Plan
+**MVP Alignment:** This is Phase 4 of the MVP roadmap ("First Generated Batch") — the critical "wow" moment.
 
-## Phase 1: Grid Workspace Refinement
-- Fix precision spacing: 64px header, 24px gap to title, 16px to filters, 8px grid alignment
-- Tighten the generation grid to true 4-6 column density with `aspect-ratio` CSS for mixed formats (9:16, 4:5, 1:1, 16:9) in the same row
-- Carousel cards show a "stack" visual (layered shadow effect) with slide count badge
+**Engines/Modules being built (MVP versions):**
+- Module #25 (Research & Competitor Intelligence) — MVP: Exa search → brief
+- Module #26 (Decision Engine) — MVP: Simple scoring from research
+- Module #9 (Provider & Tier Routing) — MVP: Primary provider selection with 1 fallback
+- Module #17 (Post-Production) — Deferred to later phase
 
-## Phase 2: Inspector Side Panel (The Detail View)
-- Click any asset card → Shadcn `Sheet` slides in from the right (400px wide)
-- Shows: full-size preview at native aspect ratio, caption text, platform badge, format dimensions
-- Action buttons: **Accept**, **Reject**, **Regenerate** — all inline in the panel
-- Carousel assets get a slide navigator (prev/next) inside the panel
-- Selected card gets a 2px brand-color border highlight in the grid
+---
 
-## Phase 3: Inline Quick-Schedule
-- Add a "Schedule" button inside the Inspector panel
-- Clicking it reveals an inline mini-calendar + time picker + platform selector (no separate modal)
-- On confirm → asset/campaign gets a "Scheduled" badge with date overlay on the card
-- Removes the need for the separate ScheduleModal popup
+### Step 1: Database Migration
+Add tables for research and cost tracking:
+- `campaign_research` — stores Exa research results per campaign
+- Add `provider`, `generation_cost`, `generation_time_ms` columns to `generated_assets`
 
-## Phase 4: Carousel Auto-Preview
-- Carousel cards auto-cycle slides on hover (1.5s per slide)
-- Caption truncated to 2 lines on the card, full caption in the Inspector
-- Slide indicator dots on the card thumbnail
+### Step 2: Add API Secrets
+Request all 5 provider keys:
+- `KIE_AI_API_KEY` (Veo3 video, GPT-4o image, Suno audio)
+- `FAL_AI_API_KEY` (Kling, LatentSync, Whisper)
+- `ELEVENLABS_API_KEY` (TTS, voice)
+- `EXA_API_KEY` (research/search)
+- `REPLICATE_API_KEY` (SDXL fallback)
 
-## Phase 5: Polish & Mobile Adaptation
-- On mobile (<768px): Inspector becomes a bottom sheet (full-width drawer)
-- Grid collapses to 2 columns with touch-friendly tap targets
-- Swipe gestures on carousel previews
-- Keyboard shortcuts: Arrow keys to navigate grid, Enter to accept, Backspace to reject
+### Step 3: Edge Function — `research`
+- Accepts campaign context (industry, brand voice, target audience)
+- Calls Exa API for market trends + competitor patterns
+- Returns structured `intelligence_brief` JSON
+- Saves to `campaign_research` table
+
+### Step 4: Edge Function — `generate-content`
+- Accepts campaign ID, asset type, platform, format
+- Loads research brief from DB
+- Routes to provider based on asset type:
+  - **Image:** Kie AI (GPT-4o Image) → FAL AI fallback → Replicate fallback
+  - **Video:** Kie AI (Veo3) → FAL AI (Kling) fallback
+  - **Audio/Voice:** ElevenLabs → Kie AI (Suno) for music
+  - **Copy:** Lovable AI (gemini-3-flash) — already available
+- Generates caption via Lovable AI alongside media
+- Uploads to Supabase Storage
+- Saves asset record with provider, cost, time tracking
+
+### Step 5: Update GenerateButton
+- Replace stub logic with edge function calls
+- Flow: Research → Generate all assets → Save → Update status
+- Show progress indicator per asset type
+
+### Step 6: Cost Summary UI
+- Display provider used + cost per asset in Campaign Details
+- Simple cost summary card
+
+### What's NOT in this phase:
+- Full tier routing (draft/production) — single tier for now
+- Post-production pipeline (subtitles, watermarks, enhancement)
+- Campaign Multiplication workflow
+- Social Publishing Engine (Meta/TikTok API)
+- Advanced Decision Engine scoring

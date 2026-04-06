@@ -41,6 +41,50 @@ export type Database = {
         }
         Relationships: []
       }
+      campaign_research: {
+        Row: {
+          campaign_id: string
+          created_at: string
+          id: string
+          intelligence_brief: Json | null
+          profile_id: string
+          provider: string
+          query: string
+          research_type: string
+          results: Json | null
+        }
+        Insert: {
+          campaign_id: string
+          created_at?: string
+          id?: string
+          intelligence_brief?: Json | null
+          profile_id: string
+          provider?: string
+          query: string
+          research_type?: string
+          results?: Json | null
+        }
+        Update: {
+          campaign_id?: string
+          created_at?: string
+          id?: string
+          intelligence_brief?: Json | null
+          profile_id?: string
+          provider?: string
+          query?: string
+          research_type?: string
+          results?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_research_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       campaigns: {
         Row: {
           created_at: string
@@ -93,9 +137,14 @@ export type Database = {
           content_url: string | null
           created_at: string
           format: string | null
+          generation_cost: number | null
+          generation_time_ms: number | null
           id: string
           platform: string | null
           profile_id: string
+          provider: string | null
+          rationale: string | null
+          research_id: string | null
           status: string
           updated_at: string
         }
@@ -106,9 +155,14 @@ export type Database = {
           content_url?: string | null
           created_at?: string
           format?: string | null
+          generation_cost?: number | null
+          generation_time_ms?: number | null
           id?: string
           platform?: string | null
           profile_id: string
+          provider?: string | null
+          rationale?: string | null
+          research_id?: string | null
           status?: string
           updated_at?: string
         }
@@ -119,9 +173,14 @@ export type Database = {
           content_url?: string | null
           created_at?: string
           format?: string | null
+          generation_cost?: number | null
+          generation_time_ms?: number | null
           id?: string
           platform?: string | null
           profile_id?: string
+          provider?: string | null
+          rationale?: string | null
+          research_id?: string | null
           status?: string
           updated_at?: string
         }
@@ -138,6 +197,13 @@ export type Database = {
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "generated_assets_research_id_fkey"
+            columns: ["research_id"]
+            isOneToOne: false
+            referencedRelation: "campaign_research"
             referencedColumns: ["id"]
           },
         ]
