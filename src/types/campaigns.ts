@@ -4,6 +4,7 @@ export type AssetStatus = 'pending_review' | 'approved' | 'rejected' | 'regenera
 
 export type SocialPlatform = 'instagram' | 'tiktok' | 'facebook' | 'youtube' | 'linkedin' | 'x' | 'snapchat';
 export type SocialFormat = 'post' | 'story' | 'reel' | 'carousel';
+export type ContentType = 'image' | 'ugc_video' | 'pro_video';
 
 export interface SocialMeta {
   platform: SocialPlatform;
@@ -45,6 +46,17 @@ export interface GeneratedAsset {
   research_id?: string | null;
 }
 
+export interface BrandProfile {
+  summary: string;
+  brand_voice_detected: string;
+  visual_style: string;
+  target_audience_detected: string;
+  competitors: { name: string; strength?: string }[];
+  key_themes: string[];
+  color_palette_suggestion?: { primary: string; secondary: string; accent: string } | null;
+  content_pillars?: string[];
+}
+
 // Complete social format matrix with native dimensions
 export const SOCIAL_FORMATS: SocialMeta[] = [
   // Instagram
@@ -76,4 +88,10 @@ export const PLATFORM_LABELS: Record<SocialPlatform, string> = {
   linkedin: 'LinkedIn',
   x: 'X',
   snapchat: 'Snapchat',
+};
+
+export const CONTENT_TYPE_LABELS: Record<ContentType, { label: string; description: string }> = {
+  image: { label: 'Image', description: 'High-fidelity static visuals' },
+  ugc_video: { label: 'UGC Video', description: 'Authentic, raw-style video content' },
+  pro_video: { label: 'Pro Video', description: 'Polished, high-production video' },
 };
