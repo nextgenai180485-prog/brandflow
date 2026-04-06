@@ -99,6 +99,14 @@ const Dashboard = () => {
 
   useEffect(() => { fetchCampaigns(); }, [fetchCampaigns]);
 
+  // Poll for generating campaigns
+  useEffect(() => {
+    const hasGenerating = campaigns.some((c) => c.status === "generating");
+    if (!hasGenerating) return;
+    const interval = setInterval(fetchCampaigns, 4000);
+    return () => clearInterval(interval);
+  }, [campaigns, fetchCampaigns]);
+
   const getTypeIcon = (type: string) => {
     switch (type) {
       case "video": return <Video className="w-3 h-3" />;

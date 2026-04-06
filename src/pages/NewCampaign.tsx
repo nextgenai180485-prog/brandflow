@@ -72,7 +72,8 @@ const NewCampaign = () => {
     const publishPlatforms = platforms.map((p) => `${p.platform}|${p.format}`);
     const ctEntries = contentTypes.map((ct) => `ct:${ct}`);
 
-    const { error } = await supabase
+    // 1. Create campaign
+    const { data: campaign, error } = await supabase
       .from("campaigns")
       .insert({
         profile_id: user.id,
@@ -80,11 +81,88 @@ const NewCampaign = () => {
         instructions: instructions.trim() || null,
         status: "draft",
         publish_platforms: [...publishPlatforms, ...ctEntries],
-      });
+      })
+      .select()
+      .single();
 
-    if (error) { toast.error("Failed to create campaign."); setCreating(false); return; }
+    if (error || !campaign) { toast.error("Failed to create campaign."); setCreating(false); return; }
 
-    toast.success("Campaign created");
+    // 2. Persist campaign_assets references
+    if (selectedAssets.length > 0) {
+      const assetRefs = selectedAssets.map((a, i) => ({
+        campaign_id: campaign.id,
+        brand_asset_id: a.id,
+        profile_id: user.id,
+        asset_role: "reference",
+        sort_order: i,
+      }));
+      await supabase.from("campaign_assets" as any).insert(assetRefs);
+    }
+
+    // 3. Build generation matrix: platforms × content types
+    const SOCIAL_FORMAT_MAP: Record<string, { width: number; height: number; aspectRatio: string }> = {
+      "instagram|post": { width: 1080, height: 1350, aspectRatio: "4:5" },
+      "instagram|story": { width: 1080, height: 1920, aspectRatio: "9:16" },
+      "instagram|reel": { width: 1080, height: 1920, aspectRatio: "9:16" },
+      "instagram|carousel": { width: 1080, height: 1080, aspectRatio: "1:1" },
+      "tiktok|reel": { width: 1080, height: 1920, aspectRatio: "9:16" },
+      "facebook|post": { width: 1200, height: 1200, aspectRatio: "1:1" },
+      "facebook|story": { width: 1080, height: 1920, aspectRatio: "9:16" },
+      "linkedin|post": { width: 1200, height: 1200, aspectRatio: "1:1" },
+      "linkedin|carousel": { width: 1080, height: 1350, aspectRatio: "4:5" },
+      "x|post": { width: 1200, height: 675, aspectRatio: "16:9" },
+      "snapchat|story": { width: 1080, height: 1920, aspectRatio: "9:16" },
+      "youtube|post": { width: 1280, height: 720, aspectRatio: "16:9" },
+    };
+
+    const assetTypeMap: Record<string, string> = {
+      image: "image",
+      ugc_video: "video",
+      pro_video: "video",
+    };
+
+    const generationAssets = platforms.flatMap((p) =>
+      contentTypes.map((ct) => {
+        const key = `${p.platform}|${p.format}`;
+        const dims = SOCIAL_FORMAT_MAP[key] || { width: 1080, height: 1080, aspectRatio: "1:1" };
+        return {
+          platform: p.platform,
+          format: p.format,
+          assetType: assetTypeMap[ct] || "image",
+          contentType: ct,
+          ...dims,
+        };
+      })
+    );
+
+    // 4. Build brand context from profile + brand memory
+    const brandContext = {
+      businessName: brandProfile?.summary?.split(".")[0] || title,
+      industry: "general",
+      brandVoice: brandProfile?.brand_voice_detected || "professional",
+      targetAudience: brandProfile?.target_audience_detected || "general audience",
+    };
+
+    // 5. Trigger generation pipeline
+    toast.success("Campaign created — generation starting…");
+
+    supabase.functions.invoke("generate-content", {
+      body: {
+        campaignId: campaign.id,
+        assets: generationAssets,
+        brandContext,
+        intelligenceBrief: brandProfile ? {
+          summary: brandProfile.summary,
+          competitors: brandProfile.competitors,
+          hooks: brandProfile.content_pillars || [],
+          content_angles: brandProfile.key_themes || [],
+          visual_direction: brandProfile.visual_style,
+        } : null,
+      },
+    }).then(({ error: genError }) => {
+      if (genError) console.error("[Generation] Trigger error:", genError);
+    });
+
     navigate("/dashboard");
   };
 

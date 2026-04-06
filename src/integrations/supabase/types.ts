@@ -137,6 +137,51 @@ export type Database = {
         }
         Relationships: []
       }
+      campaign_assets: {
+        Row: {
+          asset_role: string
+          brand_asset_id: string
+          campaign_id: string
+          created_at: string
+          id: string
+          profile_id: string
+          sort_order: number
+        }
+        Insert: {
+          asset_role?: string
+          brand_asset_id: string
+          campaign_id: string
+          created_at?: string
+          id?: string
+          profile_id: string
+          sort_order?: number
+        }
+        Update: {
+          asset_role?: string
+          brand_asset_id?: string
+          campaign_id?: string
+          created_at?: string
+          id?: string
+          profile_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_assets_brand_asset_id_fkey"
+            columns: ["brand_asset_id"]
+            isOneToOne: false
+            referencedRelation: "brand_assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_assets_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       campaign_research: {
         Row: {
           campaign_id: string
