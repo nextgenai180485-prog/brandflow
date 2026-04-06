@@ -14,6 +14,7 @@ import CampaignReview from "./pages/CampaignReview";
 import CalendarView from "./pages/CalendarView";
 import Onboarding from "./pages/Onboarding";
 import StrategyCommandCenter from "./pages/StrategyCommandCenter";
+import VisualDirector from "./pages/VisualDirector";
 import NotFound from "./pages/NotFound";
 import GlobalCMOChat from "./components/GlobalCMOChat";
 
@@ -62,6 +63,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <StrategyCommandCenter />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/visual-director"
+              element={
+                <ProtectedRoute>
+                  <VisualDirector />
                 </ProtectedRoute>
               }
             />
