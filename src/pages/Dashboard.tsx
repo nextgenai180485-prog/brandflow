@@ -1,7 +1,8 @@
 import { useEffect, useState, useCallback } from "react";
 import { Plus, LayoutGrid, Clock, ImageIcon, Video, FileText, Layers } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { format } from "date-fns";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import AppShell from "@/components/AppShell";

@@ -173,9 +173,27 @@ const Onboarding = () => {
       onboarding_step: 4,
     } as any).eq("id", user.id);
 
+    // Fire silent research in background (Process B)
+    if (business.website_url.trim()) {
+      console.log("[Onboarding] Firing post-launch silent research");
+      supabase.functions.invoke("auto-brand-research", {
+        body: {
+          websiteUrl: business.website_url.trim(),
+          businessName: business.business_name.trim(),
+          industry: business.industry,
+          targetAudience: business.target_audience,
+          brandVoice: tone || "professional",
+        },
+      }).then(({ data, error }) => {
+        if (error) console.error("[Onboarding] Post-launch research failed:", error);
+        else console.log("[Onboarding] Post-launch research complete");
+      });
+    }
+
     toast.success("Welcome to Brandflow! 🚀");
     setSaving(false);
-    navigate("/dashboard");
+    // Route immediately — no loading screen (Process A)
+    navigate("/dashboard?welcome=1");
   };
 
   if (loading) {
