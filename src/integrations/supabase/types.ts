@@ -14,6 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      asset_memory: {
+        Row: {
+          asset_id: string | null
+          confidence: number
+          created_at: string
+          frequency: number
+          id: string
+          memory_type: string
+          pattern_key: string
+          pattern_value: string
+          profile_id: string
+          updated_at: string
+        }
+        Insert: {
+          asset_id?: string | null
+          confidence?: number
+          created_at?: string
+          frequency?: number
+          id?: string
+          memory_type?: string
+          pattern_key: string
+          pattern_value: string
+          profile_id: string
+          updated_at?: string
+        }
+        Update: {
+          asset_id?: string | null
+          confidence?: number
+          created_at?: string
+          frequency?: number
+          id?: string
+          memory_type?: string
+          pattern_key?: string
+          pattern_value?: string
+          profile_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       brand_assets: {
         Row: {
           asset_type: string
@@ -294,6 +333,48 @@ export type Database = {
         }
         Relationships: []
       }
+      creative_history: {
+        Row: {
+          campaign_id: string
+          created_at: string
+          direction_output: Json
+          family: string
+          generation_params: Json
+          id: string
+          profile_id: string
+          result_status: string
+          sealcam_scenes: Json
+          updated_at: string
+          user_feedback: string | null
+        }
+        Insert: {
+          campaign_id: string
+          created_at?: string
+          direction_output?: Json
+          family: string
+          generation_params?: Json
+          id?: string
+          profile_id: string
+          result_status?: string
+          sealcam_scenes?: Json
+          updated_at?: string
+          user_feedback?: string | null
+        }
+        Update: {
+          campaign_id?: string
+          created_at?: string
+          direction_output?: Json
+          family?: string
+          generation_params?: Json
+          id?: string
+          profile_id?: string
+          result_status?: string
+          sealcam_scenes?: Json
+          updated_at?: string
+          user_feedback?: string | null
+        }
+        Relationships: []
+      }
       decision_traces: {
         Row: {
           asset_id: string | null
@@ -430,6 +511,42 @@ export type Database = {
           },
         ]
       }
+      hooks: {
+        Row: {
+          created_at: string
+          effectiveness_score: number
+          family: string | null
+          hook_text: string
+          hook_type: string
+          id: string
+          platform: string | null
+          updated_at: string
+          usage_count: number
+        }
+        Insert: {
+          created_at?: string
+          effectiveness_score?: number
+          family?: string | null
+          hook_text: string
+          hook_type?: string
+          id?: string
+          platform?: string | null
+          updated_at?: string
+          usage_count?: number
+        }
+        Update: {
+          created_at?: string
+          effectiveness_score?: number
+          family?: string | null
+          hook_text?: string
+          hook_type?: string
+          id?: string
+          platform?: string | null
+          updated_at?: string
+          usage_count?: number
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           brand_colors: Json | null
@@ -481,6 +598,57 @@ export type Database = {
           target_audience?: string | null
           updated_at?: string
           website_url?: string | null
+        }
+        Relationships: []
+      }
+      video_templates: {
+        Row: {
+          aspect_ratio: string
+          created_at: string
+          duration_s: number
+          example_url: string | null
+          family: string
+          hook_type: string | null
+          id: string
+          is_active: boolean
+          mood: string | null
+          sealcam_analysis: Json
+          tags: string[] | null
+          template_name: string
+          updated_at: string
+          usage_count: number
+        }
+        Insert: {
+          aspect_ratio?: string
+          created_at?: string
+          duration_s?: number
+          example_url?: string | null
+          family: string
+          hook_type?: string | null
+          id?: string
+          is_active?: boolean
+          mood?: string | null
+          sealcam_analysis?: Json
+          tags?: string[] | null
+          template_name: string
+          updated_at?: string
+          usage_count?: number
+        }
+        Update: {
+          aspect_ratio?: string
+          created_at?: string
+          duration_s?: number
+          example_url?: string | null
+          family?: string
+          hook_type?: string | null
+          id?: string
+          is_active?: boolean
+          mood?: string | null
+          sealcam_analysis?: Json
+          tags?: string[] | null
+          template_name?: string
+          updated_at?: string
+          usage_count?: number
         }
         Relationships: []
       }
