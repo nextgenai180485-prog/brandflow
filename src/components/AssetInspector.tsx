@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { format } from "date-fns";
 import type { IntelligenceBrief } from "@/components/ResearchPreviewPanel";
-import { Check, X, RefreshCw, Pencil, CalendarIcon, Send, ChevronLeft, ChevronRight, Play, Pause, Volume2, VolumeX } from "lucide-react";
+import { Check, X, RefreshCw, Pencil, CalendarIcon, Send, ChevronLeft, ChevronRight, Play, Pause, Volume2, VolumeX, Star, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
