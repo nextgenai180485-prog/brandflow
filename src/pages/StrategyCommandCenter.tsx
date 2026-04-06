@@ -76,27 +76,62 @@ const StrategyCommandCenter = () => {
   useEffect(() => {
     if (!user) return;
     const load = async () => {
-      const { data: memoryData } = await supabase
+      // Try brand_memory first
+      const { data: memoryRows } = await supabase
         .from("brand_memory")
         .select("context")
         .eq("profile_id", user.id)
         .eq("memory_type", "brand_profile")
         .eq("pattern_category", "auto_research")
-        .limit(1)
-        .single();
+        .limit(1);
+
+      const memoryData = memoryRows?.[0];
 
       if (memoryData?.context) {
         setBrandProfile(memoryData.context as unknown as BrandProfile);
         setMode("OPTIMIZATION");
-      } else {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("website_url")
-          .eq("id", user.id)
-          .single();
-
-        setMode(profile?.website_url?.trim() ? "OPTIMIZATION" : "GENESIS");
+        setLoading(false);
+        return;
       }
+
+      // Fallback: build profile from campaign_research intelligence_brief
+      const { data: researchRows } = await supabase
+        .from("campaign_research")
+        .select("intelligence_brief, results")
+        .eq("profile_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(1);
+
+      const research = researchRows?.[0];
+      if (research?.intelligence_brief) {
+        const brief = research.intelligence_brief as any;
+        const branding = (research.results as any)?.firecrawl_branding;
+        const syntheticProfile: BrandProfile = {
+          summary: brief.summary || "Brand analyzed from research data.",
+          brand_voice_detected: branding?.personality?.tone || "professional",
+          visual_style: branding?.colorScheme || "modern",
+          color_palette_suggestion: branding?.colors
+            ? { primary: branding.colors.primary, secondary: branding.colors.secondary, accent: branding.colors.accent }
+            : undefined,
+          target_audience_detected: brief.market_gap || "",
+          competitors: brief.competitors || [],
+          key_themes: brief.hooks || [],
+          content_pillars: brief.avoid || [],
+        };
+        setBrandProfile(syntheticProfile);
+        setMode("OPTIMIZATION");
+        setLoading(false);
+        return;
+      }
+
+      // No data at all — check for website URL
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("website_url")
+        .eq("id", user.id)
+        .single();
+
+      setMode(profile?.website_url?.trim() ? "OPTIMIZATION" : "GENESIS");
       setLoading(false);
     };
     load();
