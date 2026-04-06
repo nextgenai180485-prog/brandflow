@@ -21,7 +21,6 @@ interface Props {
   onAssetsChange: (assets: { url: string; name: string; type: string }[]) => void;
 }
 
-
 const BrandIdentity = ({ colors, onColorsChange, uploadedAssets, onAssetsChange }: Props) => {
   const { user } = useAuth();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -61,8 +60,15 @@ const BrandIdentity = ({ colors, onColorsChange, uploadedAssets, onAssetsChange 
   return (
     <div className="space-y-8">
       <div>
-        <h2 className="text-2xl font-semibold text-foreground mb-1">Define your brand look</h2>
-        <p className="text-muted-foreground text-sm">Choose colors and upload your logo or style references.</p>
+        <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-3">
+          Visual System
+        </p>
+        <h2 className="text-2xl font-bold text-foreground tracking-tight mb-1">
+          Lock in your brand's visual identity
+        </h2>
+        <p className="text-sm text-muted-foreground">
+          These colors will govern every asset your CSO generates. No guessing, no off-brand content.
+        </p>
       </div>
 
       {/* Color Palette */}
@@ -100,12 +106,11 @@ const BrandIdentity = ({ colors, onColorsChange, uploadedAssets, onAssetsChange 
           <BrandPalettePreview seedHex={colors.secondary} label="secondary" />
           <BrandPalettePreview seedHex={colors.accent} label="accent" />
         </div>
-
       </div>
 
       {/* Asset Upload */}
       <div className="space-y-4">
-        <Label>Logo & Style References <span className="text-muted-foreground font-normal">(up to 4)</span></Label>
+        <Label>Logo & Style References <span className="text-muted-foreground font-normal text-[10px]">— up to 4, guides AI generation</span></Label>
 
         {uploadedAssets.length > 0 && (
           <div className="grid grid-cols-2 gap-3">

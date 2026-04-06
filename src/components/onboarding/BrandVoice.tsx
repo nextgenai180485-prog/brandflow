@@ -15,11 +15,11 @@ interface Props {
 
 const toneOptions = [
   { value: "warm_professional", label: "Warm & Professional", emoji: "🤝", desc: "Approachable yet polished" },
-  { value: "bold_edgy", label: "Bold & Edgy", emoji: "⚡", desc: "Confident and attention-grabbing" },
+  { value: "bold_edgy", label: "Bold & Disruptive", emoji: "⚡", desc: "Confident and provocative" },
   { value: "luxurious_refined", label: "Luxurious & Refined", emoji: "✨", desc: "Elegant and premium" },
-  { value: "friendly_casual", label: "Friendly & Casual", emoji: "😊", desc: "Relatable and easygoing" },
-  { value: "clinical_trustworthy", label: "Clinical & Trustworthy", emoji: "🩺", desc: "Expert and authoritative" },
-  { value: "playful_fun", label: "Playful & Fun", emoji: "🎉", desc: "Energetic and lighthearted" },
+  { value: "friendly_casual", label: "Friendly & Casual", emoji: "😊", desc: "Relatable and human" },
+  { value: "clinical_trustworthy", label: "Authoritative & Expert", emoji: "🎯", desc: "Data-driven credibility" },
+  { value: "playful_fun", label: "Playful & Energetic", emoji: "🎉", desc: "Vibrant and lighthearted" },
 ];
 
 const BrandVoice = ({ tone, keywords, sampleText, onToneChange, onKeywordsChange, onSampleTextChange }: Props) => {
@@ -40,8 +40,15 @@ const BrandVoice = ({ tone, keywords, sampleText, onToneChange, onKeywordsChange
   return (
     <div className="space-y-8">
       <div>
-        <h2 className="text-2xl font-semibold text-foreground mb-1">Set your brand voice</h2>
-        <p className="text-muted-foreground text-sm">How should your content sound?</p>
+        <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-3">
+          Voice Calibration
+        </p>
+        <h2 className="text-2xl font-bold text-foreground tracking-tight mb-1">
+          How should your brand sound?
+        </h2>
+        <p className="text-sm text-muted-foreground">
+          This controls the tone of every caption, script, and headline your CSO generates.
+        </p>
       </div>
 
       {/* Tone Selector */}
@@ -68,7 +75,7 @@ const BrandVoice = ({ tone, keywords, sampleText, onToneChange, onKeywordsChange
 
       {/* Keywords */}
       <div className="space-y-3">
-        <Label>Brand Keywords <span className="text-muted-foreground font-normal">(up to 10)</span></Label>
+        <Label>Brand Keywords <span className="text-muted-foreground font-normal text-[10px]">— words your brand owns</span></Label>
         {keywords.length > 0 && (
           <div className="flex flex-wrap gap-2">
             {keywords.map((kw, i) => (
@@ -89,7 +96,7 @@ const BrandVoice = ({ tone, keywords, sampleText, onToneChange, onKeywordsChange
             value={keywordInput}
             onChange={(e) => setKeywordInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addKeyword())}
-            placeholder="e.g. rejuvenation, confidence, glow"
+            placeholder="e.g. innovation, heritage, disruption, luxury"
             disabled={keywords.length >= 10}
           />
         </div>
@@ -98,13 +105,13 @@ const BrandVoice = ({ tone, keywords, sampleText, onToneChange, onKeywordsChange
       {/* Sample text */}
       <div className="space-y-2">
         <Label htmlFor="sample_text">
-          Example Caption or Bio <span className="text-muted-foreground font-normal">(optional)</span>
+          Example Caption or Bio <span className="text-muted-foreground font-normal text-[10px]">— optional, helps calibrate voice</span>
         </Label>
         <Textarea
           id="sample_text"
           value={sampleText}
           onChange={(e) => onSampleTextChange(e.target.value)}
-          placeholder="Paste a caption or bio that represents your brand voice…"
+          placeholder="Paste a caption, tagline, or bio that represents your brand voice…"
           rows={3}
         />
       </div>
