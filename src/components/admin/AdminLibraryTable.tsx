@@ -10,6 +10,7 @@ import { Plus, Trash2, Edit2, Upload, Search, RefreshCw } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useIsMobile } from "@/hooks/use-mobile";
 import AdminLibraryForm from "./AdminLibraryForm";
+import BulkImportModal from "./BulkImportModal";
 
 type TableName = "video_templates" | "character_library" | "ad_reference_library" | "image_templates" | "hooks";
 
