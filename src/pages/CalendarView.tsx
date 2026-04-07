@@ -19,6 +19,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import type { Campaign, GeneratedAsset } from "@/types/campaigns";
+import PublishModal from "@/components/PublishModal";
 
 type ViewMode = "week" | "month";
 type QueueFilter = "all" | "scheduled" | "approved" | "pending_review" | "published";
