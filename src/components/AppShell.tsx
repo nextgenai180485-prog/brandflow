@@ -52,7 +52,9 @@ const AppShell = ({ children }: { children: React.ReactNode }) => {
                   key={item.path}
                   onClick={() => navigate(item.path)}
                   className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
-                    location.pathname === item.path || (item.path === "/dashboard" && location.pathname.startsWith("/dashboard"))
+                    (item.path === "/dashboard"
+                      ? location.pathname === "/dashboard"
+                      : location.pathname.startsWith(item.path))
                       ? "bg-accent text-foreground"
                       : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
                   }`}
