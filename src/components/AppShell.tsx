@@ -8,7 +8,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { LogOut, ChevronDown, Share2 } from "lucide-react";
+import { LogOut, ChevronDown } from "lucide-react";
+import SentientCMORail from "@/components/SentientCMORail";
 
 const baseNavItems = [
   { label: "Campaigns", path: "/dashboard" },
@@ -39,11 +40,9 @@ const AppShell = ({ children }: { children: React.ReactNode }) => {
     navigate("/login");
   };
 
-  // CSO is now triggered from the left-edge dock in GlobalCMOChat
-
   return (
     <div className="flex h-screen bg-background overflow-hidden">
-      {/* Left + Center column */}
+      {/* Left + Center column (canvas) */}
       <div className="flex-1 flex flex-col min-w-0 transition-all duration-500 ease-[cubic-bezier(0.2,0,0,1)]">
         <header className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-sm shrink-0">
           <div className="mx-auto flex h-12 items-center justify-between px-4 sm:px-6">
@@ -99,6 +98,9 @@ const AppShell = ({ children }: { children: React.ReactNode }) => {
 
         <main className="flex-1 overflow-y-auto">{children}</main>
       </div>
+
+      {/* Right: CMO Sentient Rail (flex child — squeezes canvas, no blur) */}
+      <SentientCMORail />
     </div>
   );
 };
