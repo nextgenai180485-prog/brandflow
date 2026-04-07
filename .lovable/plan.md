@@ -1,31 +1,39 @@
 
+# Enterprise Admin Buildout — 5 Phases
 
-# Security Hardening Plan
+## Phase 1: Admin Role Gating (Security)
+- Create `user_roles` table with `app_role` enum (`admin`, `moderator`, `user`)
+- Create `has_role()` security definer function
+- Add RLS policies on `user_roles` table
+- Create `AdminRoute` wrapper component that checks role before rendering
+- Gate `/dashboard/admin/libraries` behind admin role
+- Add "Admin" nav item visible only to admin users
 
-## Summary
-The core chat and campaign flows are already auth-gated and safe. This plan addresses 4 security findings from the scan to bring the system to enterprise-grade.
+## Phase 2: File Upload in Admin Panel
+- Build `FileUploadZone` component with drag-and-drop support
+- Upload files to `library-assets` Supabase bucket
+- Integrate into `AdminLibraryForm` — clicking the URL field opens the uploader
+- Auto-populate `avatar_url`, `thumbnail_url`, `media_url` fields with the uploaded file URL
+- Show inline image preview after upload
 
-## Changes
+## Phase 3: Hooks Library UI
+- Add "Hooks" as 5th tab in `/dashboard/admin/libraries`
+- Build CRUD form for hooks: `hook_text`, `hook_type`, `family`, `platform`, `effectiveness_score`
+- Update `admin-library` edge function to include `hooks` in `ALLOWED_TABLES`
+- Add hooks to the user-facing `/dashboard/libraries` gallery as a browsable tab
 
-### 1. Remove dead `blotato_api_key` column from profiles
-Migration to drop the column — it's a leftover from Model B and shouldn't store API keys in user-accessible rows.
+## Phase 4: Bulk CSV/JSON Import
+- Build `BulkImportModal` component with file drop zone (accepts .csv and .json)
+- Parse and validate rows against the target table's schema
+- Show preview table of parsed rows with error highlighting
+- Submit valid rows via the `admin-library` edge function in batches
+- Display import summary (success/fail counts)
 
-### 2. Lock down media storage buckets
-Add INSERT/UPDATE/DELETE policies to `brandflow-pv-frames`, `brandflow-pv-videos`, `brandflow-asv-voice`, `brandflow-asv-videos` scoped to `service_role` only (Edge Functions upload, users read).
+## Phase 5: Admin Overview Dashboard
+- Create `/dashboard/admin` landing page with stats cards
+- Show per-library counts: total items, active vs inactive, total usage
+- Show recent activity: last 10 items added/modified across all libraries
+- Add a quick-action row: "Add Template", "Import CSV", "View Library"
 
-### 3. Restrict campaign_assets SELECT to authenticated users
-Replace the anonymous public SELECT policy with one requiring `auth.uid() IS NOT NULL` — assets are still readable by any logged-in user (needed for shared campaigns) but not by anonymous visitors.
-
-### 4. Enable leaked password protection
-Turn on Supabase Auth's leaked password protection via project settings (requires manual toggle in Supabase Dashboard > Authentication > Settings).
-
-### 5. Tighten RLS role scoping
-Several policies apply to `{public}` role instead of `{authenticated}`. While `auth.uid() = profile_id` already blocks anonymous access (since `auth.uid()` returns null for anon), switching to `{authenticated}` is defense-in-depth best practice. Tables affected: campaigns, generated_assets, brand_assets, profiles, campaign_research, decision_traces, brand_memory, brand_strategy, campaign_assets, cmo_chat_messages.
-
-## Technical Detail
-
-All changes are SQL migrations. No UI changes needed. The `blotato_api_key` column removal also requires removing any TypeScript references to `profiles.blotato_api_key` in the frontend.
-
-## What the User Needs To Do
-- Go to Supabase Dashboard > Authentication > Settings and enable "Leaked Password Protection"
-
+## Execution Order
+Start with Phase 1 immediately (security-critical), then proceed sequentially.
