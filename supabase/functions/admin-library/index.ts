@@ -16,13 +16,13 @@ serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const authHeader = req.headers.get("Authorization");
 
-    // Verify the calling user is authenticated
-    const anonClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!);
     if (!authHeader) throw new Error("Unauthorized");
 
     const token = authHeader.replace("Bearer ", "");
+    const anonClient = createClient(supabaseUrl, anonKey);
     const { data: { user }, error: authError } = await anonClient.auth.getUser(token);
     if (authError || !user) throw new Error("Unauthorized");
 
@@ -33,6 +33,22 @@ serve(async (req) => {
 
     if (!ALLOWED_TABLES.includes(table)) {
       throw new Error(`Invalid table: ${table}`);
+    }
+
+    // Read-only actions (list) are allowed for any authenticated user
+    // Write actions require admin role
+    const WRITE_ACTIONS = ["create", "update", "toggle", "delete"];
+    if (WRITE_ACTIONS.includes(action)) {
+      const { data: roleData, error: roleError } = await adminClient
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .eq("role", "admin")
+        .maybeSingle();
+
+      if (roleError || !roleData) {
+        throw new Error("Forbidden: admin role required");
+      }
     }
 
     let result;
@@ -103,8 +119,9 @@ serve(async (req) => {
     });
   } catch (e: any) {
     console.error("admin-library error:", e);
+    const status = e.message === "Unauthorized" ? 401 : e.message?.startsWith("Forbidden") ? 403 : 400;
     return new Response(JSON.stringify({ error: e.message }), {
-      status: e.message === "Unauthorized" ? 401 : 400,
+      status,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
