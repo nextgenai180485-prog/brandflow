@@ -52,7 +52,7 @@ const UserLibraries = () => {
         </div>
 
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabValue)}>
-          <TabsList className="mb-5 w-full grid grid-cols-4 h-auto p-1">
+          <TabsList className="mb-5 w-full grid grid-cols-5 h-auto p-1">
             {TABS.map((tab) => (
               <TabsTrigger
                 key={tab.value}
