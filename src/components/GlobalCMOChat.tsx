@@ -65,15 +65,24 @@ const GlobalCMOChat = () => {
     load();
   }, [open, loaded, user]);
 
-  // Auto-scroll
+  // Auto-scroll — on open, on new messages, and during streaming
+  const scrollToBottom = useCallback((behavior: ScrollBehavior = "smooth") => {
+    setTimeout(() => {
+      scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior });
+    }, 50);
+  }, []);
+
   useEffect(() => {
-    if (scrollRef.current) {
-      const behavior = loaded ? "smooth" : "instant";
-      requestAnimationFrame(() => {
-        scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior });
-      });
+    if (open) {
+      scrollToBottom(loaded ? "smooth" : "instant");
     }
-  }, [messages, loaded, open]);
+  }, [open, scrollToBottom, loaded]);
+
+  useEffect(() => {
+    if (messages.length > 0) {
+      scrollToBottom("smooth");
+    }
+  }, [messages, scrollToBottom]);
 
   // Focus input when opened
   useEffect(() => {
