@@ -258,15 +258,15 @@ export default function CampaignSimulator({
   return (
     <div className={cn("flex gap-4 items-start", fullscreen && "gap-6", className)}>
       {/* ── Left: Phone Simulator ── */}
-      <div className="flex flex-col items-center gap-2">
-        {/* Preview mode tabs (like reference: Preview | Reels | Feed) */}
+      <div className="flex flex-col items-center gap-1.5">
+        {/* Preview mode tabs */}
         <div className="flex items-center gap-0 p-0.5 bg-secondary/60 rounded-lg border border-border">
           {(["preview", "reels", "feed"] as const).map((mode) => (
             <button
               key={mode}
               onClick={() => setPreviewMode(mode)}
               className={cn(
-                "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[10px] font-semibold transition-all capitalize",
+                "flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-semibold transition-all capitalize",
                 previewMode === mode
                   ? "bg-background text-foreground shadow-sm border border-border"
                   : "text-muted-foreground hover:text-foreground"
@@ -278,11 +278,6 @@ export default function CampaignSimulator({
               {mode.charAt(0).toUpperCase() + mode.slice(1)}
             </button>
           ))}
-          {/* Navigation arrows */}
-          <div className="flex items-center gap-0.5 ml-1 pl-1 border-l border-border">
-            <button className="w-6 h-6 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors text-[10px]">‹</button>
-            <button className="w-6 h-6 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors text-[10px]">›</button>
-          </div>
         </div>
 
         {/* iPhone 16 Pro Shell */}
@@ -349,38 +344,46 @@ export default function CampaignSimulator({
           </div>
         </div>
 
-        {/* Platform switcher */}
-        <div className="flex items-center gap-1 p-1 bg-secondary/50 rounded-xl border border-border">
-          {PLATFORMS.map((p) => (
+        {/* Compact info bar below phone */}
+        <div className="flex items-center gap-3">
+          {/* Platform indicator */}
+          <div className="flex items-center gap-1 px-2 py-0.5 bg-secondary/50 rounded-full border border-border">
+            <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+            <span className="text-[9px] font-semibold text-foreground capitalize">{platform}</span>
+          </div>
+
+          {/* Carousel dots */}
+          {imageUrl && (
+            <div className="flex items-center gap-0.5">
+              {[0, 1, 2, 3].map((i) => (
+                <div key={i} className={cn("w-1 h-1 rounded-full transition-colors", i === 0 ? "bg-foreground w-1.5" : "bg-muted-foreground/30")} />
+              ))}
+            </div>
+          )}
+
+          {/* Controls */}
+          <div className="flex items-center gap-1">
             <button
-              key={p.key}
-              onClick={() => setPlatform(p.key)}
+              onClick={() => setShowSafeZones(!showSafeZones)}
               className={cn(
-                "px-3 py-1.5 rounded-lg text-[10px] font-semibold transition-all",
-                platform === p.key
-                  ? "bg-foreground text-background shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
+                "flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-semibold transition-all border",
+                showSafeZones
+                  ? "bg-red-500/10 border-red-500/30 text-red-400"
+                  : "bg-secondary/50 border-border text-muted-foreground hover:text-foreground"
               )}
             >
-              {p.label}
+              {showSafeZones ? <EyeOff className="w-2.5 h-2.5" /> : <Eye className="w-2.5 h-2.5" />}
+              Safe
             </button>
-          ))}
-        </div>
-
-        {/* Carousel dots */}
-        {imageUrl && (
-          <div className="flex items-center gap-1">
-            {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => (
-              <div key={i} className={cn("w-1.5 h-1.5 rounded-full transition-colors", i === 5 ? "bg-foreground w-2.5" : "bg-muted-foreground/30")} />
-            ))}
-            <span className="text-[9px] text-muted-foreground ml-1.5">6 / 8</span>
+            <button
+              onClick={() => setFullscreen(!fullscreen)}
+              className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-semibold bg-secondary/50 border border-border text-muted-foreground hover:text-foreground transition-all"
+            >
+              {fullscreen ? <Minimize2 className="w-2.5 h-2.5" /> : <Maximize2 className="w-2.5 h-2.5" />}
+              {fullscreen ? "–" : "+"}
+            </button>
           </div>
-        )}
-
-        {/* Progress label */}
-        {imageUrl && (
-          <p className="text-[10px] text-muted-foreground">8 of 8 completed</p>
-        )}
+        </div>
       </div>
 
       {/* ── Right: Actions Panel ── */}
