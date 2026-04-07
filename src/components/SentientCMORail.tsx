@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { createPortal } from "react-dom";
 import {
   Activity, AlertTriangle, ChevronLeft, ChevronRight,
   X, Brain, TrendingUp, Zap, Shield, Target,
@@ -41,10 +42,8 @@ const SentientCMORail = () => {
   const lastKnownAssetIds = useRef<Set<string>>(new Set());
   const initialized = useRef(false);
 
-  // ── Real-time Intelligence Scanner ──
   const scanIntelligence = useCallback(async () => {
     if (!user) return;
-
     const newInsights: Insight[] = [];
 
     const { data: campaigns } = await supabase
@@ -212,217 +211,219 @@ const SentientCMORail = () => {
     setIsExpanded(false);
   }, [navigate]);
 
-  if (!user || isMobile || EXCLUDED_PATHS.includes(location.pathname)) return null;
+  // Hide on excluded pages, mobile, or not logged in
+  const shouldHide = !user || isMobile || EXCLUDED_PATHS.includes(location.pathname);
 
-  const pulseConfig = {
+  const pulseConfig = shouldHide ? null : {
     optimal: { color: "bg-emerald-500", shadow: "shadow-[0_0_12px_hsl(160,60%,45%,0.5)]", speed: "animate-[pulse_3s_ease-in-out_infinite]" },
     alert: { color: "bg-amber-500", shadow: "shadow-[0_0_12px_hsl(40,90%,50%,0.5)]", speed: "animate-[pulse_1.5s_ease-in-out_infinite]" },
     critical: { color: "bg-destructive", shadow: "shadow-[0_0_12px_hsl(0,72%,51%,0.5)]", speed: "animate-[pulse_0.7s_ease-in-out_infinite]" },
   }[systemStatus];
 
+  // Always render the aside for flex layout stability, but collapse to 0 width when hidden
+  const railWidth = shouldHide ? "0px" : isExpanded ? "380px" : "48px";
+
+  const toast_el = !shouldHide && !isExpanded && activeToast ? createPortal(
+    <div className="fixed right-14 top-20 z-[55] w-72 animate-fade-in">
+      <div className="bg-foreground text-background p-4 rounded-xl shadow-2xl border border-foreground/20 relative">
+        <div className="absolute top-4 -right-1.5 w-3 h-3 bg-foreground rotate-45 border-r border-t border-foreground/20" />
+        <div className="flex justify-between items-start mb-2">
+          <Badge
+            className={`text-[8px] ${
+              activeToast.type === "critical"
+                ? "bg-destructive text-destructive-foreground"
+                : "bg-amber-500 text-foreground"
+            }`}
+          >
+            {activeToast.type === "critical" ? "Action Required" : "New Activity"}
+          </Badge>
+          <button onClick={(e) => { e.stopPropagation(); dismissToast(); }}>
+            <X className="w-3 h-3 text-background/50 hover:text-background" />
+          </button>
+        </div>
+        <p className="text-xs font-semibold mb-1">{activeToast.title}</p>
+        <p className="text-[11px] text-background/70 leading-relaxed">{activeToast.body}</p>
+        <div className="mt-3 flex gap-2">
+          {activeToast.campaignId && (
+            <button
+              onClick={() => { handleInsightAction(activeToast); dismissToast(); }}
+              className="flex-1 py-1.5 bg-background text-foreground text-[10px] font-bold rounded-lg hover:bg-background/90 transition-colors"
+            >
+              {activeToast.action || "View"}
+            </button>
+          )}
+          <button
+            onClick={() => { setIsExpanded(true); dismissToast(); }}
+            className={`${activeToast.campaignId ? "" : "flex-1"} py-1.5 bg-background text-foreground text-[10px] font-bold rounded-lg hover:bg-background/90 transition-colors px-3`}
+          >
+            Open CMO
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  ) : null;
+
   return (
     <>
-      {/* ── The CMO Rail (flex child, squeezes canvas) ── */}
       <aside
-        className="shrink-0 border-l border-border bg-background flex h-full transition-[width] duration-500 ease-[cubic-bezier(0.2,0,0,1)] overflow-hidden"
-        style={{ width: isExpanded ? "380px" : "48px" }}
+        className="shrink-0 border-l border-border bg-background overflow-hidden transition-[width] duration-500 ease-[cubic-bezier(0.2,0,0,1)]"
+        style={{ width: railWidth }}
       >
-        {/* Inner wrapper keeps content at full width during animation */}
-        <div className="flex h-full" style={{ width: "380px" }}>
-          {/* Expanded Panel Content */}
-          <div className="flex-1 flex flex-col h-full overflow-hidden">
-            {/* Panel Header */}
-            <div className="h-12 border-b border-border flex items-center justify-between px-5 bg-secondary/30 shrink-0">
-              <div className="flex items-center gap-2">
-                <Brain className="w-4 h-4 text-primary" />
-                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.15em]">
-                  CMO Intelligence
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                {pendingReviewCount > 0 && (
-                  <Badge variant="secondary" className="text-[8px]">
-                    {pendingReviewCount} pending
-                  </Badge>
-                )}
-                <Badge variant="outline" className="text-[8px] border-emerald-300 text-emerald-700 bg-emerald-50">
-                  LIVE
-                </Badge>
-              </div>
-            </div>
-
-            {/* Panel Content */}
-            <div className="flex-1 overflow-y-auto p-5 space-y-4">
-              {insights.map((insight) => (
-                <div
-                  key={insight.id}
-                  className={`rounded-xl border p-4 space-y-2 animate-fade-in ${
-                    insight.type === "critical"
-                      ? "border-destructive/30 bg-destructive/5"
-                      : insight.type === "opportunity"
-                      ? "border-amber-200 bg-amber-50/50"
-                      : "border-border bg-card"
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    {insight.type === "critical" ? (
-                      <AlertTriangle className="w-4 h-4 text-destructive" />
-                    ) : insight.type === "opportunity" ? (
-                      <Zap className="w-4 h-4 text-amber-600" />
-                    ) : (
-                      <Shield className="w-4 h-4 text-primary" />
-                    )}
-                    <span className="text-xs font-bold text-foreground">{insight.title}</span>
-                  </div>
-                  <p className="text-[11px] text-muted-foreground leading-relaxed">{insight.body}</p>
-                  {insight.action && (
-                    <Button
-                      size="sm"
-                      variant={insight.type === "critical" ? "destructive" : "outline"}
-                      className="w-full text-[10px] h-8 mt-2"
-                      onClick={() => handleInsightAction(insight)}
-                    >
-                      {insight.action}
-                    </Button>
-                  )}
-                </div>
-              ))}
-
-              {/* Stats Grid */}
-              <div className="grid grid-cols-3 gap-2">
-                <div className="p-3 bg-secondary/50 rounded-xl border border-border text-center">
-                  <p className="text-[8px] uppercase tracking-wider text-muted-foreground font-bold">Campaigns</p>
-                  <p className="text-lg font-black text-foreground">{campaignCount}</p>
-                </div>
-                <div className="p-3 bg-secondary/50 rounded-xl border border-border text-center">
-                  <p className="text-[8px] uppercase tracking-wider text-muted-foreground font-bold">Review</p>
-                  <p className={`text-lg font-black ${pendingReviewCount > 0 ? "text-amber-600" : "text-foreground"}`}>
-                    {pendingReviewCount}
-                  </p>
-                </div>
-                <div className="p-3 bg-secondary/50 rounded-xl border border-border text-center">
-                  <p className="text-[8px] uppercase tracking-wider text-muted-foreground font-bold">24h Assets</p>
-                  <p className="text-lg font-black text-foreground">{recentAssetCount}</p>
-                </div>
-              </div>
-
-              {/* Monitoring Status */}
-              <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+        {!shouldHide && (
+          <div className="flex h-full" style={{ width: "380px" }}>
+            {/* Expanded Panel Content */}
+            <div className="flex-1 flex flex-col h-full overflow-hidden">
+              {/* Panel Header */}
+              <div className="h-12 border-b border-border flex items-center justify-between px-5 bg-secondary/30 shrink-0">
                 <div className="flex items-center gap-2">
-                  <Target className="w-4 h-4 text-primary" />
-                  <span className="text-[10px] font-bold text-foreground uppercase tracking-wider">
-                    Live Monitoring
+                  <Brain className="w-4 h-4 text-primary" />
+                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.15em]">
+                    CMO Intelligence
                   </span>
                 </div>
-                <div className="space-y-2">
-                  {[
-                    { label: "Campaign Health", status: systemStatus === "critical" ? "Alert" : "Active", icon: Activity },
-                    { label: "Pending Reviews", status: pendingReviewCount > 0 ? `${pendingReviewCount} waiting` : "Clear", icon: Clock },
-                    { label: "Generation Pipeline", status: "Online", icon: Sparkles },
-                  ].map(({ label, status, icon: Icon }) => (
-                    <div key={label} className="flex items-center justify-between">
-                      <div className="flex items-center gap-1.5">
-                        <Icon className="w-3 h-3 text-muted-foreground" />
-                        <span className="text-[10px] text-muted-foreground">{label}</span>
-                      </div>
-                      <Badge variant="secondary" className="text-[8px]">{status}</Badge>
+                <div className="flex items-center gap-2">
+                  {pendingReviewCount > 0 && (
+                    <Badge variant="secondary" className="text-[8px]">
+                      {pendingReviewCount} pending
+                    </Badge>
+                  )}
+                  <Badge variant="outline" className="text-[8px] border-emerald-300 text-emerald-700 bg-emerald-50">
+                    LIVE
+                  </Badge>
+                </div>
+              </div>
+
+              {/* Panel Content */}
+              <div className="flex-1 overflow-y-auto p-5 space-y-4">
+                {insights.map((insight) => (
+                  <div
+                    key={insight.id}
+                    className={`rounded-xl border p-4 space-y-2 animate-fade-in ${
+                      insight.type === "critical"
+                        ? "border-destructive/30 bg-destructive/5"
+                        : insight.type === "opportunity"
+                        ? "border-amber-200 bg-amber-50/50"
+                        : "border-border bg-card"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      {insight.type === "critical" ? (
+                        <AlertTriangle className="w-4 h-4 text-destructive" />
+                      ) : insight.type === "opportunity" ? (
+                        <Zap className="w-4 h-4 text-amber-600" />
+                      ) : (
+                        <Shield className="w-4 h-4 text-primary" />
+                      )}
+                      <span className="text-xs font-bold text-foreground">{insight.title}</span>
                     </div>
-                  ))}
+                    <p className="text-[11px] text-muted-foreground leading-relaxed">{insight.body}</p>
+                    {insight.action && (
+                      <Button
+                        size="sm"
+                        variant={insight.type === "critical" ? "destructive" : "outline"}
+                        className="w-full text-[10px] h-8 mt-2"
+                        onClick={() => handleInsightAction(insight)}
+                      >
+                        {insight.action}
+                      </Button>
+                    )}
+                  </div>
+                ))}
+
+                {/* Stats Grid */}
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="p-3 bg-secondary/50 rounded-xl border border-border text-center">
+                    <p className="text-[8px] uppercase tracking-wider text-muted-foreground font-bold">Campaigns</p>
+                    <p className="text-lg font-black text-foreground">{campaignCount}</p>
+                  </div>
+                  <div className="p-3 bg-secondary/50 rounded-xl border border-border text-center">
+                    <p className="text-[8px] uppercase tracking-wider text-muted-foreground font-bold">Review</p>
+                    <p className={`text-lg font-black ${pendingReviewCount > 0 ? "text-amber-600" : "text-foreground"}`}>
+                      {pendingReviewCount}
+                    </p>
+                  </div>
+                  <div className="p-3 bg-secondary/50 rounded-xl border border-border text-center">
+                    <p className="text-[8px] uppercase tracking-wider text-muted-foreground font-bold">24h Assets</p>
+                    <p className="text-lg font-black text-foreground">{recentAssetCount}</p>
+                  </div>
+                </div>
+
+                {/* Monitoring Status */}
+                <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Target className="w-4 h-4 text-primary" />
+                    <span className="text-[10px] font-bold text-foreground uppercase tracking-wider">
+                      Live Monitoring
+                    </span>
+                  </div>
+                  <div className="space-y-2">
+                    {[
+                      { label: "Campaign Health", status: systemStatus === "critical" ? "Alert" : "Active", icon: Activity },
+                      { label: "Pending Reviews", status: pendingReviewCount > 0 ? `${pendingReviewCount} waiting` : "Clear", icon: Clock },
+                      { label: "Generation Pipeline", status: "Online", icon: Sparkles },
+                    ].map(({ label, status, icon: Icon }) => (
+                      <div key={label} className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5">
+                          <Icon className="w-3 h-3 text-muted-foreground" />
+                          <span className="text-[10px] text-muted-foreground">{label}</span>
+                        </div>
+                        <Badge variant="secondary" className="text-[8px]">{status}</Badge>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* The Sentinel Strip (always visible 48px) */}
-          <div
-            className="w-12 h-full bg-background border-l border-border flex flex-col items-center py-4 gap-4 cursor-pointer shrink-0"
-            onClick={() => {
-              setIsExpanded(!isExpanded);
-              dismissToast();
-            }}
-          >
-            {/* Heartbeat Pulse */}
-            <div className="relative group mt-8">
-              <div className={`w-2.5 h-2.5 rounded-full ${pulseConfig.color} ${pulseConfig.shadow} ${pulseConfig.speed}`} />
-              <div className="absolute right-full mr-3 top-1/2 -translate-y-1/2 px-2.5 py-1 bg-foreground text-background text-[9px] font-semibold rounded-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-                {systemStatus === "optimal" ? "System Optimal" : systemStatus === "alert" ? "Opportunity Detected" : "Action Required"}
+            {/* The Sentinel Strip (always visible 48px) */}
+            <div
+              className="w-12 h-full bg-background border-l border-border flex flex-col items-center py-4 gap-4 cursor-pointer shrink-0"
+              onClick={() => {
+                setIsExpanded(!isExpanded);
+                dismissToast();
+              }}
+            >
+              <div className="relative group mt-8">
+                <div className={`w-2.5 h-2.5 rounded-full ${pulseConfig?.color} ${pulseConfig?.shadow} ${pulseConfig?.speed}`} />
+                <div className="absolute right-full mr-3 top-1/2 -translate-y-1/2 px-2.5 py-1 bg-foreground text-background text-[9px] font-semibold rounded-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+                  {systemStatus === "optimal" ? "System Optimal" : systemStatus === "alert" ? "Opportunity Detected" : "Action Required"}
+                </div>
               </div>
-            </div>
 
-            {pendingReviewCount > 0 && !isExpanded && (
-              <div className="relative">
-                <ImageIcon className="w-4 h-4 text-amber-600" />
-                <span className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 rounded-full bg-amber-500 text-[7px] font-bold text-foreground flex items-center justify-center">
-                  {pendingReviewCount}
-                </span>
-              </div>
-            )}
-
-            <div className="flex-1 flex flex-col gap-3 mt-4 items-center">
-              {systemStatus === "critical" && (
-                <div className="p-1.5 rounded-lg bg-destructive/10 text-destructive">
-                  <AlertTriangle className="w-4 h-4" />
+              {pendingReviewCount > 0 && !isExpanded && (
+                <div className="relative">
+                  <ImageIcon className="w-4 h-4 text-amber-600" />
+                  <span className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 rounded-full bg-amber-500 text-[7px] font-bold text-foreground flex items-center justify-center">
+                    {pendingReviewCount}
+                  </span>
                 </div>
               )}
-              <div className="p-1.5 text-muted-foreground hover:text-foreground transition-colors">
-                <Activity className="w-4 h-4" />
-              </div>
-              <div className="p-1.5 text-muted-foreground hover:text-foreground transition-colors">
-                <TrendingUp className="w-4 h-4" />
-              </div>
-            </div>
 
-            <div className="p-1.5 text-muted-foreground hover:text-foreground transition-colors">
-              {isExpanded ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronLeft className="w-3.5 h-3.5" />}
+              <div className="flex-1 flex flex-col gap-3 mt-4 items-center">
+                {systemStatus === "critical" && (
+                  <div className="p-1.5 rounded-lg bg-destructive/10 text-destructive">
+                    <AlertTriangle className="w-4 h-4" />
+                  </div>
+                )}
+                <div className="p-1.5 text-muted-foreground hover:text-foreground transition-colors">
+                  <Activity className="w-4 h-4" />
+                </div>
+                <div className="p-1.5 text-muted-foreground hover:text-foreground transition-colors">
+                  <TrendingUp className="w-4 h-4" />
+                </div>
+              </div>
+
+              <div className="p-1.5 text-muted-foreground hover:text-foreground transition-colors">
+                {isExpanded ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronLeft className="w-3.5 h-3.5" />}
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </aside>
 
-      {/* ── Holographic Toast (ambient overlay, no layout shift) ── */}
-      {!isExpanded && activeToast && (
-        <div className="fixed right-14 top-20 z-[55] w-72 animate-fade-in">
-          <div className="bg-foreground text-background p-4 rounded-xl shadow-2xl border border-foreground/20 relative">
-            <div className="absolute top-4 -right-1.5 w-3 h-3 bg-foreground rotate-45 border-r border-t border-foreground/20" />
-
-            <div className="flex justify-between items-start mb-2">
-              <Badge
-                className={`text-[8px] ${
-                  activeToast.type === "critical"
-                    ? "bg-destructive text-destructive-foreground"
-                    : "bg-amber-500 text-foreground"
-                }`}
-              >
-                {activeToast.type === "critical" ? "Action Required" : "New Activity"}
-              </Badge>
-              <button onClick={(e) => { e.stopPropagation(); dismissToast(); }}>
-                <X className="w-3 h-3 text-background/50 hover:text-background" />
-              </button>
-            </div>
-            <p className="text-xs font-semibold mb-1">{activeToast.title}</p>
-            <p className="text-[11px] text-background/70 leading-relaxed">{activeToast.body}</p>
-            <div className="mt-3 flex gap-2">
-              {activeToast.campaignId && (
-                <button
-                  onClick={() => {
-                    handleInsightAction(activeToast);
-                    dismissToast();
-                  }}
-                  className="flex-1 py-1.5 bg-background text-foreground text-[10px] font-bold rounded-lg hover:bg-background/90 transition-colors"
-                >
-                  {activeToast.action || "View"}
-                </button>
-              )}
-              <button
-                onClick={() => { setIsExpanded(true); dismissToast(); }}
-                className={`${activeToast.campaignId ? "" : "flex-1"} py-1.5 bg-background text-foreground text-[10px] font-bold rounded-lg hover:bg-background/90 transition-colors px-3`}
-              >
-                Open CMO
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Toast portaled to body so it doesn't break flex layout */}
+      {toast_el}
     </>
   );
 };
