@@ -147,9 +147,15 @@ const AdminLibraryForm = ({ tableName, editingItem, onClose, onSaved }: AdminLib
       <CardContent className="space-y-3">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {fields.map((field) => (
-            <div key={field.key} className={field.type === "textarea" || field.type === "json" ? "col-span-full" : ""}>
+            <div key={field.key} className={field.type === "textarea" || field.type === "json" || field.type === "file" ? "col-span-full" : ""}>
               <Label className="text-[10px] font-medium text-muted-foreground mb-1 block">{field.label}</Label>
-              {field.type === "select" ? (
+              {field.type === "file" ? (
+                <FileUploadZone
+                  value={values[field.key] || ""}
+                  onChange={(url) => setValues((prev) => ({ ...prev, [field.key]: url }))}
+                  folder={field.folder || "uploads"}
+                />
+              ) : field.type === "select" ? (
                 <Select value={values[field.key] || ""} onValueChange={(v) => setValues((prev) => ({ ...prev, [field.key]: v }))}>
                   <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select..." /></SelectTrigger>
                   <SelectContent>
