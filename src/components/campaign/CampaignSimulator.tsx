@@ -249,12 +249,16 @@ export default function CampaignSimulator({
     return <IGFeedContent {...props} />;
   };
 
-  const phoneScale = fullscreen ? 0.78 : 0.62;
+  // Dynamic scale to fit container without scroll
+  const availableHeight = typeof window !== "undefined" ? window.innerHeight - 56 - 220 - 40 : 600;
+  const maxPhoneHeight = availableHeight - 90;
+  const dynamicScale = Math.min(fullscreen ? 0.78 : 0.62, maxPhoneHeight / 852);
+  const phoneScale = Math.max(0.35, dynamicScale);
 
   return (
-    <div className={cn("flex gap-6 items-start", fullscreen && "gap-8", className)}>
+    <div className={cn("flex gap-4 items-start", fullscreen && "gap-6", className)}>
       {/* ── Left: Phone Simulator ── */}
-      <div className="flex flex-col items-center gap-3">
+      <div className="flex flex-col items-center gap-2">
         {/* Preview mode tabs (like reference: Preview | Reels | Feed) */}
         <div className="flex items-center gap-0 p-0.5 bg-secondary/60 rounded-lg border border-border">
           {(["preview", "reels", "feed"] as const).map((mode) => (
