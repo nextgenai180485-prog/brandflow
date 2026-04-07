@@ -801,7 +801,7 @@ async function processAssetsInBackground(
           console.log(`[Image Templates] Using template: "${matchedTemplate.style_name}" for ${platform}/${format}`);
         }
 
-        generatedPrompt = buildImagePrompt(platform, format, brandContext || {}, intelligenceBrief || {}, decisionWinner, matchedTemplate);
+        generatedPrompt = buildImagePrompt(platform, format, brandContext || {}, intelligenceBrief || {}, decisionWinner, matchedTemplate, referenceImageUrl);
         console.log(`[Generate] ${assetType} for ${platform}/${format} via Replicate Seedream 5`);
         const result = await generateImage(generatedPrompt, width || 1080, height || 1080);
         contentUrl = result.url;
@@ -1035,7 +1035,7 @@ serve(async (req) => {
     }
 
     // ── Generate Action (with full four-layer pipeline) ───────
-    const { campaignId, assets, researchId, intelligenceBrief, brandContext, creativeDirection } = body;
+    const { campaignId, assets, researchId, intelligenceBrief, brandContext, creativeDirection, referenceImageUrl } = body;
 
     if (!campaignId || typeof campaignId !== "string" || !assets || !Array.isArray(assets) || assets.length === 0) {
       return new Response(JSON.stringify({ error: "campaignId (string) and non-empty assets[] required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -1102,7 +1102,7 @@ serve(async (req) => {
 
     // Fire background processing
     EdgeRuntime.waitUntil(
-      processAssetsInBackground(userId, campaignId, assets, researchId || null, intelligenceBrief || {}, brandContext || {}, placeholderIds, decisionTraceId, decisionWinner, creativeDirection || null)
+      processAssetsInBackground(userId, campaignId, assets, researchId || null, intelligenceBrief || {}, brandContext || {}, placeholderIds, decisionTraceId, decisionWinner, creativeDirection || null, referenceImageUrl || null)
         .catch((e) => console.error("[BG] Fatal error:", e))
     );
 
