@@ -8,7 +8,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { LogOut, ChevronDown, Sparkles, Share2 } from "lucide-react";
+import { LogOut, ChevronDown, Share2 } from "lucide-react";
 
 const baseNavItems = [
   { label: "Campaigns", path: "/dashboard" },
