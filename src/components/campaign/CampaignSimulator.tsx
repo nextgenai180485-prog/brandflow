@@ -436,29 +436,6 @@ export default function CampaignSimulator({
               ))}
             </div>
           </div>
-
-          {/* Controls */}
-          <div className="mt-3 flex flex-col gap-1 px-1">
-            <button
-              onClick={() => setShowSafeZones(!showSafeZones)}
-              className={cn(
-                "flex items-center gap-2 px-3 py-2 rounded-lg text-[10px] font-semibold transition-all border w-full",
-                showSafeZones
-                  ? "bg-red-500/10 border-red-500/30 text-red-400"
-                  : "bg-secondary/50 border-border text-muted-foreground hover:text-foreground"
-              )}
-            >
-              {showSafeZones ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
-              Safe Zones
-            </button>
-            <button
-              onClick={() => setFullscreen(!fullscreen)}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg text-[10px] font-semibold bg-secondary/50 border border-border text-muted-foreground hover:text-foreground transition-all w-full"
-            >
-              {fullscreen ? <Minimize2 className="w-3 h-3" /> : <Maximize2 className="w-3 h-3" />}
-              {fullscreen ? "Compact" : "Expand"}
-            </button>
-          </div>
         </div>
       )}
     </div>
