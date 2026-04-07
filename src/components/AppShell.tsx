@@ -109,59 +109,30 @@ const AppShell = ({ children }: { children: React.ReactNode }) => {
               {/* Mobile hamburger with AI pulse */}
               <button
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="md:hidden p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors relative"
+                className="md:hidden p-2 -ml-2 rounded-full text-foreground active:bg-accent/50 transition-colors relative"
               >
                 {mobileMenuOpen ? (
                   <X className="w-5 h-5" />
                 ) : (
-                  <>
+                  <div className="relative">
                     <Menu className="w-5 h-5" />
-                    <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-primary animate-pulse" />
-                  </>
+                    <div className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-primary rounded-full border-2 border-background flex items-center justify-center shadow-sm">
+                      <div className="w-1 h-1 bg-primary-foreground rounded-full animate-pulse" />
+                    </div>
+                  </div>
                 )}
               </button>
 
-              {/* Desktop: brand name */}
+              {/* Brand name — static on both mobile & desktop */}
               <span
                 className="text-base font-semibold tracking-tight text-foreground cursor-pointer hidden md:block"
                 onClick={() => navigate("/dashboard")}
               >
                 Brandflow
               </span>
-
-              {/* Mobile: Sentient Ticker (auto-rotating title ↔ metric) */}
-              <div className="md:hidden relative h-7 min-w-[120px] flex items-center justify-center overflow-hidden">
-                {/* Context layer (page title) */}
-                <div
-                  className={`absolute inset-0 flex items-center transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
-                    tickerMode === "context"
-                      ? "translate-y-0 opacity-100"
-                      : "-translate-y-7 opacity-0"
-                  }`}
-                >
-                  <span className="text-base font-semibold tracking-tight text-foreground">
-                    Brandflow
-                  </span>
-                </div>
-
-                {/* Metric layer (live status pill) */}
-                <div
-                  className={`absolute inset-0 flex items-center transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
-                    tickerMode === "metric"
-                      ? "translate-y-0 opacity-100"
-                      : "translate-y-7 opacity-0"
-                  }`}
-                >
-                  {metricDisplay && (
-                    <span
-                      className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold tracking-wide border ${metricDisplay.colorClasses}`}
-                    >
-                      <metricDisplay.icon className="w-3 h-3" />
-                      {metricDisplay.label}
-                    </span>
-                  )}
-                </div>
-              </div>
+              <span className="md:hidden text-base font-bold tracking-tight text-foreground">
+                Brandflow
+              </span>
 
               <nav className="hidden md:flex items-center gap-0.5">
                 {navItems.map((item) => (
@@ -190,7 +161,7 @@ const AppShell = ({ children }: { children: React.ReactNode }) => {
                       {initials}
                     </AvatarFallback>
                   </Avatar>
-                  <ChevronDown className="h-3 w-3 text-muted-foreground" />
+                  <ChevronDown className="h-3 w-3 text-muted-foreground hidden md:block" />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-44">
                   <DropdownMenuItem
@@ -204,14 +175,32 @@ const AppShell = ({ children }: { children: React.ReactNode }) => {
               </DropdownMenu>
             </div>
           </div>
+        </header>
 
-          {/* Mobile slide-down nav */}
-          <div
-            className={`md:hidden overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
-              mobileMenuOpen ? "max-h-80 border-t border-border" : "max-h-0"
-            }`}
-          >
-            <div className="px-4 py-3 space-y-1 bg-background">
+        {/* Mobile Overlay Dropdown */}
+        <div
+          className={`md:hidden fixed top-12 left-0 right-0 bg-background/95 backdrop-blur-xl border-b border-border shadow-2xl z-40 overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] origin-top ${
+            mobileMenuOpen ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-4 pointer-events-none"
+          }`}
+        >
+          <div className="p-4 space-y-4">
+            {/* Status Card */}
+            {metricDisplay && (
+              <div className="flex items-center justify-between p-3 bg-accent/50 rounded-xl border border-border">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-primary/10 text-primary rounded-full flex items-center justify-center">
+                    <Sparkles className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="text-xs font-bold text-foreground">{metricDisplay.label}</div>
+                    <div className="text-[10px] text-muted-foreground font-mono">{currentPageTitle}</div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Navigation Links */}
+            <nav className="space-y-1">
               {navItems.map((item) => {
                 const isActive =
                   item.path === "/dashboard"
@@ -221,19 +210,38 @@ const AppShell = ({ children }: { children: React.ReactNode }) => {
                   <button
                     key={item.path}
                     onClick={() => handleMobileNav(item.path)}
-                    className={`w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                    className={`w-full flex items-center gap-3 p-3 rounded-xl text-sm font-medium transition-all active:scale-[0.98] ${
                       isActive
-                        ? "bg-accent text-foreground"
-                        : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+                        ? "bg-foreground text-background shadow-md"
+                        : "text-muted-foreground hover:bg-accent/50"
                     }`}
                   >
-                    {item.label}
+                    <span className="flex-1 text-left">{item.label}</span>
+                    {isActive && <ChevronRight className="w-4 h-4 opacity-50" />}
                   </button>
                 );
               })}
+            </nav>
+
+            {/* Footer */}
+            <div className="pt-3 border-t border-border flex justify-end">
+              <button
+                onClick={handleSignOut}
+                className="flex items-center gap-2 text-xs font-bold text-destructive bg-destructive/10 px-3 py-2 rounded-lg"
+              >
+                <LogOut className="w-3 h-3" /> Sign Out
+              </button>
             </div>
           </div>
-        </header>
+        </div>
+
+        {/* Backdrop — click to dismiss */}
+        {mobileMenuOpen && (
+          <div
+            className="md:hidden fixed inset-0 bg-foreground/10 z-30 backdrop-blur-[1px] transition-opacity duration-500"
+            onClick={() => setMobileMenuOpen(false)}
+          />
+        )}
 
         <main className="flex-1 overflow-y-auto">{children}</main>
       </div>
