@@ -101,47 +101,46 @@ export default function SourceGallery({ selectedId, onSelect, className }: Sourc
     const fetchAll = async () => {
       setLoading(true);
 
-      const queries: Promise<any>[] = [
-        // Templates from ad_reference_library
-        supabase
-          .from("ad_reference_library")
-          .select("id, title, description, media_url, thumbnail_url, industry_tags, mood_tags, platform_tags, sealcam_analysis, performance_notes")
-          .eq("is_active", true)
-          .not("thumbnail_url", "is", null)
-          .order("usage_count", { ascending: false })
-          .limit(30),
-      ];
+      // Templates query
+      const templatesPromise = supabase
+        .from("ad_reference_library")
+        .select("id, title, description, media_url, thumbnail_url, industry_tags, mood_tags, platform_tags, sealcam_analysis, performance_notes")
+        .eq("is_active", true)
+        .not("thumbnail_url", "is", null)
+        .order("usage_count", { ascending: false })
+        .limit(30)
+        .then(r => r);
 
-      if (user) {
-        // User's generated assets
-        queries.push(
-          supabase
+      const generationsPromise = user
+        ? supabase
             .from("generated_assets")
             .select("id, content_url, content_text, asset_type, platform, format, status, provider, campaign_id, created_at")
             .eq("profile_id", user.id)
             .order("created_at", { ascending: false })
             .limit(50)
-        );
-        // Campaign research (competitors)
-        queries.push(
-          supabase
+            .then(r => r)
+        : Promise.resolve({ data: null });
+
+      const researchPromise = user
+        ? supabase
             .from("campaign_research")
             .select("id, campaign_id, research_type, query, intelligence_brief, created_at")
             .eq("profile_id", user.id)
             .order("created_at", { ascending: false })
             .limit(30)
-        );
-        // Campaign titles for labeling
-        queries.push(
-          supabase
+            .then(r => r)
+        : Promise.resolve({ data: null });
+
+      const campaignsPromise = user
+        ? supabase
             .from("campaigns")
             .select("id, title")
             .eq("profile_id", user.id)
             .limit(100)
-        );
-      }
+            .then(r => r)
+        : Promise.resolve({ data: null });
 
-      const results = await Promise.all(queries);
+      const results = await Promise.all([templatesPromise, generationsPromise, researchPromise, campaignsPromise]);
 
       // Templates
       const templateData = results[0]?.data;
