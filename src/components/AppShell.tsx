@@ -145,7 +145,7 @@ const AppShell = ({ children }: { children: React.ReactNode }) => {
               </span>
 
               {/* Mobile: Sentient Ticker (auto-rotating title ↔ metric) */}
-              <div className="md:hidden relative h-7 flex-1 max-w-[200px] flex items-center overflow-hidden">
+              <div className="md:hidden relative h-7 min-w-[120px] flex items-center justify-center overflow-hidden">
                 {/* Context layer (page title) */}
                 <div
                   className={`absolute inset-0 flex items-center transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
@@ -154,7 +154,7 @@ const AppShell = ({ children }: { children: React.ReactNode }) => {
                       : "-translate-y-7 opacity-0"
                   }`}
                 >
-                  <span className="text-sm font-semibold tracking-tight text-foreground truncate">
+                  <span className="text-sm font-semibold tracking-tight text-foreground">
                     {currentPageTitle}
                   </span>
                 </div>
@@ -169,10 +169,10 @@ const AppShell = ({ children }: { children: React.ReactNode }) => {
                 >
                   {metricDisplay && (
                     <span
-                      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium border truncate max-w-full ${metricDisplay.colorClasses}`}
+                      className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold tracking-wide border ${metricDisplay.colorClasses}`}
                     >
-                      <metricDisplay.icon className="w-3 h-3 shrink-0" />
-                      <span className="truncate">{metricDisplay.label}</span>
+                      <metricDisplay.icon className="w-3 h-3" />
+                      {metricDisplay.label}
                     </span>
                   )}
                 </div>
