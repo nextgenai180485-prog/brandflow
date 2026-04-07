@@ -151,15 +151,15 @@ export default function SourceGallery({ selectedId, onSelect, className }: Sourc
         })));
       }
 
-      if (user && results.length > 1) {
+      if (user) {
         const campaignMap: Record<string, string> = {};
         if (results[3]?.data) {
-          results[3].data.forEach((c: any) => { campaignMap[c.id] = c.title; });
+          (results[3].data as any[]).forEach((c: any) => { campaignMap[c.id] = c.title; });
         }
 
         // Generations
         if (results[1]?.data) {
-          setGenerations(results[1].data.map((g: any) => ({
+          setGenerations((results[1].data as any[]).map((g: any) => ({
             ...g,
             campaign_title: campaignMap[g.campaign_id] || "Untitled",
           })));
@@ -167,7 +167,7 @@ export default function SourceGallery({ selectedId, onSelect, className }: Sourc
 
         // Competitors
         if (results[2]?.data) {
-          setCompetitors(results[2].data.map((c: any) => ({
+          setCompetitors((results[2].data as any[]).map((c: any) => ({
             ...c,
             intelligence_brief: (c.intelligence_brief as Record<string, any>) || null,
             campaign_title: campaignMap[c.campaign_id] || "Untitled",
