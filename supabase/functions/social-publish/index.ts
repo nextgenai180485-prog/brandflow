@@ -179,25 +179,33 @@ Deno.serve(async (req) => {
       const finalCaption = caption || asset.content_text || "";
       const hashtagString = hashtags?.length ? "\n\n" + hashtags.map((h: string) => h.startsWith("#") ? h : `#${h}`).join(" ") : "";
 
-      const targets: Record<string, any> = {};
+      const results = [];
       for (const acc of socialAccounts) {
-        targets[acc.blotato_account_id] = platform_options?.[acc.platform] || {};
+        const postPayload: Record<string, any> = {
+          post: {
+            accountId: acc.blotato_account_id,
+            content: {
+              text: finalCaption + hashtagString,
+              mediaUrls: asset.content_url ? [asset.content_url] : [],
+              platform: acc.platform,
+            },
+            target: {
+              targetType: acc.platform,
+              ...(platform_options?.[acc.platform] || {}),
+            },
+          },
+        };
+
+        if (action === "schedule" && scheduled_at) {
+          postPayload.scheduledTime = scheduled_at;
+        }
+
+        const blotatoResult = await blotatoFetch("/posts", blotatoApiKey, {
+          method: "POST",
+          body: JSON.stringify(postPayload),
+        });
+        results.push({ account: acc, result: blotatoResult });
       }
-
-      const postPayload: Record<string, any> = {
-        text: finalCaption + hashtagString,
-        mediaUrls: [asset.content_url],
-        targets,
-      };
-
-      if (action === "schedule" && scheduled_at) {
-        postPayload.scheduledTime = scheduled_at;
-      }
-
-      const blotatoResult = await blotatoFetch("/posts", blotatoApiKey, {
-        method: "POST",
-        body: JSON.stringify(postPayload),
-      });
 
       const submissionId = blotatoResult?.id || blotatoResult?.postSubmissionId || blotatoResult?._id;
 
