@@ -22,7 +22,7 @@ import UserLibraries from "./pages/UserLibraries";
 import SocialSettings from "./pages/SocialSettings";
 import NotFound from "./pages/NotFound";
 import GlobalCMOChat from "./components/GlobalCMOChat";
-import SentientCMORail from "./components/SentientCMORail";
+
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1 } },
