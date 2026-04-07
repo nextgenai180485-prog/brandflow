@@ -155,7 +155,7 @@ const AppShell = ({ children }: { children: React.ReactNode }) => {
                   }`}
                 >
                   <span className="text-sm font-semibold tracking-tight text-foreground">
-                    {currentPageTitle}
+                    Brandflow
                   </span>
                 </div>
 
