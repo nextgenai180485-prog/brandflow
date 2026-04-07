@@ -50,6 +50,7 @@ const ShowcaseDetailModal = ({ item, open, onOpenChange }: ShowcaseDetailModalPr
         templateRef: {
           id: item.id,
           title: item.title,
+          mediaUrl: item.media_url || item.thumbnail_url,
           industryTags: item.industry_tags,
           moodTags: item.mood_tags,
           platformTags: item.platform_tags,

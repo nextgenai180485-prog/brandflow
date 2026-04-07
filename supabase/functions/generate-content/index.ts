@@ -654,7 +654,7 @@ const VERTICAL_PHOTOGRAPHY: Record<string, string> = {
 };
 
 // ── Prompt Builders (now powered by Decision Engine + Image Templates) ──
-function buildImagePrompt(platform: string, format: string, brandContext: any, intelligenceBrief: any, decisionWinner: any, imageTemplate?: any): string {
+function buildImagePrompt(platform: string, format: string, brandContext: any, intelligenceBrief: any, decisionWinner: any, imageTemplate?: any, referenceImageUrl?: string | null): string {
   const industry = (brandContext.industry || "general").toLowerCase();
   const baseStyle = intelligenceBrief?.visual_direction || "modern, clean, professional photography style";
   const angle = decisionWinner?.description || "showcase the brand experience";
@@ -670,6 +670,11 @@ function buildImagePrompt(platform: string, format: string, brandContext: any, i
   prompt += `Brand: "${brandContext.businessName || "luxury brand"}". `;
   prompt += `Creative direction: ${angle}. `;
   if (hookText) prompt += `Visual concept: ${hookText}. `;
+
+  // Inject reference style if a showcase template was selected
+  if (referenceImageUrl) {
+    prompt += `Reference style: ${referenceImageUrl}. Match the composition, lighting, and mood of this reference. `;
+  }
 
   // Inject image template modifiers if available
   if (imageTemplate) {
@@ -754,7 +759,8 @@ async function processAssetsInBackground(
   placeholderIds: string[],
   decisionTraceId: string | null,
   decisionWinner: any,
-  creativeDirection: any | null
+  creativeDirection: any | null,
+  referenceImageUrl: string | null = null
 ) {
   const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
@@ -795,7 +801,7 @@ async function processAssetsInBackground(
           console.log(`[Image Templates] Using template: "${matchedTemplate.style_name}" for ${platform}/${format}`);
         }
 
-        generatedPrompt = buildImagePrompt(platform, format, brandContext || {}, intelligenceBrief || {}, decisionWinner, matchedTemplate);
+        generatedPrompt = buildImagePrompt(platform, format, brandContext || {}, intelligenceBrief || {}, decisionWinner, matchedTemplate, referenceImageUrl);
         console.log(`[Generate] ${assetType} for ${platform}/${format} via Replicate Seedream 5`);
         const result = await generateImage(generatedPrompt, width || 1080, height || 1080);
         contentUrl = result.url;
@@ -811,6 +817,7 @@ async function processAssetsInBackground(
           console.log(`[Generate] video for ${platform}/${format} via SEALCaM scene ${sceneIndex + 1}/${creativeDirection.scenes.length} (${creativeDirection.family})`);
         } else {
           generatedPrompt = buildVideoPrompt(platform, format, brandContext || {}, intelligenceBrief || {}, decisionWinner);
+          if (referenceImageUrl) generatedPrompt += ` Reference style: ${referenceImageUrl}. Match the composition, lighting, and mood of this reference.`;
           console.log(`[Generate] video for ${platform}/${format} via generic prompt`);
         }
         console.log(`[Generate] video for ${platform}/${format} via Kling 2.5`);
@@ -1029,7 +1036,7 @@ serve(async (req) => {
     }
 
     // ── Generate Action (with full four-layer pipeline) ───────
-    const { campaignId, assets, researchId, intelligenceBrief, brandContext, creativeDirection } = body;
+    const { campaignId, assets, researchId, intelligenceBrief, brandContext, creativeDirection, referenceImageUrl } = body;
 
     if (!campaignId || typeof campaignId !== "string" || !assets || !Array.isArray(assets) || assets.length === 0) {
       return new Response(JSON.stringify({ error: "campaignId (string) and non-empty assets[] required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -1096,7 +1103,7 @@ serve(async (req) => {
 
     // Fire background processing
     EdgeRuntime.waitUntil(
-      processAssetsInBackground(userId, campaignId, assets, researchId || null, intelligenceBrief || {}, brandContext || {}, placeholderIds, decisionTraceId, decisionWinner, creativeDirection || null)
+      processAssetsInBackground(userId, campaignId, assets, researchId || null, intelligenceBrief || {}, brandContext || {}, placeholderIds, decisionTraceId, decisionWinner, creativeDirection || null, referenceImageUrl || null)
         .catch((e) => console.error("[BG] Fatal error:", e))
     );
 

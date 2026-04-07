@@ -34,7 +34,7 @@ const NewCampaign = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const showcaseState = location.state as { fromShowcase?: boolean; templateRef?: { id: string; title: string; industryTags?: string[]; moodTags?: string[]; platformTags?: string[] } } | null;
+  const showcaseState = location.state as { fromShowcase?: boolean; templateRef?: { id: string; title: string; mediaUrl?: string; industryTags?: string[]; moodTags?: string[]; platformTags?: string[] } } | null;
 
   const [step, setStep] = useState(0);
   const [title, setTitle] = useState(showcaseState?.templateRef?.title || "");
@@ -60,6 +60,37 @@ const NewCampaign = () => {
     if (hasVideoContent) return ALL_STEPS;
     return ALL_STEPS.filter(s => s !== "Creative Direction");
   }, [hasVideoContent]);
+
+  // Auto-populate from showcase template
+  useEffect(() => {
+    if (!showcaseState?.fromShowcase || !showcaseState.templateRef) return;
+    const ref = showcaseState.templateRef;
+
+    // Auto-attach media as creative reference asset
+    if (ref.mediaUrl) {
+      setCreativeReferenceAssets([{
+        id: ref.id,
+        file_name: ref.title,
+        file_url: ref.mediaUrl,
+        asset_type: "reference",
+        created_at: new Date().toISOString(),
+      }]);
+    }
+
+    // Pre-select platforms from template tags
+    if (ref.platformTags?.length) {
+      const platformFormats: SelectedFormat[] = ref.platformTags.map(tag => ({
+        platform: tag as SocialPlatform,
+        format: tag === "tiktok" ? "reel" : tag === "linkedin" ? "post" : tag === "youtube" ? "post" : "post",
+      }));
+      setPlatforms(platformFormats);
+    }
+
+    // Default to image content type for showcase templates
+    if (contentTypes.length === 0) {
+      setContentTypes(["image"]);
+    }
+  }, []); // Run once on mount
 
   // Load brand profile from brand_memory
   useEffect(() => {
@@ -197,6 +228,8 @@ const NewCampaign = () => {
     // 6. Trigger generation pipeline
     toast.success("Campaign created — generation starting…");
 
+    const referenceImageUrl = showcaseState?.fromShowcase ? showcaseState.templateRef?.mediaUrl : undefined;
+
     supabase.functions.invoke("generate-content", {
       body: {
         campaignId: campaign.id,
@@ -210,6 +243,7 @@ const NewCampaign = () => {
           visual_direction: brandProfile.visual_style,
         } : null,
         creativeDirection: creativeDirection || null,
+        referenceImageUrl: referenceImageUrl || null,
       },
     }).then(({ error: genError }) => {
       if (genError) console.error("[Generation] Trigger error:", genError);
