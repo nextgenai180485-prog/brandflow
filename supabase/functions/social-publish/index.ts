@@ -13,7 +13,9 @@ async function blotatoFetch(
   apiKey: string,
   options: RequestInit = {}
 ) {
-  const res = await fetch(`${BLOTATO_BASE}${path}`, {
+  const url = `${BLOTATO_BASE}${path}`;
+  console.log(`[Blotato] ${options.method || "GET"} ${url} (key length: ${apiKey.length})`);
+  const res = await fetch(url, {
     ...options,
     headers: {
       "Content-Type": "application/json",
@@ -21,8 +23,11 @@ async function blotatoFetch(
       ...(options.headers || {}),
     },
   });
-  const data = await res.json();
+  const text = await res.text();
+  let data: any;
+  try { data = JSON.parse(text); } catch { data = { raw: text }; }
   if (!res.ok) {
+    console.error(`[Blotato] ${res.status} response:`, text);
     throw new Error(data?.message || data?.error || `Blotato API error ${res.status}`);
   }
   return data;
@@ -174,40 +179,49 @@ Deno.serve(async (req) => {
       const finalCaption = caption || asset.content_text || "";
       const hashtagString = hashtags?.length ? "\n\n" + hashtags.map((h: string) => h.startsWith("#") ? h : `#${h}`).join(" ") : "";
 
-      const targets: Record<string, any> = {};
+      const results = [];
       for (const acc of socialAccounts) {
-        targets[acc.blotato_account_id] = platform_options?.[acc.platform] || {};
+        const postPayload: Record<string, any> = {
+          post: {
+            accountId: acc.blotato_account_id,
+            content: {
+              text: finalCaption + hashtagString,
+              mediaUrls: asset.content_url ? [asset.content_url] : [],
+              platform: acc.platform,
+            },
+            target: {
+              targetType: acc.platform,
+              ...(platform_options?.[acc.platform] || {}),
+            },
+          },
+        };
+
+        if (action === "schedule" && scheduled_at) {
+          postPayload.scheduledTime = scheduled_at;
+        }
+
+        const blotatoResult = await blotatoFetch("/posts", blotatoApiKey, {
+          method: "POST",
+          body: JSON.stringify(postPayload),
+        });
+        results.push({ account: acc, result: blotatoResult });
       }
 
-      const postPayload: Record<string, any> = {
-        text: finalCaption + hashtagString,
-        mediaUrls: [asset.content_url],
-        targets,
-      };
-
-      if (action === "schedule" && scheduled_at) {
-        postPayload.scheduledTime = scheduled_at;
-      }
-
-      const blotatoResult = await blotatoFetch("/posts", blotatoApiKey, {
-        method: "POST",
-        body: JSON.stringify(postPayload),
+      const records = results.map(({ account: acc, result: r }) => {
+        const submissionId = r?.id || r?.postSubmissionId || r?._id;
+        return {
+          profile_id: userId,
+          asset_id,
+          campaign_id: campaign_id || null,
+          social_account_id: acc.id,
+          platform: acc.platform,
+          blotato_post_submission_id: submissionId ? String(submissionId) : null,
+          status: action === "schedule" ? "scheduled" : "publishing",
+          scheduled_at: scheduled_at || null,
+          caption: finalCaption,
+          hashtags: hashtags || [],
+        };
       });
-
-      const submissionId = blotatoResult?.id || blotatoResult?.postSubmissionId || blotatoResult?._id;
-
-      const records = socialAccounts.map((acc: any) => ({
-        profile_id: userId,
-        asset_id,
-        campaign_id: campaign_id || null,
-        social_account_id: acc.id,
-        platform: acc.platform,
-        blotato_post_submission_id: submissionId ? String(submissionId) : null,
-        status: action === "schedule" ? "scheduled" : "publishing",
-        scheduled_at: scheduled_at || null,
-        caption: finalCaption,
-        hashtags: hashtags || [],
-      }));
 
       const { data: insertedRecords, error: insertError } = await supabase
         .from("publish_records")
@@ -221,7 +235,7 @@ Deno.serve(async (req) => {
       return new Response(
         JSON.stringify({
           success: true,
-          blotato_response: blotatoResult,
+          blotato_responses: results.map(r => r.result),
           publish_records: insertedRecords,
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
