@@ -343,22 +343,60 @@ const GlobalCMOChat = () => {
     );
   }
 
-  // Desktop: slide-over overlay with glassmorphic backdrop
+  // Desktop: left-edge dock trigger + slide-over panel
   return (
     <>
-      {/* Backdrop */}
+      {/* ── Left-Edge Dock Trigger (The "Jewel") ── */}
+      <div className="fixed left-0 top-1/2 -translate-y-1/2 z-[80] flex flex-col items-center">
+        <div className="relative group">
+          {/* Tooltip */}
+          <div className="absolute left-full ml-3 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-foreground text-background text-[10px] font-semibold rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap pointer-events-none shadow-lg">
+            Strategy Core
+            <span className="text-muted-foreground font-normal ml-1.5">⌘K</span>
+          </div>
+
+          <button
+            onClick={() => setOpen(true)}
+            className={`
+              relative w-10 h-10 rounded-r-xl rounded-l-none flex items-center justify-center
+              transition-all duration-300 shadow-lg
+              ${open
+                ? "bg-primary shadow-[0_0_20px_hsl(var(--primary)/0.4)] scale-110"
+                : "bg-primary/90 hover:bg-primary hover:scale-105 hover:shadow-xl"
+              }
+            `}
+            title="Open Strategy Core (⌘K)"
+          >
+            <Sparkles className={`w-4.5 h-4.5 text-primary-foreground transition-transform duration-500 ${!open ? "group-hover:rotate-12" : ""}`} />
+
+            {/* Notification pulse */}
+            {!open && (
+              <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-60" />
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-primary border-2 border-background" />
+              </span>
+            )}
+          </button>
+        </div>
+      </div>
+
+      {/* ── Backdrop (Focus Mode) ── */}
       {open && (
         <div
-          className="fixed inset-0 z-[90] bg-foreground/10 backdrop-blur-sm transition-opacity duration-300"
+          className="fixed inset-0 z-[90] bg-foreground/10 backdrop-blur-sm animate-fade-in"
           onClick={() => setOpen(false)}
         />
       )}
 
-      {/* Slide-over panel — LEFT side (Global Context zone) */}
+      {/* ── Slide-Over Panel (The War Room) ── */}
       <div
-        className={`fixed top-0 left-0 z-[100] h-full w-[480px] bg-background/95 backdrop-blur-xl border-r border-border shadow-2xl transition-transform duration-300 ease-out ${
-          open ? "translate-x-0" : "-translate-x-full"
-        }`}
+        className={`
+          fixed top-0 left-0 z-[100] h-full w-[480px]
+          bg-background/95 backdrop-blur-xl border-r border-border shadow-2xl
+          transition-transform duration-500
+          ${open ? "translate-x-0" : "-translate-x-full"}
+        `}
+        style={{ transitionTimingFunction: "cubic-bezier(0.16, 1, 0.3, 1)" }}
       >
         {chatContent}
       </div>
