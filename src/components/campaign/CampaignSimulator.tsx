@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Eye, EyeOff, Maximize2, Minimize2 } from "lucide-react";
+import { Eye, EyeOff, Maximize2, Minimize2, Star, Pencil, Download, FolderPlus, EyeOff as HideIcon, Image as ImageIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Heart, MessageCircle, Send, Bookmark, MoreHorizontal } from "lucide-react";
 
@@ -10,6 +10,12 @@ interface CampaignSimulatorProps {
   brandName?: string;
   caption?: string;
   className?: string;
+  onStar?: () => void;
+  onEdit?: () => void;
+  onDownload?: () => void;
+  onSaveToLibrary?: () => void;
+  onHide?: () => void;
+  isStarred?: boolean;
 }
 
 const PLATFORMS: { key: SimPlatform; label: string }[] = [
@@ -19,7 +25,6 @@ const PLATFORMS: { key: SimPlatform; label: string }[] = [
   { key: "facebook", label: "Facebook" },
 ];
 
-// Safe zone overlay data per platform
 const SAFE_ZONES: Record<SimPlatform, { label: string; style: string }[]> = {
   instagram: [
     { label: "Caption Area", style: "bottom-0 left-0 right-0 h-[18%]" },
@@ -37,6 +42,15 @@ const SAFE_ZONES: Record<SimPlatform, { label: string; style: string }[]> = {
     { label: "Caption Area", style: "bottom-0 left-0 right-0 h-[12%]" },
   ],
 };
+
+const ASPECT_VARIANTS = [
+  { label: "9:16", w: 9, h: 16 },
+  { label: "4:5", w: 4, h: 5 },
+  { label: "1:1", w: 1, h: 1 },
+  { label: "16:9", w: 16, h: 9 },
+];
+
+// ── Platform Content Renderers ──
 
 function IGFeedContent({ imageUrl, brandName, caption }: { imageUrl: string; brandName: string; caption: string }) {
   return (
@@ -64,11 +78,18 @@ function IGFeedContent({ imageUrl, brandName, caption }: { imageUrl: string; bra
               <span className="text-[8px] font-bold">{brandName.charAt(0).toUpperCase()}</span>
             </div>
           </div>
-          <span className="text-[11px] font-semibold">{brandName.toLowerCase().replace(/\s+/g, "")}</span>
+          <div>
+            <span className="text-[11px] font-semibold">{brandName.toLowerCase().replace(/\s+/g, "")}</span>
+            <p className="text-[8px] text-white/40">Sponsored</p>
+          </div>
           <div className="ml-auto"><MoreHorizontal className="w-4 h-4 text-white/70" /></div>
         </div>
         <div className="w-full aspect-[4/5] bg-neutral-900">
           <img src={imageUrl} alt="" className="w-full h-full object-cover" />
+        </div>
+        <div className="bg-blue-600 mx-0 flex items-center justify-between px-3 py-1.5">
+          <span className="text-[10px] font-semibold">Shop now</span>
+          <span className="text-[12px]">›</span>
         </div>
         <div className="flex items-center justify-between px-3 py-2">
           <div className="flex items-center gap-3">
@@ -79,7 +100,7 @@ function IGFeedContent({ imageUrl, brandName, caption }: { imageUrl: string; bra
           <Bookmark className="w-5 h-5" />
         </div>
         <div className="px-3 pb-1">
-          <p className="text-[11px] font-semibold">1,247 likes</p>
+          <p className="text-[11px] font-semibold">261 likes</p>
         </div>
         <div className="px-3 pb-3">
           <p className="text-[11px] leading-[15px]">
@@ -88,9 +109,9 @@ function IGFeedContent({ imageUrl, brandName, caption }: { imageUrl: string; bra
           </p>
         </div>
       </div>
-      <div className="flex items-center justify-around py-1.5 border-t border-white/10">
+      <div className="flex items-center justify-around py-2 border-t border-white/10">
         {["🏠", "🔍", "➕", "🎬", "👤"].map((e, i) => (
-          <span key={i} className={cn("text-sm", i === 0 ? "opacity-100" : "opacity-40")}>{e}</span>
+          <span key={i} className={cn("text-[14px]", i === 0 ? "opacity-100" : "opacity-40")}>{e}</span>
         ))}
       </div>
     </div>
@@ -103,44 +124,54 @@ function TikTokContent({ imageUrl, brandName, caption }: { imageUrl: string; bra
       <div className="absolute inset-0">
         <img src={imageUrl} alt="" className="w-full h-full object-cover" />
       </div>
-      <div className="relative z-10 flex items-center justify-center gap-5 pt-10 pb-2">
+      <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between px-3 pt-12 pb-2">
+        <span className="text-[10px] text-white/60">←</span>
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] font-semibold text-white/60">{brandName}</span>
+          <span className="text-[9px] text-white/40">Sponsored</span>
+        </div>
+        <span className="text-[12px]">📷</span>
+      </div>
+      <div className="relative z-10 flex items-center justify-center gap-5 pt-14 pb-2">
         <span className="text-[12px] text-white/50">Following</span>
         <span className="text-[12px] font-semibold border-b-2 border-white pb-0.5">For You</span>
       </div>
-      <div className="absolute right-2 bottom-24 z-10 flex flex-col items-center gap-4">
+      <div className="absolute right-3 bottom-28 z-10 flex flex-col items-center gap-5">
         <div className="flex flex-col items-center gap-0.5">
-          <Heart className="w-6 h-6" />
+          <Heart className="w-7 h-7" />
           <span className="text-[9px]">24.5K</span>
         </div>
         <div className="flex flex-col items-center gap-0.5">
-          <MessageCircle className="w-6 h-6" />
+          <MessageCircle className="w-7 h-7" />
           <span className="text-[9px]">312</span>
         </div>
         <div className="flex flex-col items-center gap-0.5">
-          <Bookmark className="w-5 h-5" />
+          <Bookmark className="w-6 h-6" />
           <span className="text-[9px]">1.8K</span>
         </div>
         <div className="flex flex-col items-center gap-0.5">
-          <Send className="w-5 h-5 -rotate-12" />
+          <Send className="w-6 h-6 -rotate-12" />
           <span className="text-[9px]">Share</span>
         </div>
       </div>
-      <div className="relative z-10 mt-auto px-3 pb-16">
-        <p className="text-[12px] font-semibold mb-0.5">@{brandName.toLowerCase().replace(/\s+/g, "")}</p>
+      <div className="relative z-10 mt-auto px-4 pb-4">
+        <p className="text-[12px] font-semibold mb-1">@{brandName.toLowerCase().replace(/\s+/g, "")}</p>
         <p className="text-[11px] leading-[14px] text-white/90 line-clamp-2">{caption}</p>
+        <div className="mt-2 bg-blue-600/90 rounded-md px-3 py-1.5 flex items-center justify-between">
+          <span className="text-[10px] font-semibold">Learn more</span>
+          <span className="text-[11px]">› ⋮</span>
+        </div>
       </div>
-      <div className="relative z-10 flex items-center justify-around py-2 bg-black border-t border-white/10">
-        {["Home", "Friends", "+", "Inbox", "Profile"].map((l, i) => (
-          <div key={i} className={cn("flex flex-col items-center", i === 0 ? "text-white" : "text-white/40")}>
-            {i === 2 ? (
-              <div className="w-9 h-5 bg-gradient-to-r from-cyan-400 to-pink-500 rounded-md flex items-center justify-center">
-                <span className="text-sm font-bold">+</span>
-              </div>
-            ) : (
-              <span className="text-[8px]">{l}</span>
-            )}
-          </div>
-        ))}
+      <div className="relative z-10 flex items-center justify-around py-2.5 bg-black border-t border-white/10">
+        <div className="flex items-center gap-0.5">
+          <span className="text-[9px] text-white/40">Add a comment...</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-[12px]">❤️</span>
+          <span className="text-[12px]">😂</span>
+          <span className="text-[12px]">🥺</span>
+          <span className="text-[12px]">➕</span>
+        </div>
       </div>
     </div>
   );
@@ -189,128 +220,263 @@ function LinkedInContent({ imageUrl, brandName, caption }: { imageUrl: string; b
   );
 }
 
-export default function CampaignSimulator({ imageUrl, brandName = "Brand", caption = "", className }: CampaignSimulatorProps) {
+// ── Main Component ──
+
+export default function CampaignSimulator({
+  imageUrl, brandName = "Brand", caption = "", className,
+  onStar, onEdit, onDownload, onSaveToLibrary, onHide, isStarred = false,
+}: CampaignSimulatorProps) {
   const [platform, setPlatform] = useState<SimPlatform>("instagram");
   const [showSafeZones, setShowSafeZones] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
+  const [previewMode, setPreviewMode] = useState<"preview" | "reels" | "feed">("feed");
 
   const renderContent = () => {
     if (!imageUrl) {
       return (
         <div className="flex flex-col items-center justify-center h-full bg-muted/30 text-muted-foreground gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-muted flex items-center justify-center">
-            <Eye className="w-5 h-5" />
+          <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center">
+            <ImageIcon className="w-7 h-7" />
           </div>
-          <p className="text-[11px] font-medium text-center px-4">Select a template below to preview it here</p>
+          <p className="text-[12px] font-medium text-center px-6">Select a template below to preview</p>
+          <p className="text-[10px] text-center px-8 text-muted-foreground/60">Choose from the Source Gallery or upload your own creative</p>
         </div>
       );
     }
     const props = { imageUrl, brandName, caption };
-    if (platform === "tiktok") return <TikTokContent {...props} />;
+    if (platform === "tiktok" || previewMode === "reels") return <TikTokContent {...props} />;
     if (platform === "linkedin" || platform === "facebook") return <LinkedInContent {...props} />;
     return <IGFeedContent {...props} />;
   };
 
-  const phoneScale = fullscreen ? 0.85 : 0.6;
+  const phoneScale = fullscreen ? 0.78 : 0.62;
 
   return (
-    <div className={cn("flex flex-col items-center gap-4", className)}>
-      {/* Platform switcher */}
-      <div className="flex items-center gap-1 p-1 bg-secondary/50 rounded-xl border border-border">
-        {PLATFORMS.map((p) => (
-          <button
-            key={p.key}
-            onClick={() => setPlatform(p.key)}
-            className={cn(
-              "px-3 py-1.5 rounded-lg text-[10px] font-semibold transition-all",
-              platform === p.key
-                ? "bg-foreground text-background shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
-            )}
-          >
-            {p.label}
-          </button>
-        ))}
-      </div>
+    <div className={cn("flex gap-6 items-start", fullscreen && "gap-8", className)}>
+      {/* ── Left: Phone Simulator ── */}
+      <div className="flex flex-col items-center gap-3">
+        {/* Preview mode tabs (like reference: Preview | Reels | Feed) */}
+        <div className="flex items-center gap-0 p-0.5 bg-secondary/60 rounded-lg border border-border">
+          {(["preview", "reels", "feed"] as const).map((mode) => (
+            <button
+              key={mode}
+              onClick={() => setPreviewMode(mode)}
+              className={cn(
+                "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[10px] font-semibold transition-all capitalize",
+                previewMode === mode
+                  ? "bg-background text-foreground shadow-sm border border-border"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              {mode === "preview" && <ImageIcon className="w-3 h-3" />}
+              {mode === "reels" && <span className="text-[10px]">▶</span>}
+              {mode === "feed" && <span className="text-[10px]">⊞</span>}
+              {mode.charAt(0).toUpperCase() + mode.slice(1)}
+            </button>
+          ))}
+          {/* Navigation arrows */}
+          <div className="flex items-center gap-0.5 ml-1 pl-1 border-l border-border">
+            <button className="w-6 h-6 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors text-[10px]">‹</button>
+            <button className="w-6 h-6 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors text-[10px]">›</button>
+          </div>
+        </div>
 
-      {/* iPhone 16 Pro Shell */}
-      <div
-        className="relative transition-transform duration-300"
-        style={{
-          width: 393 * phoneScale,
-          height: 852 * phoneScale,
-        }}
-      >
-        {/* Outer shell */}
+        {/* iPhone 16 Pro Shell */}
         <div
-          className="absolute inset-0 rounded-[55px] border-[4px] border-[#2A2A2E] bg-black shadow-2xl overflow-hidden"
+          className="relative transition-all duration-300"
           style={{
-            borderRadius: 55 * phoneScale,
-            borderWidth: Math.max(3, 4 * phoneScale),
+            width: 393 * phoneScale,
+            height: 852 * phoneScale,
           }}
         >
-          {/* Dynamic Island */}
           <div
-            className="absolute top-[10px] left-1/2 -translate-x-1/2 bg-black rounded-full z-20"
+            className="absolute inset-0 bg-black shadow-2xl overflow-hidden"
             style={{
-              width: 126 * phoneScale,
-              height: 37 * phoneScale,
-              top: 10 * phoneScale,
+              borderRadius: 55 * phoneScale,
+              border: `${Math.max(3, 4 * phoneScale)}px solid #2A2A2E`,
             }}
-          />
+          >
+            {/* Dynamic Island */}
+            <div
+              className="absolute left-1/2 -translate-x-1/2 bg-black rounded-full z-20"
+              style={{
+                width: 126 * phoneScale,
+                height: 37 * phoneScale,
+                top: 10 * phoneScale,
+              }}
+            />
 
-          {/* Content viewport */}
-          <div className="w-full h-full overflow-hidden relative" style={{ transform: `scale(${phoneScale})`, transformOrigin: "top left", width: 393, height: 852 }}>
-            {renderContent()}
+            {/* Content viewport */}
+            <div
+              className="w-full h-full overflow-hidden relative"
+              style={{ transform: `scale(${phoneScale})`, transformOrigin: "top left", width: 393, height: 852 }}
+            >
+              {previewMode === "preview" && imageUrl ? (
+                <div className="w-full h-full bg-muted/10 flex items-center justify-center p-4">
+                  <img src={imageUrl} alt="" className="max-w-full max-h-full object-contain rounded-lg" />
+                </div>
+              ) : (
+                renderContent()
+              )}
 
-            {/* Safe Zone overlays */}
-            {showSafeZones && imageUrl && (
-              <>
-                {SAFE_ZONES[platform]?.map((zone, i) => (
-                  <div key={i} className={cn("absolute z-30", zone.style)}>
-                    <div className="w-full h-full bg-red-500/25 border border-red-500/40 flex items-center justify-center">
-                      <span className="text-[8px] font-bold text-red-300 uppercase tracking-wider drop-shadow-lg">{zone.label}</span>
+              {/* Safe Zone overlays */}
+              {showSafeZones && imageUrl && previewMode !== "preview" && (
+                <>
+                  {SAFE_ZONES[platform]?.map((zone, i) => (
+                    <div key={i} className={cn("absolute z-30", zone.style)}>
+                      <div className="w-full h-full bg-red-500/20 border border-dashed border-red-400/50 flex items-center justify-center">
+                        <span className="text-[8px] font-bold text-red-300 uppercase tracking-wider drop-shadow-lg bg-red-900/40 px-1.5 py-0.5 rounded">{zone.label}</span>
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </>
-            )}
+                  ))}
+                </>
+              )}
+            </div>
+
+            {/* Home indicator */}
+            <div
+              className="absolute bottom-[6px] left-1/2 -translate-x-1/2 bg-white/30 rounded-full z-20"
+              style={{
+                width: 134 * phoneScale,
+                height: 5 * phoneScale,
+                bottom: 6 * phoneScale,
+              }}
+            />
+          </div>
+        </div>
+
+        {/* Platform switcher */}
+        <div className="flex items-center gap-1 p-1 bg-secondary/50 rounded-xl border border-border">
+          {PLATFORMS.map((p) => (
+            <button
+              key={p.key}
+              onClick={() => setPlatform(p.key)}
+              className={cn(
+                "px-3 py-1.5 rounded-lg text-[10px] font-semibold transition-all",
+                platform === p.key
+                  ? "bg-foreground text-background shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Carousel dots */}
+        {imageUrl && (
+          <div className="flex items-center gap-1">
+            {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => (
+              <div key={i} className={cn("w-1.5 h-1.5 rounded-full transition-colors", i === 5 ? "bg-foreground w-2.5" : "bg-muted-foreground/30")} />
+            ))}
+            <span className="text-[9px] text-muted-foreground ml-1.5">6 / 8</span>
+          </div>
+        )}
+
+        {/* Progress label */}
+        {imageUrl && (
+          <p className="text-[10px] text-muted-foreground">8 of 8 completed</p>
+        )}
+      </div>
+
+      {/* ── Right: Actions Panel ── */}
+      {imageUrl && (
+        <div className="flex flex-col gap-0 min-w-[160px] max-w-[200px] pt-10">
+          {/* ACTIONS */}
+          <p className="text-[9px] uppercase tracking-widest text-muted-foreground font-semibold mb-2 px-1">Actions</p>
+          <div className="flex flex-col">
+            <button
+              onClick={onStar}
+              className={cn(
+                "flex items-center gap-2.5 px-3 py-2.5 text-xs font-medium transition-colors hover:bg-secondary/50 rounded-lg",
+                isStarred ? "text-amber-500" : "text-foreground"
+              )}
+            >
+              <Star className={cn("w-4 h-4", isStarred && "fill-current")} />
+              Star
+            </button>
+            <button
+              onClick={onEdit}
+              className="flex items-center gap-2.5 px-3 py-2.5 text-xs font-medium text-primary hover:bg-primary/5 rounded-lg transition-colors"
+            >
+              <Pencil className="w-4 h-4" />
+              Edit
+            </button>
+            <button
+              onClick={onDownload}
+              className="flex items-center gap-2.5 px-3 py-2.5 text-xs font-medium text-foreground hover:bg-secondary/50 rounded-lg transition-colors"
+            >
+              <Download className="w-4 h-4" />
+              Download all
+            </button>
+            <button
+              onClick={onSaveToLibrary}
+              className="flex items-center gap-2.5 px-3 py-2.5 text-xs font-medium text-foreground hover:bg-secondary/50 rounded-lg transition-colors"
+            >
+              <FolderPlus className="w-4 h-4" />
+              Save to Library
+            </button>
+            <button
+              onClick={onHide}
+              className="flex items-center gap-2.5 px-3 py-2.5 text-xs font-medium text-foreground hover:bg-secondary/50 rounded-lg transition-colors"
+            >
+              <HideIcon className="w-4 h-4" />
+              Hide
+            </button>
           </div>
 
-          {/* Home indicator */}
-          <div
-            className="absolute bottom-[6px] left-1/2 -translate-x-1/2 bg-white/30 rounded-full z-20"
-            style={{
-              width: 134 * phoneScale,
-              height: 5 * phoneScale,
-              bottom: 6 * phoneScale,
-            }}
-          />
-        </div>
-      </div>
+          {/* ASPECT RATIO VARIANTS */}
+          <div className="mt-5">
+            <p className="text-[9px] uppercase tracking-widest text-muted-foreground font-semibold mb-2 px-1">Aspect Ratio Variants</p>
+            <button className="flex items-center gap-2 px-3 py-2 text-xs text-foreground hover:bg-secondary/50 rounded-lg transition-colors w-full">
+              <span className="text-[11px]">+</span>
+              <span className="font-medium">Fill Meta Placements (0)</span>
+            </button>
+            <button className="flex items-center gap-2 px-3 py-2 text-xs text-foreground hover:bg-secondary/50 rounded-lg transition-colors w-full">
+              <span className="text-[11px]">⊞</span>
+              <span className="font-medium">Fill Remaining Formats (0)</span>
+            </button>
 
-      {/* Controls */}
-      <div className="flex items-center gap-2">
-        <button
-          onClick={() => setShowSafeZones(!showSafeZones)}
-          className={cn(
-            "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-semibold transition-all border",
-            showSafeZones
-              ? "bg-red-500/10 border-red-500/30 text-red-400"
-              : "bg-secondary/50 border-border text-muted-foreground hover:text-foreground"
-          )}
-        >
-          {showSafeZones ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
-          Safe Zones
-        </button>
-        <button
-          onClick={() => setFullscreen(!fullscreen)}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-semibold bg-secondary/50 border border-border text-muted-foreground hover:text-foreground transition-all"
-        >
-          {fullscreen ? <Minimize2 className="w-3 h-3" /> : <Maximize2 className="w-3 h-3" />}
-          {fullscreen ? "Compact" : "Expand"}
-        </button>
-      </div>
+            {/* Variant thumbnails grid */}
+            <div className="grid grid-cols-2 gap-2 mt-3 px-1">
+              {ASPECT_VARIANTS.map((v) => (
+                <div key={v.label} className="relative rounded-lg overflow-hidden border border-border bg-secondary/30 hover:border-primary/40 transition-colors cursor-pointer group">
+                  <div style={{ aspectRatio: `${v.w}/${v.h}`, maxHeight: 100 }} className="w-full overflow-hidden">
+                    <img src={imageUrl!} alt={v.label} className="w-full h-full object-cover" />
+                  </div>
+                  <div className="flex items-center justify-between px-1.5 py-1">
+                    <span className="text-[9px] font-semibold text-foreground">{v.label}</span>
+                    <span className="text-[10px] text-green-500">✓</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Controls */}
+          <div className="mt-5 flex flex-col gap-1.5 px-1">
+            <button
+              onClick={() => setShowSafeZones(!showSafeZones)}
+              className={cn(
+                "flex items-center gap-2 px-3 py-2 rounded-lg text-[10px] font-semibold transition-all border w-full",
+                showSafeZones
+                  ? "bg-red-500/10 border-red-500/30 text-red-400"
+                  : "bg-secondary/50 border-border text-muted-foreground hover:text-foreground"
+              )}
+            >
+              {showSafeZones ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+              Safe Zones
+            </button>
+            <button
+              onClick={() => setFullscreen(!fullscreen)}
+              className="flex items-center gap-2 px-3 py-2 rounded-lg text-[10px] font-semibold bg-secondary/50 border border-border text-muted-foreground hover:text-foreground transition-all w-full"
+            >
+              {fullscreen ? <Minimize2 className="w-3 h-3" /> : <Maximize2 className="w-3 h-3" />}
+              {fullscreen ? "Compact" : "Expand"}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
