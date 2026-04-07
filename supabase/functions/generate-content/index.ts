@@ -759,7 +759,8 @@ async function processAssetsInBackground(
   placeholderIds: string[],
   decisionTraceId: string | null,
   decisionWinner: any,
-  creativeDirection: any | null
+  creativeDirection: any | null,
+  referenceImageUrl: string | null = null
 ) {
   const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
