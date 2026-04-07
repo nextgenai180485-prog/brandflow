@@ -92,6 +92,14 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
+            <Route
+              path="/dashboard/social-settings"
+              element={
+                <ProtectedRoute>
+                  <SocialSettings />
+                </ProtectedRoute>
+              }
+            />
             <Route path="*" element={<NotFound />} />
           </Routes>
           <GlobalCMOChat />
