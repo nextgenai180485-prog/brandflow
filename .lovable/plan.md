@@ -1,56 +1,41 @@
 
-## Enterprise-Grade Gap Closure Plan
 
-After a full audit of the codebase, architecture, and UX, here are the **7 gaps** that need closing before we move to dataset loading. Each is scoped, prioritized, and actionable.
+## Assessment: Yes — Enterprise Grade
 
----
+The reference shows exactly the pattern used by Pinterest, Dribbble, and Behance: **Tab Navigation** (Templates / Competitors / Your Generations / For You) + **Filter Chips** (All / Trending / Top Ads). This is the standard discovery UX for content platforms.
 
-### 1. 🔒 Admin Role Check in Edge Function (CRITICAL — Security)
-**Gap:** The `admin-library` edge function authenticates the user but **never checks if they have the admin role**. Any authenticated user can create/update/delete library items.
-**Fix:** Add `has_role` check via a query to `user_roles` in the edge function before allowing write operations (`create`, `update`, `toggle`, `delete`).
+**Why it works:**
+- Reduces cognitive load — users self-select their intent
+- "For You" tab signals personalization (even before ML, it can filter by the user's onboarded category)
+- Filter chips add a second axis without adding complexity
+- Shadcn `Tabs` + `Badge`/`Button` chips are already in the project — zero new dependencies
 
----
+## Plan
 
-### 2. 🛡️ Error Boundary (HIGH — Stability)
-**Gap:** No React error boundary exists. A single component crash whiteouts the entire app.
-**Fix:** Create a `<ErrorBoundary>` component wrapping `<Routes>` in `App.tsx` with a branded fallback UI ("Something went wrong — reload").
+### 1. Add Tabs + Filter Chips to EmptyCampaigns
 
----
+**File:** `src/components/EmptyCampaigns.tsx`
 
-### 3. 📊 Admin Dashboard → Libraries Link Fix (MEDIUM — UX)
-**Gap:** The Admin Dashboard navigation link in `AppShell.tsx` points to `/dashboard/admin`, but the sidebar Libraries link references `/dashboard/admin/libraries`. The nav item uses `startsWith` matching — both will highlight. This is correct but the admin nav should have a sub-route to libraries directly accessible.
-**Status:** ✅ Already working — no fix needed.
+- Replace the static "See what Brandflow creates" divider with Shadcn `Tabs` component
+- **Tabs:** Templates | Competitors | Your Generations | For You
+- **Filter chips row** (below tabs): All | Trending (all categories) | Trending (your categories) | Top Ads (all categories) | Top Ads (your categories)
+- Use small `Button variant="outline"` with active state for chips
+- Both tabs and chips are local state filters — they filter the `showcaseItems` array
+- On mobile: tabs use `overflow-x-auto` horizontal scroll, chips wrap naturally
 
----
+### 2. Filter Logic (Static Phase)
 
-### 4. 🔄 Edge Function Deployment Verification (HIGH — Reliability)
-**Gap:** The `admin-library` edge function is the only backend gate for all 5 library tables. If it fails silently, the entire admin panel is dead.
-**Fix:** Add a health-check toast on the Admin Dashboard that pings the edge function on mount with a lightweight `list` call to verify connectivity.
+Since the showcase currently uses static images, filtering will work by tagging each `showcaseItem` with a `tab` (template/competitor/generation/foryou) and a `filter` (trending/top). In this phase, all items show under "Templates" and "For You" tabs. "Your Generations" and "Competitors" tabs show an empty state with a subtle prompt.
 
----
+### 3. Styling
 
-### 5. 📱 Mobile Admin Experience (MEDIUM — UX)
-**Gap:** The admin library tabs use a 5-column grid on mobile (`grid-cols-5`), which crushes the text. Tab labels are barely readable at 390px.
-**Fix:** Switch to horizontal `ScrollArea` on mobile with `overflow-x-auto` instead of cramming 5 columns.
+- Tabs: Shadcn `Tabs` / `TabsList` / `TabsTrigger` — matches the reference exactly
+- Chips: `Button variant="outline" size="sm"` with `bg-orange-50 border-orange-200` for active state (matching the warm highlight in the reference)
+- Both use `text-sm` / `text-xs` to stay subordinate to the main CTA
 
----
+### Technical Notes
 
-### 6. 🎨 Inspiration Showcase Graceful Empty State (LOW — Polish)
-**Gap:** The `EmptyCampaigns` showcase section correctly hides when no library data exists. ✅ No fix needed.
+- No new dependencies — uses existing `Tabs` from `@/components/ui/tabs` and `Button`
+- No database queries added — purely client-side filtering of showcase items
+- Future: swap static items for Supabase queries when libraries are populated
 
----
-
-### 7. 📋 Bulk Import — CSV Column Mismatch Protection (MEDIUM — Data Integrity)
-**Gap:** The bulk import parses any CSV blindly — if column headers don't match the table schema, rows silently fail with cryptic Supabase errors.
-**Fix:** Add a column validation step before import that checks parsed headers against expected fields and warns about mismatches.
-
----
-
-## Implementation Order
-1. **Admin role check in edge function** (security — must do first)
-2. **Error boundary** (stability foundation)
-3. **Mobile admin tabs** (UX polish)
-4. **Bulk import validation** (data integrity for dataset loading)
-5. **Edge function health check** (operational confidence)
-
-Items 3, 5, 6 are already working or cosmetic — so the **real blockers are items 1, 2, and 7**.
