@@ -170,13 +170,13 @@ const AssetLibraryPicker = ({ selectedAssets, onChange }: AssetLibraryPickerProp
       {selectedAssets.length === 0 && (
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <button className="w-full flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-border py-8 cursor-pointer hover:border-foreground/30 hover:bg-secondary/50 transition-all">
-              <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center">
-                <FolderOpen className="w-4 h-4 text-muted-foreground" />
+            <button className="w-full flex items-center gap-3 rounded-xl border-2 border-dashed border-border py-3 px-4 cursor-pointer hover:border-foreground/30 hover:bg-secondary/50 transition-all">
+              <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center shrink-0">
+                <FolderOpen className="w-3.5 h-3.5 text-muted-foreground" />
               </div>
-              <div className="text-center">
-                <p className="text-sm font-medium text-foreground">Select from Asset Library</p>
-                <p className="text-xs text-muted-foreground mt-1">Choose existing assets or upload new ones</p>
+              <div className="text-left">
+                <p className="text-xs font-medium text-foreground">Select from Asset Library</p>
+                <p className="text-[10px] text-muted-foreground">Choose existing assets or upload new ones</p>
               </div>
             </button>
           </DialogTrigger>
