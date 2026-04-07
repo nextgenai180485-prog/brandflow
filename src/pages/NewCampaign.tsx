@@ -150,17 +150,6 @@ const NewCampaign = () => {
       pro_video: "video",
     };
 
-    // Auto-route to generation family based on content type + platform
-    const routeFamily = (ct: ContentType, platform: SocialPlatform): string => {
-      if (ct === "ugc_video") return "F1";
-      if (ct === "pro_video") {
-        if (platform === "linkedin" || platform === "youtube") return "F2";
-        return "F5";
-      }
-      // Image routing
-      if (platform === "facebook" || platform === "x" || platform === "linkedin") return "F7";
-      return "F9";
-    };
 
     const generationAssets = platforms.flatMap((p) =>
       contentTypes.map((ct) => {
