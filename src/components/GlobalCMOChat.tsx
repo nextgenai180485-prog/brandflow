@@ -354,10 +354,10 @@ const GlobalCMOChat = () => {
         />
       )}
 
-      {/* Slide-over panel */}
+      {/* Slide-over panel — LEFT side (Global Context zone) */}
       <div
-        className={`fixed top-0 right-0 z-[100] h-full w-[480px] bg-background/95 backdrop-blur-xl border-l border-border shadow-2xl transition-transform duration-300 ease-out ${
-          open ? "translate-x-0" : "translate-x-full"
+        className={`fixed top-0 left-0 z-[100] h-full w-[480px] bg-background/95 backdrop-blur-xl border-r border-border shadow-2xl transition-transform duration-300 ease-out ${
+          open ? "translate-x-0" : "-translate-x-full"
         }`}
       >
         {chatContent}
