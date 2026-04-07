@@ -82,6 +82,23 @@ const TABLE_CONFIGS: Record<TableName, {
     ],
     tagFields: ["tags"],
   },
+  hooks: {
+    nameField: "hook_text",
+    columns: [
+      { key: "hook_text", label: "Hook Text" },
+      { key: "hook_type", label: "Type" },
+      { key: "family", label: "Family" },
+      { key: "platform", label: "Platform" },
+      { key: "effectiveness_score", label: "Score" },
+      { key: "usage_count", label: "Uses" },
+    ],
+    mobileFields: [
+      { key: "hook_type", label: "Type" },
+      { key: "family", label: "Family" },
+      { key: "effectiveness_score", label: "Score" },
+    ],
+    tagFields: [],
+  },
 };
 
 const AdminLibraryTable = ({ tableName }: AdminLibraryTableProps) => {
