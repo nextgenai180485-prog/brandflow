@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Eye, EyeOff, Maximize2, Minimize2, Star, Pencil, Download, FolderPlus, EyeOff as HideIcon, Image as ImageIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Heart, MessageCircle, Send, Bookmark, MoreHorizontal } from "lucide-react";
