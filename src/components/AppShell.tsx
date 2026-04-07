@@ -14,6 +14,7 @@ const navItems = [
   { label: "Creative Sandbox", path: "/dashboard/visual-director" },
   { label: "Libraries", path: "/dashboard/admin/libraries" },
   { label: "Calendar", path: "/calendar" },
+  { label: "Channels", path: "/dashboard/social-settings" },
 ];
 
 const AppShell = ({ children }: { children: React.ReactNode }) => {
