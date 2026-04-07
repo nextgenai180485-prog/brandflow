@@ -122,12 +122,29 @@ const SentientCMORail = () => {
     }
 
     const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-    const { count: recentCount } = await supabase
-      .from("generated_assets")
-      .select("*", { count: "exact", head: true })
-      .eq("profile_id", user.id)
-      .gte("created_at", dayAgo);
+    const [{ count: recentCount }, { count: templateCount }] = await Promise.all([
+      supabase
+        .from("generated_assets")
+        .select("*", { count: "exact", head: true })
+        .eq("profile_id", user.id)
+        .gte("created_at", dayAgo),
+      supabase
+        .from("ad_reference_library")
+        .select("*", { count: "exact", head: true })
+        .eq("is_active", true),
+    ]);
     setRecentAssetCount(recentCount || 0);
+
+    // Template library signal
+    if ((templateCount || 0) > 0 && campaignList.length === 0) {
+      newInsights.push({
+        id: "template-library-available",
+        type: "opportunity",
+        title: `${templateCount} Templates in Source Gallery`,
+        body: `Your Source Gallery has ${templateCount} ready-to-use templates. Browse them in the Campaign Workspace to find proven formats for your vertical.`,
+        action: "Create Campaign",
+      });
+    }
 
     if (pendingList.length > 0) {
       newInsights.push({
