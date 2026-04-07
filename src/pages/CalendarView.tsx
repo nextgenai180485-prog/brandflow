@@ -273,7 +273,7 @@ const CalendarView = () => {
       <div className="h-full flex flex-col">
         {/* ─── TOP BAR ─── */}
         <div className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-10">
-          <div className="px-4 md:px-6 py-3 max-w-[1400px] mx-auto">
+          <div className="px-4 sm:px-6 py-3">
             {/* Row 1: Title + Nav */}
             <div className="flex items-center justify-between gap-2">
               <div className="min-w-0">
