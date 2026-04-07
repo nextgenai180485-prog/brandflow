@@ -64,6 +64,7 @@ const EmptyCampaigns = ({ onCreateClick, hasProfile = true }: EmptyCampaignsProp
         .from("ad_reference_library")
         .select("id, title, description, media_url, thumbnail_url, industry_tags, mood_tags, platform_tags, sealcam_analysis, performance_notes")
         .eq("is_active", true)
+        .not("thumbnail_url", "is", null)
         .order("usage_count", { ascending: false })
         .limit(20);
 
