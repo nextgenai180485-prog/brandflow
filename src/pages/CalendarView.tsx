@@ -55,6 +55,7 @@ const CalendarView = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [showQueue, setShowQueue] = useState(false);
   const [selectedMobileDay, setSelectedMobileDay] = useState<Date>(new Date());
+  const [publishAsset, setPublishAsset] = useState<AssetWithCampaign | null>(null);
 
   const weekStart = useMemo(() => startOfWeek(currentDate, { weekStartsOn: 1 }), [currentDate]);
 
