@@ -68,7 +68,11 @@ const Onboarding = () => {
         .select("*")
         .eq("profile_id", user.id);
       if (assets && assets.length > 0) {
-        setUploadedAssets(assets.map((a: any) => ({ url: a.file_url, name: a.file_name, type: a.asset_type })));
+        setUploadedAssets(assets.map((a: any) => ({
+          url: a.file_url,
+          name: a.file_name,
+          type: a.asset_type,
+        })));
       }
       setLoading(false);
     };
