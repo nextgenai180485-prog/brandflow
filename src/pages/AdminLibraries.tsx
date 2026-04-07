@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import AppShell from "@/components/AppShell";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Film, Users, Image, Megaphone } from "lucide-react";
+import { Film, Users, Image, Megaphone, Zap } from "lucide-react";
 import AdminLibraryTable from "@/components/admin/AdminLibraryTable";
 
 const TABS = [
@@ -10,6 +10,7 @@ const TABS = [
   { value: "character_library", label: "Characters", fullLabel: "Characters", icon: Users, table: "character_library" as const },
   { value: "ad_reference_library", label: "Ads", fullLabel: "Ad References", icon: Megaphone, table: "ad_reference_library" as const },
   { value: "image_templates", label: "Images", fullLabel: "Image Templates", icon: Image, table: "image_templates" as const },
+  { value: "hooks", label: "Hooks", fullLabel: "Hooks", icon: Zap, table: "hooks" as const },
 ];
 
 const AdminLibraries = () => {
@@ -27,7 +28,7 @@ const AdminLibraries = () => {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="mb-4 w-full grid grid-cols-4 h-auto p-1">
+          <TabsList className="mb-4 w-full grid grid-cols-5 h-auto p-1">
             {TABS.map((tab) => (
               <TabsTrigger
                 key={tab.value}
