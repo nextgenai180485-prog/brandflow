@@ -385,7 +385,7 @@ export default function CampaignSimulator({
 
       {/* ── Right: Actions Panel ── */}
       {imageUrl && (
-        <div className="flex flex-col gap-0 min-w-[160px] max-w-[200px] pt-10">
+        <div className="flex flex-col gap-0 min-w-[140px] max-w-[180px] pt-6">
           {/* ACTIONS */}
           <p className="text-[9px] uppercase tracking-widest text-muted-foreground font-semibold mb-2 px-1">Actions</p>
           <div className="flex flex-col">
@@ -430,7 +430,7 @@ export default function CampaignSimulator({
           </div>
 
           {/* ASPECT RATIO VARIANTS */}
-          <div className="mt-5">
+          <div className="mt-3">
             <p className="text-[9px] uppercase tracking-widest text-muted-foreground font-semibold mb-2 px-1">Aspect Ratio Variants</p>
             <button className="flex items-center gap-2 px-3 py-2 text-xs text-foreground hover:bg-secondary/50 rounded-lg transition-colors w-full">
               <span className="text-[11px]">+</span>
@@ -458,7 +458,7 @@ export default function CampaignSimulator({
           </div>
 
           {/* Controls */}
-          <div className="mt-5 flex flex-col gap-1.5 px-1">
+          <div className="mt-3 flex flex-col gap-1 px-1">
             <button
               onClick={() => setShowSafeZones(!showSafeZones)}
               className={cn(
