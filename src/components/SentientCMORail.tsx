@@ -277,7 +277,7 @@ const SentientCMORail = () => {
         {/* Floating Command Deck pill — bottom center, left of CSO button */}
         <button
           onClick={() => setIsExpanded(true)}
-          className="fixed bottom-4 right-4 z-[70] flex items-center gap-2 px-4 py-2.5 rounded-full bg-foreground text-background shadow-xl hover:scale-105 transition-transform"
+          className="fixed bottom-20 right-4 z-[70] flex items-center gap-2 px-4 py-2.5 rounded-full bg-foreground text-background shadow-xl hover:scale-105 transition-transform"
         >
           <Brain className="w-4 h-4" />
           <span className="text-[11px] font-bold">CMO</span>

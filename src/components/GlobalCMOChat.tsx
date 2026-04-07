@@ -339,7 +339,7 @@ const GlobalCMOChat = () => {
         {/* Mobile CSO Trigger — fixed bottom-left */}
         <button
           onClick={() => setOpen(true)}
-          className="fixed left-4 bottom-4 z-[80] w-11 h-11 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-lg hover:scale-105 transition-transform"
+          className="fixed left-4 bottom-20 z-[80] w-11 h-11 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-lg hover:scale-105 transition-transform"
           title="Open Strategy Core"
         >
           <Sparkles className="w-5 h-5" />
