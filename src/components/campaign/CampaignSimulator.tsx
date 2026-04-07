@@ -412,14 +412,6 @@ export default function CampaignSimulator({
           {/* ASPECT RATIO VARIANTS */}
           <div className="mt-3">
             <p className="text-[9px] uppercase tracking-widest text-muted-foreground font-semibold mb-2 px-1">Aspect Ratio Variants</p>
-            <button className="flex items-center gap-2 px-3 py-2 text-xs text-foreground hover:bg-secondary/50 rounded-lg transition-colors w-full">
-              <span className="text-[11px]">+</span>
-              <span className="font-medium">Fill Meta Placements (0)</span>
-            </button>
-            <button className="flex items-center gap-2 px-3 py-2 text-xs text-foreground hover:bg-secondary/50 rounded-lg transition-colors w-full">
-              <span className="text-[11px]">⊞</span>
-              <span className="font-medium">Fill Remaining Formats (0)</span>
-            </button>
 
             {/* Variant thumbnails grid */}
             <div className="grid grid-cols-2 gap-1.5 mt-2 px-1">
