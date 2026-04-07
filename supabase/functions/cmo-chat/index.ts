@@ -67,7 +67,7 @@ The workspace is a unified three-zone layout — users never leave the page.
 - Recommend specific platforms based on their brand archetype and target audience
 
 **Template Reference Flow:**
-- When a user selects a template from the Source Gallery, its `media_url` becomes the `referenceImageUrl` for generation
+- When a user selects a template from the Source Gallery, its media_url becomes the referenceImageUrl for generation
 - The engine matches the reference's composition, lighting, and mood via style injection
 - Guide users: "Select a reference from the gallery below — the engine will match its composition and mood via style injection"
 - For F8 Creative Cloner, the reference serves as the primary visual anchor for style-cloning
