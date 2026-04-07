@@ -231,6 +231,15 @@ export default function CampaignSimulator({
   const [fullscreen, setFullscreen] = useState(false);
   const [previewMode, setPreviewMode] = useState<"preview" | "reels" | "feed">("feed");
 
+  // Auto-close fullscreen on any click outside the overlay content
+  const closeFullscreen = useCallback(() => setFullscreen(false), []);
+  useEffect(() => {
+    if (!fullscreen) return;
+    const handleKey = (e: KeyboardEvent) => { if (e.key === "Escape") setFullscreen(false); };
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [fullscreen]);
+
   const renderContent = () => {
     if (!imageUrl) {
       return (
@@ -252,11 +261,91 @@ export default function CampaignSimulator({
   // Dynamic scale to fit container without scroll
   const availableHeight = typeof window !== "undefined" ? window.innerHeight - 56 - 220 - 40 : 600;
   const maxPhoneHeight = availableHeight - 90;
-  const dynamicScale = Math.min(fullscreen ? 0.78 : 0.62, maxPhoneHeight / 852);
+  const dynamicScale = Math.min(0.62, maxPhoneHeight / 852);
   const phoneScale = Math.max(0.35, dynamicScale);
+  const expandedScale = 0.85;
+
+  // Phone renderer (shared between inline and overlay)
+  const renderPhone = (scale: number) => (
+    <div
+      className="relative transition-all duration-300"
+      style={{ width: 393 * scale, height: 852 * scale }}
+    >
+      <div
+        className="absolute inset-0 bg-black shadow-2xl overflow-hidden"
+        style={{ borderRadius: 55 * scale, border: `${Math.max(3, 4 * scale)}px solid #2A2A2E` }}
+      >
+        <div
+          className="absolute left-1/2 -translate-x-1/2 bg-black rounded-full z-20"
+          style={{ width: 126 * scale, height: 37 * scale, top: 10 * scale }}
+        />
+        <div
+          className="w-full h-full overflow-hidden relative"
+          style={{ transform: `scale(${scale})`, transformOrigin: "top left", width: 393, height: 852 }}
+        >
+          {previewMode === "preview" && imageUrl ? (
+            <div className="w-full h-full bg-muted/10 flex items-center justify-center p-4">
+              <img src={imageUrl} alt="" className="max-w-full max-h-full object-contain rounded-lg" />
+            </div>
+          ) : renderContent()}
+          {showSafeZones && imageUrl && previewMode !== "preview" && (
+            <>
+              {SAFE_ZONES[platform]?.map((zone, i) => (
+                <div key={i} className={cn("absolute z-30", zone.style)}>
+                  <div className="w-full h-full bg-red-500/20 border border-dashed border-red-400/50 flex items-center justify-center">
+                    <span className="text-[8px] font-bold text-red-300 uppercase tracking-wider drop-shadow-lg bg-red-900/40 px-1.5 py-0.5 rounded">{zone.label}</span>
+                  </div>
+                </div>
+              ))}
+            </>
+          )}
+        </div>
+        <div
+          className="absolute bottom-[6px] left-1/2 -translate-x-1/2 bg-white/30 rounded-full z-20"
+          style={{ width: 134 * scale, height: 5 * scale, bottom: 6 * scale }}
+        />
+      </div>
+    </div>
+  );
+
+  // ── Fullscreen Overlay ──
+  const fullscreenOverlay = fullscreen && (
+    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center" onClick={closeFullscreen}>
+      <div className="relative flex flex-col items-center gap-3 animate-in zoom-in-95 fade-in duration-200" onClick={(e) => e.stopPropagation()}>
+        {/* Close hint */}
+        <p className="text-[10px] text-white/50 font-medium">Click outside or press Esc to close</p>
+        {renderPhone(expandedScale)}
+        {/* Compact controls in overlay */}
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 px-2.5 py-1 bg-white/10 rounded-full border border-white/20">
+            <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+            <span className="text-[10px] font-semibold text-white capitalize">{platform}</span>
+          </div>
+          <button
+            onClick={() => setShowSafeZones(!showSafeZones)}
+            className={cn(
+              "flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold transition-all border",
+              showSafeZones ? "bg-red-500/20 border-red-500/40 text-red-300" : "bg-white/10 border-white/20 text-white/70 hover:text-white"
+            )}
+          >
+            {showSafeZones ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+            Safe Zones
+          </button>
+          <button
+            onClick={closeFullscreen}
+            className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold bg-white/10 border border-white/20 text-white/70 hover:text-white transition-all"
+          >
+            <Minimize2 className="w-3 h-3" /> Close
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
-    <div className={cn("flex gap-4 items-start", fullscreen && "gap-6", className)}>
+    <>
+      {fullscreenOverlay}
+      <div className={cn("flex gap-4 items-start", className)}>
       {/* ── Left: Phone Simulator ── */}
       <div className="flex flex-col items-center gap-1.5">
         {/* Preview mode tabs */}
