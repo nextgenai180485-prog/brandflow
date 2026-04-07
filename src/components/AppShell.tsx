@@ -39,9 +39,7 @@ const AppShell = ({ children }: { children: React.ReactNode }) => {
     navigate("/login");
   };
 
-  const openCSO = () => {
-    window.dispatchEvent(new CustomEvent("toggle-cso"));
-  };
+  // CSO is now triggered from the left-edge dock in GlobalCMOChat
 
   return (
     <div className="min-h-screen bg-background">
@@ -74,16 +72,6 @@ const AppShell = ({ children }: { children: React.ReactNode }) => {
           </div>
 
           <div className="flex items-center gap-2">
-            {/* CSO Trigger */}
-            <button
-              onClick={openCSO}
-              className="relative flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary transition-all hover:bg-primary/20 hover:scale-[1.02] active:scale-[0.98]"
-              title="Open Chief Strategy Officer (⌘K)"
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Strategy</span>
-              <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-primary animate-pulse" />
-            </button>
 
             <DropdownMenu>
               <DropdownMenuTrigger className="flex items-center gap-1.5 rounded-full p-0.5 pr-2 transition-colors hover:bg-accent focus:outline-none">
