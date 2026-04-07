@@ -50,7 +50,7 @@ const AdminDashboard = () => {
 
   return (
     <AppShell>
-      <div className="mx-auto max-w-5xl px-4 sm:px-6 py-6">
+      <div className="px-4 sm:px-6 pt-4 pb-8">
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-lg font-bold text-foreground">Admin Dashboard</h1>

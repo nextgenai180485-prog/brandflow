@@ -273,7 +273,7 @@ const CalendarView = () => {
       <div className="h-full flex flex-col">
         {/* ─── TOP BAR ─── */}
         <div className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-10">
-          <div className="px-4 md:px-6 py-3 max-w-[1400px] mx-auto">
+          <div className="px-4 sm:px-6 py-3">
             {/* Row 1: Title + Nav */}
             <div className="flex items-center justify-between gap-2">
               <div className="min-w-0">
@@ -334,7 +334,7 @@ const CalendarView = () => {
         {/* ─── CONTENT ─── */}
         <div className="flex-1 overflow-auto">
           {loading ? (
-            <div className="p-4 md:p-6 max-w-[1400px] mx-auto space-y-3">
+            <div className="p-4 md:p-6  space-y-3">
               {/* Mobile: vertical skeleton, Desktop: grid */}
               <div className="block sm:hidden space-y-3">
                 {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-16 rounded-xl" />)}
@@ -345,7 +345,7 @@ const CalendarView = () => {
             </div>
           ) : showQueue ? (
             /* ═══ QUEUE VIEW ═══ */
-            <div className="p-4 md:p-6 max-w-[1400px] mx-auto space-y-4">
+            <div className="p-4 md:p-6  space-y-4">
               {/* Filters: horizontal scroll on mobile */}
               <div className="overflow-x-auto no-scrollbar -mx-4 px-4 md:mx-0 md:px-0">
                 <div className="flex items-center gap-2 w-max md:w-auto md:flex-wrap">
@@ -477,7 +477,7 @@ const CalendarView = () => {
               </div>
 
               {/* ─── DESKTOP CALENDAR (≥ sm) ─── */}
-              <div className="hidden sm:block p-4 md:p-6 max-w-[1400px] mx-auto">
+              <div className="hidden sm:block p-4 md:p-6 ">
                 {/* Day headers */}
                 <div className="grid grid-cols-7 gap-1 mb-1">
                   {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((d) => (
