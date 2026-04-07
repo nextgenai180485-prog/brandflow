@@ -266,48 +266,95 @@ export default function CampaignSimulator({
   const phoneScale = Math.max(0.35, dynamicScale);
   const expandedScale = 0.85;
 
-  // Phone renderer (shared between inline and overlay)
-  const renderPhone = (scale: number) => (
-    <div
-      className="relative transition-all duration-300"
-      style={{ width: 393 * scale, height: 852 * scale }}
-    >
+  // Get active aspect ratio dimensions
+  const activeVariant = ASPECT_VARIANTS.find(v => v.label === activeAspect) || ASPECT_VARIANTS[0];
+  const aspectRatio = activeVariant.w / activeVariant.h;
+
+  // Phone renderer with aspect-aware content area
+  const renderPhone = (scale: number) => {
+    // Content area dimensions inside the phone shell
+    const phoneW = 393;
+    const phoneH = 852;
+    const contentPadding = activeAspect === "9:16" ? 0 : 16;
+    const contentMaxW = phoneW - contentPadding * 2;
+    const contentMaxH = phoneH - 60; // leave room for dynamic island + home bar
+
+    let contentW: number, contentH: number;
+    if (aspectRatio >= contentMaxW / contentMaxH) {
+      contentW = contentMaxW;
+      contentH = contentMaxW / aspectRatio;
+    } else {
+      contentH = contentMaxH;
+      contentW = contentMaxH * aspectRatio;
+    }
+
+    return (
       <div
-        className="absolute inset-0 bg-black shadow-2xl overflow-hidden"
-        style={{ borderRadius: 55 * scale, border: `${Math.max(3, 4 * scale)}px solid #2A2A2E` }}
+        className="relative transition-all duration-300"
+        style={{ width: phoneW * scale, height: phoneH * scale }}
       >
         <div
-          className="absolute left-1/2 -translate-x-1/2 bg-black rounded-full z-20"
-          style={{ width: 126 * scale, height: 37 * scale, top: 10 * scale }}
-        />
-        <div
-          className="w-full h-full overflow-hidden relative"
-          style={{ transform: `scale(${scale})`, transformOrigin: "top left", width: 393, height: 852 }}
+          className="absolute inset-0 bg-black shadow-2xl overflow-hidden"
+          style={{ borderRadius: 55 * scale, border: `${Math.max(3, 4 * scale)}px solid #2A2A2E` }}
         >
-          {previewMode === "preview" && imageUrl ? (
-            <div className="w-full h-full bg-muted/10 flex items-center justify-center p-4">
-              <img src={imageUrl} alt="" className="max-w-full max-h-full object-contain rounded-lg" />
-            </div>
-          ) : renderContent()}
-          {showSafeZones && imageUrl && previewMode !== "preview" && (
-            <>
-              {SAFE_ZONES[platform]?.map((zone, i) => (
-                <div key={i} className={cn("absolute z-30", zone.style)}>
-                  <div className="w-full h-full bg-red-500/20 border border-dashed border-red-400/50 flex items-center justify-center">
-                    <span className="text-[8px] font-bold text-red-300 uppercase tracking-wider drop-shadow-lg bg-red-900/40 px-1.5 py-0.5 rounded">{zone.label}</span>
+          <div
+            className="absolute left-1/2 -translate-x-1/2 bg-black rounded-full z-20"
+            style={{ width: 126 * scale, height: 37 * scale, top: 10 * scale }}
+          />
+          <div
+            className="w-full h-full overflow-hidden relative"
+            style={{ transform: `scale(${scale})`, transformOrigin: "top left", width: phoneW, height: phoneH }}
+          >
+            {activeAspect === "9:16" ? (
+              // Full-bleed for 9:16
+              <>
+                {previewMode === "preview" && imageUrl ? (
+                  <div className="w-full h-full bg-muted/10 flex items-center justify-center p-4">
+                    <img src={imageUrl} alt="" className="max-w-full max-h-full object-contain rounded-lg" />
+                  </div>
+                ) : renderContent()}
+              </>
+            ) : (
+              // Letterboxed for other ratios
+              <div className="w-full h-full bg-black flex items-center justify-center">
+                <div
+                  className="relative overflow-hidden transition-all duration-300 ease-out"
+                  style={{ width: contentW, height: contentH, borderRadius: activeAspect === "1:1" ? 8 : 4 }}
+                >
+                  {imageUrl ? (
+                    <img src={imageUrl} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full bg-muted/20 flex items-center justify-center">
+                      <ImageIcon className="w-8 h-8 text-muted-foreground/40" />
+                    </div>
+                  )}
+                  {/* Aspect label overlay */}
+                  <div className="absolute top-2 left-2 px-1.5 py-0.5 rounded bg-black/60 backdrop-blur-sm">
+                    <span className="text-[9px] font-bold text-white">{activeAspect}</span>
                   </div>
                 </div>
-              ))}
-            </>
-          )}
+              </div>
+            )}
+            {showSafeZones && imageUrl && activeAspect === "9:16" && previewMode !== "preview" && (
+              <>
+                {SAFE_ZONES[platform]?.map((zone, i) => (
+                  <div key={i} className={cn("absolute z-30", zone.style)}>
+                    <div className="w-full h-full bg-red-500/20 border border-dashed border-red-400/50 flex items-center justify-center">
+                      <span className="text-[8px] font-bold text-red-300 uppercase tracking-wider drop-shadow-lg bg-red-900/40 px-1.5 py-0.5 rounded">{zone.label}</span>
+                    </div>
+                  </div>
+                ))}
+              </>
+            )}
+          </div>
+          <div
+            className="absolute bottom-[6px] left-1/2 -translate-x-1/2 bg-white/30 rounded-full z-20"
+            style={{ width: 134 * scale, height: 5 * scale, bottom: 6 * scale }}
+          />
         </div>
-        <div
-          className="absolute bottom-[6px] left-1/2 -translate-x-1/2 bg-white/30 rounded-full z-20"
-          style={{ width: 134 * scale, height: 5 * scale, bottom: 6 * scale }}
-        />
       </div>
-    </div>
-  );
+    );
+  };
 
   // ── Fullscreen Overlay ──
   const fullscreenOverlay = fullscreen && (
