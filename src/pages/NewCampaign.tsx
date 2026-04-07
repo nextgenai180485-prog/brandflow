@@ -62,6 +62,8 @@ const NewCampaign = () => {
   // Source gallery + simulator state
   const [selectedTemplate, setSelectedTemplate] = useState<SourceTemplate | null>(null);
   const [mobileTab, setMobileTab] = useState<"builder" | "preview" | "source">("builder");
+  const [isStarred, setIsStarred] = useState(false);
+  const [showSaveModal, setShowSaveModal] = useState(false);
 
   const hasVideoContent = contentTypes.some(ct => ct === "ugc_video" || ct === "pro_video");
 
