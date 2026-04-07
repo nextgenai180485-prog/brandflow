@@ -1,39 +1,49 @@
 
-# Enterprise Admin Buildout — 5 Phases
 
-## Phase 1: Admin Role Gating (Security)
-- Create `user_roles` table with `app_role` enum (`admin`, `moderator`, `user`)
-- Create `has_role()` security definer function
-- Add RLS policies on `user_roles` table
-- Create `AdminRoute` wrapper component that checks role before rendering
-- Gate `/dashboard/admin/libraries` behind admin role
-- Add "Admin" nav item visible only to admin users
+## Verdict: YES — This IS Enterprise-Grade
 
-## Phase 2: File Upload in Admin Panel
-- Build `FileUploadZone` component with drag-and-drop support
-- Upload files to `library-assets` Supabase bucket
-- Integrate into `AdminLibraryForm` — clicking the URL field opens the uploader
-- Auto-populate `avatar_url`, `thumbnail_url`, `media_url` fields with the uploaded file URL
-- Show inline image preview after upload
+Canva, Figma, and Webflow all show **inspiration galleries** on their empty/home states. It's the "Show, Don't Tell" principle — instead of just saying "we create content," you *prove it* with a living showcase. This converts hesitant users into creators.
 
-## Phase 3: Hooks Library UI
-- Add "Hooks" as 5th tab in `/dashboard/admin/libraries`
-- Build CRUD form for hooks: `hook_text`, `hook_type`, `family`, `platform`, `effectiveness_score`
-- Update `admin-library` edge function to include `hooks` in `ALLOWED_TABLES`
-- Add hooks to the user-facing `/dashboard/libraries` gallery as a browsable tab
+---
 
-## Phase 4: Bulk CSV/JSON Import
-- Build `BulkImportModal` component with file drop zone (accepts .csv and .json)
-- Parse and validate rows against the target table's schema
-- Show preview table of parsed rows with error highlighting
-- Submit valid rows via the `admin-library` edge function in batches
-- Display import summary (success/fail counts)
+## Plan: "Inspiration Showcase" Below the CTA
 
-## Phase 5: Admin Overview Dashboard
-- Create `/dashboard/admin` landing page with stats cards
-- Show per-library counts: total items, active vs inactive, total usage
-- Show recent activity: last 10 items added/modified across all libraries
-- Add a quick-action row: "Add Template", "Import CSV", "View Library"
+### What We Build
 
-## Execution Order
-Start with Phase 1 immediately (security-critical), then proceed sequentially.
+Below the "Create Your First Campaign" button, add a **horizontally scrollable gallery** that pulls from the admin-loaded library tables (video_templates, image_templates, ad_reference_library, character_library). It shows thumbnail cards with type badges (Image, Video, UGC) so new users instantly see the quality and variety of content Brandflow produces.
+
+### Design
+
+```text
+┌─────────────────────────────────────────────┐
+│         Welcome to Brandflow                │
+│     Create your first campaign...           │
+│       [ Create Your First Campaign ]        │
+│                                             │
+│  ── See what Brandflow creates ──────────── │
+│  ┌──────┐ ┌──────┐ ┌──────┐ ┌──────┐       │
+│  │ IMG  │ │ VID  │ │ UGC  │ │ IMG  │  →    │
+│  │      │ │  ▶   │ │      │ │      │       │
+│  │ tag  │ │ tag  │ │ tag  │ │ tag  │       │
+│  └──────┘ └──────┘ └──────┘ └──────┘       │
+└─────────────────────────────────────────────┘
+```
+
+### Technical Details
+
+**File: `src/components/EmptyCampaigns.tsx`**
+
+1. Add a Supabase query that fetches up to ~12 items across `video_templates`, `image_templates`, and `ad_reference_library` — only rows that have a `thumbnail_url` or `preview_url`.
+2. Render a horizontal scroll container below the CTA button with:
+   - Thumbnail cards (aspect-video, rounded-xl, overflow-hidden)
+   - Type badge overlay (Video Template / Image / Ad Reference)
+   - Mood/industry tag chips
+3. If no library items exist yet (admin hasn't loaded any), the section simply doesn't render — no empty state within an empty state.
+4. Subtle section header: "See what Brandflow creates" with a muted divider.
+5. Cards are **non-interactive** (no click action) — purely inspirational. Keeps it clean.
+
+### Behavior
+- Gallery auto-populates as admin adds library content — zero config for users.
+- Horizontally scrollable with `overflow-x-auto` and `snap-x` for smooth mobile swiping.
+- Gracefully hidden when libraries are empty.
+
