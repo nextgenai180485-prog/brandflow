@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -8,7 +9,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { LogOut, ChevronDown, Share2 } from "lucide-react";
+import { LogOut, ChevronDown } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 const baseNavItems = [
   { label: "Campaigns", path: "/dashboard" },
