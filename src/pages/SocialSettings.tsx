@@ -92,7 +92,7 @@ export default function SocialSettings() {
 
   return (
     <AppShell>
-      <div className="px-4 sm:px-6 pt-4 pb-8 max-w-3xl">
+      <div className="px-4 sm:px-6 pt-4 pb-8 max-w-3xl space-y-6">
         {/* Header */}
         <div>
           <h1 className="text-lg sm:text-xl font-semibold text-foreground">Social Publishing</h1>
