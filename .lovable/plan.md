@@ -1,45 +1,45 @@
 
 
-## Wire Showcase Template as Creative Reference in Generation Pipeline
+## Update CSO & CMO to Enterprise-Grade Workspace Awareness
 
-### Current State
-- Showcase → "Create Campaign" passes metadata via route state (title, tags)
-- This pre-fills the campaign title and instructions text
-- Generation runs through Decision Engine → Prompt Builder → Provider Router
-- The original `ad_reference_library` entry is **not** attached as a reference asset
+### What Changes
 
-### What Needs to Change
+Both AI agents need updated system prompts and the CMO Rail needs new intelligence signals to reflect the redesigned unified campaign workspace.
 
-**1. Pass the `media_url` and `id` through route state** (`EmptyCampaigns.tsx` → `NewCampaign.tsx`)
+### 1. CSO System Prompt Update (`supabase/functions/cmo-chat/index.ts`)
 
-Currently only passes `id`, `title`, tags. Add `mediaUrl` so the Creative Direction step can display it as the reference image.
+Update the `SYSTEM_PROMPT` platform knowledge section:
 
-**2. Auto-attach as library reference in NewCampaign** (`NewCampaign.tsx`)
+- **Campaign Creation Workspace** — Replace the current 5-step wizard description with the new unified workspace layout: left builder panel + right iPhone 16 Pro simulator + bottom source gallery
+- **Template Reference Flow** — Add knowledge that users can select templates from the bottom gallery as creative references, which auto-populate the simulator preview and inject `referenceImageUrl` into generation
+- **Platform Preview Intelligence** — CSO can now recommend: "Select that template, then switch the simulator to TikTok view to check your Safe Zones before generating"
+- **Source Gallery Guidance** — CSO knows about the tabs (Templates / Competitors / Your Generations / For You) and filter chips (All / Trending / Top Ads) and can guide users: "Filter by 'Top Ads' in the Competitors tab to find proven formats in your vertical"
+- **Reference-Aware Generation** — When recommending families, CSO can say: "Select a reference from the gallery below — the engine will match its composition and mood via style injection"
 
-When `showcaseState.fromShowcase` is true and the template has a `mediaUrl`:
-- Auto-populate `creativeReferenceAssets` with the showcase image
-- Pre-select matching platforms from `platformTags`
-- Set content type based on `compatible_families` (F8 → image, F1 → ugc_video, etc.)
+### 2. CMO Reactive Prompt Update (`supabase/functions/cmo-agent/index.ts`)
 
-**3. Pass reference image URL to generate-content edge function** (`NewCampaign.tsx` + `generate-content/index.ts`)
+Update `CMO_REACTIVE_PROMPT` to add:
 
-Add an optional `referenceImageUrl` field to the generation request body. When present:
-- The prompt builder appends: `"Reference style: [URL]. Match the composition, lighting, and mood of this reference."`
-- For F8 Creative Cloner family, this becomes the primary input for style cloning
-- For other families, it's used as a soft style guide
+- **Reference Asset Detection** — When the CMO sees a campaign with `referenceImageUrl`, it validates the reference against the brand strategy: "I see you're using a competitor reference. The Cloner Engine (F8) will reverse-engineer that style — but verify the color palette doesn't clash with your brand primaries."
+- **Template Selection Validation** — CMO can flag mismatches: "That template is optimized for Instagram Feed (4:5). Your selected platform is TikTok (9:16) — the Safe Zone overlay will show content loss."
+- **Workspace Context** — CMO knows the user is in a unified workspace and can reference the simulator: "Check the right panel — your headline is landing in TikTok's dead zone."
+
+### 3. CMO Sentient Rail Enhancement (`src/components/SentientCMORail.tsx`)
+
+Add new intelligence signals to `scanIntelligence()`:
+
+- **Template Library Signal** — Query `ad_reference_library` for recently added templates and surface: "12 new competitor templates added to your Source Gallery — 3 match your vertical"
+- **Reference Usage Tracking** — When a campaign is created with a reference asset, the CMO notes: "Campaign X was generated from template reference — monitor performance to feed Brand Memory"
 
 ### Files Changed
 
 | File | Change |
 |---|---|
-| `src/components/EmptyCampaigns.tsx` | Add `mediaUrl` to route state passed to NewCampaign |
-| `src/components/ShowcaseDetailModal.tsx` | Pass `mediaUrl` in CTA navigation |
-| `src/pages/NewCampaign.tsx` | Auto-populate reference assets, platforms, and content type from showcase state; pass `referenceImageUrl` to edge function |
-| `supabase/functions/generate-content/index.ts` | Accept `referenceImageUrl`, inject into prompt builder for style-aware generation |
+| `supabase/functions/cmo-chat/index.ts` | Update `SYSTEM_PROMPT` with unified workspace knowledge, template reference flow, simulator guidance, and source gallery navigation |
+| `supabase/functions/cmo-agent/index.ts` | Update `CMO_REACTIVE_PROMPT` with reference asset validation, template-platform mismatch detection, and workspace-aware prescriptions |
+| `src/components/SentientCMORail.tsx` | Add `ad_reference_library` query to `scanIntelligence()` for template library signals |
 
-### Technical Notes
-- No new tables or migrations needed
-- Reference URL is used as prompt text injection, not as an image-to-image input (Seedream 5 doesn't support img2img natively — that would require SeedEdit)
-- For true style cloning (F8), the reference URL would be passed to a future `creative-cloner` edge function
-- Safe fallback: if no `referenceImageUrl`, generation works exactly as it does now
+### Deployment
+
+Both edge functions (`cmo-chat`, `cmo-agent`) will be redeployed after prompt updates.
 
