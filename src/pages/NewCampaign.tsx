@@ -61,6 +61,36 @@ const NewCampaign = () => {
     return ALL_STEPS.filter(s => s !== "Creative Direction");
   }, [hasVideoContent]);
 
+  // Auto-populate from showcase template
+  useEffect(() => {
+    if (!showcaseState?.fromShowcase || !showcaseState.templateRef) return;
+    const ref = showcaseState.templateRef;
+
+    // Auto-attach media as creative reference asset
+    if (ref.mediaUrl) {
+      setCreativeReferenceAssets([{
+        id: ref.id,
+        file_name: ref.title,
+        file_url: ref.mediaUrl,
+        asset_type: "reference",
+      }]);
+    }
+
+    // Pre-select platforms from template tags
+    if (ref.platformTags?.length) {
+      const platformFormats: SelectedFormat[] = ref.platformTags.map(tag => ({
+        platform: tag as SocialPlatform,
+        format: tag === "tiktok" ? "reel" : tag === "linkedin" ? "post" : tag === "youtube" ? "post" : "post",
+      }));
+      setPlatforms(platformFormats);
+    }
+
+    // Default to image content type for showcase templates
+    if (contentTypes.length === 0) {
+      setContentTypes(["image"]);
+    }
+  }, []); // Run once on mount
+
   // Load brand profile from brand_memory
   useEffect(() => {
     if (!user) return;
