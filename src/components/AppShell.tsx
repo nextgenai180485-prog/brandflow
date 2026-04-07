@@ -8,7 +8,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { LogOut, ChevronDown, Menu, X, Sparkles, TrendingUp, Clock, Layers } from "lucide-react";
+import { LogOut, ChevronDown, Menu, X, Sparkles, TrendingUp, Clock, Layers, ChevronRight } from "lucide-react";
 import SentientCMORail from "@/components/SentientCMORail";
 import { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
