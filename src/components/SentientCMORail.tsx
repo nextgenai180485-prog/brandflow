@@ -1,9 +1,9 @@
-import { useState, useEffect, useCallback } from "react";
-import { useLocation } from "react-router-dom";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   Activity, AlertTriangle, ChevronLeft, ChevronRight,
   X, Brain, TrendingUp, Zap, Shield, Target,
-  Loader2, Sparkles,
+  Sparkles, ImageIcon, CheckCircle2, Clock,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -17,71 +17,212 @@ interface Insight {
   title: string;
   body: string;
   action?: string;
+  campaignId?: string;
+  timestamp?: string;
 }
 
-// Pages where the rail should NOT render (public / auth pages)
 const EXCLUDED_PATHS = ["/", "/login", "/signup", "/onboarding"];
+const POLL_INTERVAL = 8000; // 8s polling
 
 const SentientCMORail = () => {
   const { user } = useAuth();
   const isMobile = useIsMobile();
   const location = useLocation();
+  const navigate = useNavigate();
   const [isExpanded, setIsExpanded] = useState(false);
   const [activeToast, setActiveToast] = useState<Insight | null>(null);
-  const [toastDismissed, setToastDismissed] = useState(false);
-
-  // Mock insights — will be replaced by real CMO agent data
-  const [insights] = useState<Insight[]>([
-    {
-      id: "1",
-      type: "info",
-      title: "System Online",
-      body: "CMO Intelligence is monitoring your campaigns. I'll alert you when I detect something actionable.",
-    },
-  ]);
-
+  const [toastDismissed, setToastDismissed] = useState<Set<string>>(new Set());
+  const [insights, setInsights] = useState<Insight[]>([]);
   const [systemStatus, setSystemStatus] = useState<"optimal" | "alert" | "critical">("optimal");
   const [campaignCount, setCampaignCount] = useState(0);
+  const [pendingReviewCount, setPendingReviewCount] = useState(0);
+  const [recentAssetCount, setRecentAssetCount] = useState(0);
+  const lastKnownCampaignIds = useRef<Set<string>>(new Set());
+  const lastKnownAssetIds = useRef<Set<string>>(new Set());
+  const initialized = useRef(false);
 
-  // Fetch basic metrics
+  // ── Real-time Intelligence Scanner ──
+  const scanIntelligence = useCallback(async () => {
+    if (!user) return;
+
+    const newInsights: Insight[] = [];
+
+    // 1. Fetch campaigns
+    const { data: campaigns } = await supabase
+      .from("campaigns")
+      .select("id, title, status, created_at, updated_at")
+      .eq("profile_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(20);
+
+    const campaignList = campaigns || [];
+    setCampaignCount(campaignList.length);
+
+    // Detect NEW campaigns (not seen before)
+    const currentCampaignIds = new Set(campaignList.map((c) => c.id));
+    if (initialized.current) {
+      for (const campaign of campaignList) {
+        if (!lastKnownCampaignIds.current.has(campaign.id)) {
+          newInsights.push({
+            id: `new-campaign-${campaign.id}`,
+            type: "opportunity",
+            title: `New Campaign: ${campaign.title}`,
+            body: `Campaign "${campaign.title}" was just created. Status: ${campaign.status}. The CMO is now tracking its performance.`,
+            campaignId: campaign.id,
+            action: "View Campaign",
+            timestamp: campaign.created_at,
+          });
+        }
+      }
+    }
+    lastKnownCampaignIds.current = currentCampaignIds;
+
+    // 2. Fetch assets with pending_review status
+    const { data: pendingAssets } = await supabase
+      .from("generated_assets")
+      .select("id, campaign_id, asset_type, platform, format, status, created_at, content_url")
+      .eq("profile_id", user.id)
+      .eq("status", "pending_review")
+      .order("created_at", { ascending: false })
+      .limit(20);
+
+    const pendingList = pendingAssets || [];
+    setPendingReviewCount(pendingList.length);
+
+    // Detect NEW assets ready for review
+    const currentAssetIds = new Set(pendingList.map((a) => a.id));
+    if (initialized.current) {
+      for (const asset of pendingList) {
+        if (!lastKnownAssetIds.current.has(asset.id)) {
+          newInsights.push({
+            id: `new-asset-${asset.id}`,
+            type: "opportunity",
+            title: `Asset Ready for Review`,
+            body: `A new ${asset.asset_type} (${asset.platform}/${asset.format}) has been generated and is ready for your review.`,
+            campaignId: asset.campaign_id,
+            action: "Review Now",
+            timestamp: asset.created_at,
+          });
+        }
+      }
+    }
+    lastKnownAssetIds.current = currentAssetIds;
+
+    // 3. Check for campaigns stuck in "generating" status (>5 min)
+    const stuckCampaigns = campaignList.filter((c) => {
+      if (c.status !== "generating") return false;
+      const updatedAt = new Date(c.updated_at).getTime();
+      return Date.now() - updatedAt > 5 * 60 * 1000;
+    });
+
+    for (const stuck of stuckCampaigns) {
+      newInsights.push({
+        id: `stuck-${stuck.id}`,
+        type: "critical",
+        title: `Generation Stalled`,
+        body: `Campaign "${stuck.title}" has been generating for over 5 minutes. This may indicate a provider issue.`,
+        campaignId: stuck.id,
+        action: "Investigate",
+      });
+    }
+
+    // 4. Count recent assets (last 24h)
+    const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const { count: recentCount } = await supabase
+      .from("generated_assets")
+      .select("*", { count: "exact", head: true })
+      .eq("profile_id", user.id)
+      .gte("created_at", dayAgo);
+    setRecentAssetCount(recentCount || 0);
+
+    // 5. Standing insights (always present)
+    if (pendingList.length > 0) {
+      newInsights.push({
+        id: "pending-review-summary",
+        type: "info",
+        title: `${pendingList.length} Asset${pendingList.length > 1 ? "s" : ""} Awaiting Review`,
+        body: `You have ${pendingList.length} generated asset${pendingList.length > 1 ? "s" : ""} pending your approval across ${new Set(pendingList.map((a) => a.campaign_id)).size} campaign${new Set(pendingList.map((a) => a.campaign_id)).size > 1 ? "s" : ""}.`,
+        action: "Review All",
+      });
+    }
+
+    if (campaignList.length === 0) {
+      newInsights.push({
+        id: "no-campaigns",
+        type: "info",
+        title: "No Active Campaigns",
+        body: "Create your first campaign to activate CMO intelligence monitoring.",
+      });
+    } else if (newInsights.length === 0) {
+      newInsights.push({
+        id: "system-ok",
+        type: "info",
+        title: "System Online",
+        body: `Monitoring ${campaignList.length} campaign${campaignList.length > 1 ? "s" : ""}. All systems optimal. I'll alert you when I detect something actionable.`,
+      });
+    }
+
+    // Deduplicate by id, prioritize new event insights
+    const seenIds = new Set<string>();
+    const deduplicated = newInsights.filter((i) => {
+      if (seenIds.has(i.id)) return false;
+      seenIds.add(i.id);
+      return true;
+    });
+
+    setInsights(deduplicated);
+
+    // Auto-show toast for the first new opportunity/critical insight
+    const toastable = deduplicated.find(
+      (i) => (i.type === "critical" || i.type === "opportunity") && !toastDismissed.has(i.id)
+    );
+    if (toastable && !isExpanded) {
+      setActiveToast(toastable);
+    }
+
+    initialized.current = true;
+  }, [user, isExpanded, toastDismissed]);
+
+  // Initial scan + polling
   useEffect(() => {
     if (!user) return;
-    const fetchMetrics = async () => {
-      const { count } = await supabase
-        .from("campaigns")
-        .select("*", { count: "exact", head: true })
-        .eq("profile_id", user.id);
-      setCampaignCount(count || 0);
-    };
-    fetchMetrics();
-  }, [user]);
+    scanIntelligence();
+    const interval = setInterval(scanIntelligence, POLL_INTERVAL);
+    return () => clearInterval(interval);
+  }, [user, scanIntelligence]);
 
-  // Determine status from insights
+  // Derive system status
   useEffect(() => {
     const hasCritical = insights.some((i) => i.type === "critical");
     const hasOpp = insights.some((i) => i.type === "opportunity");
     setSystemStatus(hasCritical ? "critical" : hasOpp ? "alert" : "optimal");
   }, [insights]);
 
-  // Auto-show toast for new critical/opportunity insights
-  useEffect(() => {
-    if (toastDismissed || isExpanded) return;
-    const important = insights.find((i) => i.type === "critical" || i.type === "opportunity");
-    if (important) {
-      const timer = setTimeout(() => setActiveToast(important), 2000);
-      return () => clearTimeout(timer);
-    }
-  }, [insights, toastDismissed, isExpanded]);
-
-  // Auto-dismiss toast after 12s
+  // Auto-dismiss toast after 15s
   useEffect(() => {
     if (!activeToast) return;
     const timer = setTimeout(() => {
+      setToastDismissed((prev) => new Set(prev).add(activeToast.id));
       setActiveToast(null);
-      setToastDismissed(true);
-    }, 12000);
+    }, 15000);
     return () => clearTimeout(timer);
   }, [activeToast]);
+
+  const dismissToast = useCallback(() => {
+    if (activeToast) {
+      setToastDismissed((prev) => new Set(prev).add(activeToast.id));
+      setActiveToast(null);
+    }
+  }, [activeToast]);
+
+  const handleInsightAction = useCallback((insight: Insight) => {
+    if (insight.campaignId) {
+      navigate(`/dashboard/campaign/${insight.campaignId}`);
+    } else {
+      navigate("/dashboard");
+    }
+    setIsExpanded(false);
+  }, [navigate]);
 
   // Don't render on excluded pages, mobile, or not logged in
   if (!user || isMobile || EXCLUDED_PATHS.includes(location.pathname)) return null;
@@ -110,12 +251,19 @@ const SentientCMORail = () => {
               <div className="flex items-center gap-2">
                 <Brain className="w-4 h-4 text-primary" />
                 <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.15em]">
-                  Active Intelligence
+                  CMO Intelligence
                 </span>
               </div>
-              <Badge variant="outline" className="text-[8px] border-emerald-300 text-emerald-700 bg-emerald-50">
-                LIVE
-              </Badge>
+              <div className="flex items-center gap-2">
+                {pendingReviewCount > 0 && (
+                  <Badge variant="secondary" className="text-[8px]">
+                    {pendingReviewCount} pending
+                  </Badge>
+                )}
+                <Badge variant="outline" className="text-[8px] border-emerald-300 text-emerald-700 bg-emerald-50">
+                  LIVE
+                </Badge>
+              </div>
             </div>
 
             {/* Panel Content */}
@@ -144,7 +292,12 @@ const SentientCMORail = () => {
                   </div>
                   <p className="text-[11px] text-muted-foreground leading-relaxed">{insight.body}</p>
                   {insight.action && (
-                    <Button size="sm" variant="outline" className="w-full text-[10px] h-8 mt-2">
+                    <Button
+                      size="sm"
+                      variant={insight.type === "critical" ? "destructive" : "outline"}
+                      className="w-full text-[10px] h-8 mt-2"
+                      onClick={() => handleInsightAction(insight)}
+                    >
                       {insight.action}
                     </Button>
                   )}
@@ -152,33 +305,42 @@ const SentientCMORail = () => {
               ))}
 
               {/* Stats Grid */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="p-3 bg-secondary/50 rounded-xl border border-border">
-                  <p className="text-[9px] uppercase tracking-wider text-muted-foreground font-bold">Campaigns</p>
+              <div className="grid grid-cols-3 gap-2">
+                <div className="p-3 bg-secondary/50 rounded-xl border border-border text-center">
+                  <p className="text-[8px] uppercase tracking-wider text-muted-foreground font-bold">Campaigns</p>
                   <p className="text-lg font-black text-foreground">{campaignCount}</p>
                 </div>
-                <div className="p-3 bg-secondary/50 rounded-xl border border-border">
-                  <p className="text-[9px] uppercase tracking-wider text-muted-foreground font-bold">Status</p>
-                  <p className="text-lg font-black text-emerald-600">Optimal</p>
+                <div className="p-3 bg-secondary/50 rounded-xl border border-border text-center">
+                  <p className="text-[8px] uppercase tracking-wider text-muted-foreground font-bold">Review</p>
+                  <p className={`text-lg font-black ${pendingReviewCount > 0 ? "text-amber-600" : "text-foreground"}`}>
+                    {pendingReviewCount}
+                  </p>
+                </div>
+                <div className="p-3 bg-secondary/50 rounded-xl border border-border text-center">
+                  <p className="text-[8px] uppercase tracking-wider text-muted-foreground font-bold">24h Assets</p>
+                  <p className="text-lg font-black text-foreground">{recentAssetCount}</p>
                 </div>
               </div>
 
-              {/* Protocol Status */}
+              {/* Monitoring Status */}
               <div className="rounded-xl border border-border bg-card p-4 space-y-3">
                 <div className="flex items-center gap-2">
                   <Target className="w-4 h-4 text-primary" />
                   <span className="text-[10px] font-bold text-foreground uppercase tracking-wider">
-                    Monitoring
+                    Live Monitoring
                   </span>
                 </div>
                 <div className="space-y-2">
                   {[
-                    { label: "Campaign Health", status: "Active" },
-                    { label: "Creative Fatigue", status: "None Detected" },
-                    { label: "Audience Drift", status: "Stable" },
-                  ].map(({ label, status }) => (
+                    { label: "Campaign Health", status: systemStatus === "critical" ? "Alert" : "Active", icon: Activity },
+                    { label: "Pending Reviews", status: pendingReviewCount > 0 ? `${pendingReviewCount} waiting` : "Clear", icon: Clock },
+                    { label: "Generation Pipeline", status: "Online", icon: Sparkles },
+                  ].map(({ label, status, icon: Icon }) => (
                     <div key={label} className="flex items-center justify-between">
-                      <span className="text-[10px] text-muted-foreground">{label}</span>
+                      <div className="flex items-center gap-1.5">
+                        <Icon className="w-3 h-3 text-muted-foreground" />
+                        <span className="text-[10px] text-muted-foreground">{label}</span>
+                      </div>
                       <Badge variant="secondary" className="text-[8px]">{status}</Badge>
                     </div>
                   ))}
@@ -193,8 +355,7 @@ const SentientCMORail = () => {
           className="w-12 h-full bg-background border-l border-border flex flex-col items-center py-4 gap-4 cursor-pointer shrink-0"
           onClick={() => {
             setIsExpanded(!isExpanded);
-            setActiveToast(null);
-            setToastDismissed(true);
+            dismissToast();
           }}
         >
           {/* Heartbeat Pulse */}
@@ -204,6 +365,16 @@ const SentientCMORail = () => {
               {systemStatus === "optimal" ? "System Optimal" : systemStatus === "alert" ? "Opportunity Detected" : "Action Required"}
             </div>
           </div>
+
+          {/* Pending count badge */}
+          {pendingReviewCount > 0 && !isExpanded && (
+            <div className="relative">
+              <ImageIcon className="w-4 h-4 text-amber-600" />
+              <span className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 rounded-full bg-amber-500 text-[7px] font-bold text-foreground flex items-center justify-center">
+                {pendingReviewCount}
+              </span>
+            </div>
+          )}
 
           {/* Module Icons */}
           <div className="flex-1 flex flex-col gap-3 mt-4 items-center">
@@ -231,7 +402,6 @@ const SentientCMORail = () => {
       {!isExpanded && activeToast && (
         <div className="fixed right-14 top-20 z-[55] w-72 animate-fade-in">
           <div className="bg-foreground text-background p-4 rounded-xl shadow-2xl border border-foreground/20 relative">
-            {/* Pointer arrow */}
             <div className="absolute top-4 -right-1.5 w-3 h-3 bg-foreground rotate-45 border-r border-t border-foreground/20" />
 
             <div className="flex justify-between items-start mb-2">
@@ -242,30 +412,33 @@ const SentientCMORail = () => {
                     : "bg-amber-500 text-foreground"
                 }`}
               >
-                {activeToast.type === "critical" ? "Action Required" : "Opportunity"}
+                {activeToast.type === "critical" ? "Action Required" : "New Activity"}
               </Badge>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setActiveToast(null);
-                  setToastDismissed(true);
-                }}
-              >
+              <button onClick={(e) => { e.stopPropagation(); dismissToast(); }}>
                 <X className="w-3 h-3 text-background/50 hover:text-background" />
               </button>
             </div>
             <p className="text-xs font-semibold mb-1">{activeToast.title}</p>
             <p className="text-[11px] text-background/70 leading-relaxed">{activeToast.body}</p>
-            <button
-              onClick={() => {
-                setIsExpanded(true);
-                setActiveToast(null);
-                setToastDismissed(true);
-              }}
-              className="mt-3 w-full py-1.5 bg-background text-foreground text-[10px] font-bold rounded-lg hover:bg-background/90 transition-colors"
-            >
-              View Analysis
-            </button>
+            <div className="mt-3 flex gap-2">
+              {activeToast.campaignId && (
+                <button
+                  onClick={() => {
+                    handleInsightAction(activeToast);
+                    dismissToast();
+                  }}
+                  className="flex-1 py-1.5 bg-background text-foreground text-[10px] font-bold rounded-lg hover:bg-background/90 transition-colors"
+                >
+                  {activeToast.action || "View"}
+                </button>
+              )}
+              <button
+                onClick={() => { setIsExpanded(true); dismissToast(); }}
+                className={`${activeToast.campaignId ? "" : "flex-1"} py-1.5 bg-background text-foreground text-[10px] font-bold rounded-lg hover:bg-background/90 transition-colors px-3`}
+              >
+                Open CMO
+              </button>
+            </div>
           </div>
         </div>
       )}
