@@ -190,7 +190,19 @@ const CalendarView = () => {
           {caption && <p className="text-[11px] text-muted-foreground line-clamp-2 leading-relaxed">{caption}</p>}
           <div className="flex items-center justify-between pt-1">
             <span className="text-[10px] text-muted-foreground">{format(new Date(asset.created_at), "MMM d, h:mm a")}</span>
-            {asset.format && <Badge variant="secondary" className="text-[9px] px-1.5 py-0 capitalize">{asset.format}</Badge>}
+            <div className="flex items-center gap-1">
+              {asset.format && <Badge variant="secondary" className="text-[9px] px-1.5 py-0 capitalize">{asset.format}</Badge>}
+              {(asset.status === "approved" || asset.content_url) && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6"
+                  onClick={(e) => { e.stopPropagation(); setPublishAsset(asset); }}
+                >
+                  <Send className="w-3 h-3" />
+                </Button>
+              )}
+            </div>
           </div>
         </div>
       </div>
