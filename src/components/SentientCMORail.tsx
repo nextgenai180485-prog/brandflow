@@ -212,16 +212,17 @@ const SentientCMORail = () => {
     setIsExpanded(false);
   }, [navigate]);
 
-  // Hide on excluded pages, mobile, or not logged in
-  const shouldHide = !user || isMobile || EXCLUDED_PATHS.includes(location.pathname);
+  // Determine visibility
+  const isExcluded = !user || EXCLUDED_PATHS.includes(location.pathname);
+  const shouldHide = isExcluded || isMobile; // Desktop rail hides on mobile (mobile gets its own UI)
 
-  const pulseConfig = shouldHide ? null : {
+  const pulseConfig = isExcluded ? null : {
     optimal: { color: "bg-emerald-500", shadow: "shadow-[0_0_12px_hsl(160,60%,45%,0.5)]", speed: "animate-[pulse_3s_ease-in-out_infinite]" },
     alert: { color: "bg-amber-500", shadow: "shadow-[0_0_12px_hsl(40,90%,50%,0.5)]", speed: "animate-[pulse_1.5s_ease-in-out_infinite]" },
     critical: { color: "bg-destructive", shadow: "shadow-[0_0_12px_hsl(0,72%,51%,0.5)]", speed: "animate-[pulse_0.7s_ease-in-out_infinite]" },
   }[systemStatus];
 
-  // Always render the aside for flex layout stability, but collapse to 0 width when hidden
+  // Desktop rail width
   const railWidth = shouldHide ? "0px" : isExpanded ? "380px" : "48px";
 
   const toast_el = !shouldHide && !isExpanded && activeToast ? createPortal(
