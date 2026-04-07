@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { X, Save, Loader2 } from "lucide-react";
+import FileUploadZone from "./FileUploadZone";
 
 type TableName = "video_templates" | "character_library" | "ad_reference_library" | "image_templates";
 
