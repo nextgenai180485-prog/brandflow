@@ -29,6 +29,20 @@ const AppShell = ({ children }: { children: React.ReactNode }) => {
   const { isAdmin } = useUserRole();
   const navigate = useNavigate();
   const location = useLocation();
+  const [brandLogo, setBrandLogo] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from("brand_assets")
+      .select("file_url")
+      .eq("profile_id", user.id)
+      .eq("asset_type", "logo")
+      .limit(1)
+      .then(({ data }) => {
+        if (data && data.length > 0) setBrandLogo(data[0].file_url);
+      });
+  }, [user]);
 
   const navItems = [...baseNavItems, ...(isAdmin ? adminNavItems : [])];
 
