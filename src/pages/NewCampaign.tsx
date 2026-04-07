@@ -17,6 +17,7 @@ import AssetLibraryPicker, { type LibraryAsset } from "@/components/AssetLibrary
 import CreativeDirectionStep, { type DirectorOutput } from "@/components/CreativeDirectionStep";
 import CampaignSimulator from "@/components/campaign/CampaignSimulator";
 import SourceGallery, { type SourceTemplate } from "@/components/campaign/SourceGallery";
+import SaveToLibraryModal from "@/components/campaign/SaveToLibraryModal";
 import type { SocialPlatform, ContentType, BrandProfile } from "@/types/campaigns";
 import { CONTENT_TYPE_LABELS } from "@/types/campaigns";
 
