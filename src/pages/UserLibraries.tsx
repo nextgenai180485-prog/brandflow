@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, Film, Users, Image, Megaphone, Eye } from "lucide-react";
+import { Search, Film, Users, Image, Megaphone, Eye, Zap } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -19,6 +19,7 @@ const TABS = [
   { value: "character_library", label: "Characters", icon: Users, table: "character_library" as const, nameField: "name" },
   { value: "ad_reference_library", label: "Ad References", icon: Megaphone, table: "ad_reference_library" as const, nameField: "title" },
   { value: "image_templates", label: "Image Templates", icon: Image, table: "image_templates" as const, nameField: "style_name" },
+  { value: "hooks", label: "Hooks", icon: Zap, table: "hooks" as const, nameField: "hook_text" },
 ] as const;
 
 type TabValue = (typeof TABS)[number]["value"];
@@ -51,7 +52,7 @@ const UserLibraries = () => {
         </div>
 
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabValue)}>
-          <TabsList className="mb-5 w-full grid grid-cols-4 h-auto p-1">
+          <TabsList className="mb-5 w-full grid grid-cols-5 h-auto p-1">
             {TABS.map((tab) => (
               <TabsTrigger
                 key={tab.value}

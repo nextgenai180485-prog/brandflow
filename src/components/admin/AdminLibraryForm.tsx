@@ -8,8 +8,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { X, Save, Loader2 } from "lucide-react";
+import FileUploadZone from "./FileUploadZone";
 
-type TableName = "video_templates" | "character_library" | "ad_reference_library" | "image_templates";
+type FieldType = "text" | "textarea" | "tags" | "select" | "number" | "json" | "file";
+type TableName = "video_templates" | "character_library" | "ad_reference_library" | "image_templates" | "hooks";
 
 interface AdminLibraryFormProps {
   tableName: TableName;
@@ -18,7 +20,7 @@ interface AdminLibraryFormProps {
   onSaved: () => void;
 }
 
-const FORM_FIELDS: Record<TableName, { key: string; label: string; type: "text" | "textarea" | "tags" | "select" | "number" | "json"; options?: string[] }[]> = {
+const FORM_FIELDS: Record<TableName, { key: string; label: string; type: FieldType; options?: string[]; folder?: string }[]> = {
   video_templates: [
     { key: "template_name", label: "Template Name", type: "text" },
     { key: "family", label: "Family", type: "select", options: ["F1_UGC", "F2_SPOKESPERSON", "F5_CINEMATIC", "F8_CREATIVE_CLONER"] },
@@ -27,7 +29,7 @@ const FORM_FIELDS: Record<TableName, { key: string; label: string; type: "text" 
     { key: "duration_s", label: "Duration (seconds)", type: "number" },
     { key: "hook_type", label: "Hook Type", type: "select", options: ["question", "shock", "story", "statistic", "challenge", "visual"] },
     { key: "tags", label: "Tags (comma-separated)", type: "tags" },
-    { key: "example_url", label: "Example URL", type: "text" },
+    { key: "example_url", label: "Example Media", type: "file", folder: "video-templates" },
     { key: "sealcam_analysis", label: "SEALCaM Analysis (JSON)", type: "json" },
   ],
   character_library: [
@@ -36,7 +38,7 @@ const FORM_FIELDS: Record<TableName, { key: string; label: string; type: "text" 
     { key: "gender", label: "Gender", type: "select", options: ["male", "female", "neutral"] },
     { key: "age_range", label: "Age Range", type: "select", options: ["18-24", "25-35", "35-45", "45-55", "55+"] },
     { key: "voice_style", label: "Voice Style", type: "select", options: ["professional", "casual", "energetic", "calm", "authoritative", "friendly"] },
-    { key: "avatar_url", label: "Avatar URL", type: "text" },
+    { key: "avatar_url", label: "Avatar", type: "file", folder: "characters" },
     { key: "mood_tags", label: "Mood Tags (comma-separated)", type: "tags" },
     { key: "industry_tags", label: "Industry Tags (comma-separated)", type: "tags" },
     { key: "ethnicity_tags", label: "Ethnicity Tags (comma-separated)", type: "tags" },
@@ -45,9 +47,9 @@ const FORM_FIELDS: Record<TableName, { key: string; label: string; type: "text" 
   ad_reference_library: [
     { key: "title", label: "Title", type: "text" },
     { key: "description", label: "Description", type: "textarea" },
-    { key: "media_url", label: "Media URL", type: "text" },
+    { key: "media_url", label: "Media File", type: "file", folder: "ad-references" },
     { key: "media_type", label: "Media Type", type: "select", options: ["image", "video"] },
-    { key: "thumbnail_url", label: "Thumbnail URL", type: "text" },
+    { key: "thumbnail_url", label: "Thumbnail", type: "file", folder: "ad-references/thumbnails" },
     { key: "industry_tags", label: "Industry Tags (comma-separated)", type: "tags" },
     { key: "mood_tags", label: "Mood Tags (comma-separated)", type: "tags" },
     { key: "platform_tags", label: "Platform Tags (comma-separated)", type: "tags" },
@@ -65,6 +67,13 @@ const FORM_FIELDS: Record<TableName, { key: string; label: string; type: "text" 
     { key: "negative_prompt", label: "Negative Prompt", type: "textarea" },
     { key: "tags", label: "Tags (comma-separated)", type: "tags" },
     { key: "style_guide", label: "Style Guide (JSON)", type: "json" },
+  ],
+  hooks: [
+    { key: "hook_text", label: "Hook Text", type: "textarea" },
+    { key: "hook_type", label: "Hook Type", type: "select", options: ["question", "shock", "story", "statistic", "challenge", "visual", "curiosity"] },
+    { key: "family", label: "Family", type: "select", options: ["F1_UGC", "F2_SPOKESPERSON", "F5_CINEMATIC", "F8_CREATIVE_CLONER"] },
+    { key: "platform", label: "Platform", type: "select", options: ["instagram", "tiktok", "facebook", "linkedin", "x", "youtube"] },
+    { key: "effectiveness_score", label: "Effectiveness Score (0-1)", type: "number" },
   ],
 };
 
@@ -138,9 +147,15 @@ const AdminLibraryForm = ({ tableName, editingItem, onClose, onSaved }: AdminLib
       <CardContent className="space-y-3">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {fields.map((field) => (
-            <div key={field.key} className={field.type === "textarea" || field.type === "json" ? "col-span-full" : ""}>
+            <div key={field.key} className={field.type === "textarea" || field.type === "json" || field.type === "file" ? "col-span-full" : ""}>
               <Label className="text-[10px] font-medium text-muted-foreground mb-1 block">{field.label}</Label>
-              {field.type === "select" ? (
+              {field.type === "file" ? (
+                <FileUploadZone
+                  value={values[field.key] || ""}
+                  onChange={(url) => setValues((prev) => ({ ...prev, [field.key]: url }))}
+                  folder={field.folder || "uploads"}
+                />
+              ) : field.type === "select" ? (
                 <Select value={values[field.key] || ""} onValueChange={(v) => setValues((prev) => ({ ...prev, [field.key]: v }))}>
                   <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select..." /></SelectTrigger>
                   <SelectContent>

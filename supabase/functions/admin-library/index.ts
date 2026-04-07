@@ -6,7 +6,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const ALLOWED_TABLES = ["video_templates", "character_library", "ad_reference_library", "image_templates"];
+const ALLOWED_TABLES = ["video_templates", "character_library", "ad_reference_library", "image_templates", "hooks"];
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {

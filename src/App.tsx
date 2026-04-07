@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/hooks/useAuth";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import AdminRoute from "@/components/AdminRoute";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
@@ -16,6 +17,7 @@ import Onboarding from "./pages/Onboarding";
 import StrategyCommandCenter from "./pages/StrategyCommandCenter";
 import VisualDirector from "./pages/VisualDirector";
 import AdminLibraries from "./pages/AdminLibraries";
+import AdminDashboard from "./pages/AdminDashboard";
 import UserLibraries from "./pages/UserLibraries";
 import SocialSettings from "./pages/SocialSettings";
 import NotFound from "./pages/NotFound";
@@ -94,10 +96,22 @@ const App = () => (
               }
             />
             <Route
+              path="/dashboard/admin"
+              element={
+                <ProtectedRoute>
+                  <AdminRoute>
+                    <AdminDashboard />
+                  </AdminRoute>
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/dashboard/admin/libraries"
               element={
                 <ProtectedRoute>
-                  <AdminLibraries />
+                  <AdminRoute>
+                    <AdminLibraries />
+                  </AdminRoute>
                 </ProtectedRoute>
               }
             />

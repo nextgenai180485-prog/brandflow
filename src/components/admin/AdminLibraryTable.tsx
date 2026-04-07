@@ -10,8 +10,9 @@ import { Plus, Trash2, Edit2, Upload, Search, RefreshCw } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useIsMobile } from "@/hooks/use-mobile";
 import AdminLibraryForm from "./AdminLibraryForm";
+import BulkImportModal from "./BulkImportModal";
 
-type TableName = "video_templates" | "character_library" | "ad_reference_library" | "image_templates";
+type TableName = "video_templates" | "character_library" | "ad_reference_library" | "image_templates" | "hooks";
 
 interface AdminLibraryTableProps {
   tableName: TableName;
@@ -81,6 +82,23 @@ const TABLE_CONFIGS: Record<TableName, {
       { key: "quality_tier", label: "Tier" },
     ],
     tagFields: ["tags"],
+  },
+  hooks: {
+    nameField: "hook_text",
+    columns: [
+      { key: "hook_text", label: "Hook Text" },
+      { key: "hook_type", label: "Type" },
+      { key: "family", label: "Family" },
+      { key: "platform", label: "Platform" },
+      { key: "effectiveness_score", label: "Score" },
+      { key: "usage_count", label: "Uses" },
+    ],
+    mobileFields: [
+      { key: "hook_type", label: "Type" },
+      { key: "family", label: "Family" },
+      { key: "effectiveness_score", label: "Score" },
+    ],
+    tagFields: [],
   },
 };
 
@@ -281,6 +299,7 @@ const AdminLibraryTable = ({ tableName }: AdminLibraryTableProps) => {
           <RefreshCw className="h-3 w-3" />
           <span className="hidden sm:inline">Refresh</span>
         </Button>
+        <BulkImportModal tableName={tableName} onImported={() => refetch()} />
         <Button size="sm" onClick={() => { setEditingItem(null); setShowForm(true); }} className="h-8 gap-1 text-xs shrink-0">
           <Plus className="h-3 w-3" />
           <span className="hidden sm:inline">Add New</span>

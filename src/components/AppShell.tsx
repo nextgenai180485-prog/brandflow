@@ -1,4 +1,5 @@
 import { useAuth } from "@/hooks/useAuth";
+import { useUserRole } from "@/hooks/useUserRole";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
   DropdownMenu,
@@ -9,7 +10,7 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { LogOut, ChevronDown, Sparkles, Share2 } from "lucide-react";
 
-const navItems = [
+const baseNavItems = [
   { label: "Campaigns", path: "/dashboard" },
   { label: "Creative Sandbox", path: "/dashboard/visual-director" },
   { label: "Libraries", path: "/dashboard/libraries" },
@@ -17,10 +18,17 @@ const navItems = [
   { label: "Channels", path: "/dashboard/social-settings" },
 ];
 
+const adminNavItems = [
+  { label: "Admin", path: "/dashboard/admin" },
+];
+
 const AppShell = ({ children }: { children: React.ReactNode }) => {
   const { user, signOut } = useAuth();
+  const { isAdmin } = useUserRole();
   const navigate = useNavigate();
   const location = useLocation();
+
+  const navItems = [...baseNavItems, ...(isAdmin ? adminNavItems : [])];
 
   const initials = user?.user_metadata?.first_name
     ? `${(user.user_metadata.first_name as string)[0]}${(user.user_metadata.last_name as string)?.[0] ?? ""}`
