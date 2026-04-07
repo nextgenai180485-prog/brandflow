@@ -24,8 +24,11 @@ const adminNavItems = [
 
 const AppShell = ({ children }: { children: React.ReactNode }) => {
   const { user, signOut } = useAuth();
+  const { isAdmin } = useUserRole();
   const navigate = useNavigate();
   const location = useLocation();
+
+  const navItems = [...baseNavItems, ...(isAdmin ? adminNavItems : [])];
 
   const initials = user?.user_metadata?.first_name
     ? `${(user.user_metadata.first_name as string)[0]}${(user.user_metadata.last_name as string)?.[0] ?? ""}`
