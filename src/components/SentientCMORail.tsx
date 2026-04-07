@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import {
   Activity, AlertTriangle, ChevronLeft, ChevronRight,
   X, Brain, TrendingUp, Zap, Shield, Target,
-  Sparkles, ImageIcon, CheckCircle2, Clock,
+  Sparkles, ImageIcon, Clock,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -22,7 +22,7 @@ interface Insight {
 }
 
 const EXCLUDED_PATHS = ["/", "/login", "/signup", "/onboarding"];
-const POLL_INTERVAL = 8000; // 8s polling
+const POLL_INTERVAL = 8000;
 
 const SentientCMORail = () => {
   const { user } = useAuth();
@@ -47,7 +47,6 @@ const SentientCMORail = () => {
 
     const newInsights: Insight[] = [];
 
-    // 1. Fetch campaigns
     const { data: campaigns } = await supabase
       .from("campaigns")
       .select("id, title, status, created_at, updated_at")
@@ -58,7 +57,6 @@ const SentientCMORail = () => {
     const campaignList = campaigns || [];
     setCampaignCount(campaignList.length);
 
-    // Detect NEW campaigns (not seen before)
     const currentCampaignIds = new Set(campaignList.map((c) => c.id));
     if (initialized.current) {
       for (const campaign of campaignList) {
@@ -77,7 +75,6 @@ const SentientCMORail = () => {
     }
     lastKnownCampaignIds.current = currentCampaignIds;
 
-    // 2. Fetch assets with pending_review status
     const { data: pendingAssets } = await supabase
       .from("generated_assets")
       .select("id, campaign_id, asset_type, platform, format, status, created_at, content_url")
@@ -89,7 +86,6 @@ const SentientCMORail = () => {
     const pendingList = pendingAssets || [];
     setPendingReviewCount(pendingList.length);
 
-    // Detect NEW assets ready for review
     const currentAssetIds = new Set(pendingList.map((a) => a.id));
     if (initialized.current) {
       for (const asset of pendingList) {
@@ -108,7 +104,6 @@ const SentientCMORail = () => {
     }
     lastKnownAssetIds.current = currentAssetIds;
 
-    // 3. Check for campaigns stuck in "generating" status (>5 min)
     const stuckCampaigns = campaignList.filter((c) => {
       if (c.status !== "generating") return false;
       const updatedAt = new Date(c.updated_at).getTime();
@@ -126,7 +121,6 @@ const SentientCMORail = () => {
       });
     }
 
-    // 4. Count recent assets (last 24h)
     const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
     const { count: recentCount } = await supabase
       .from("generated_assets")
@@ -135,7 +129,6 @@ const SentientCMORail = () => {
       .gte("created_at", dayAgo);
     setRecentAssetCount(recentCount || 0);
 
-    // 5. Standing insights (always present)
     if (pendingList.length > 0) {
       newInsights.push({
         id: "pending-review-summary",
@@ -162,7 +155,6 @@ const SentientCMORail = () => {
       });
     }
 
-    // Deduplicate by id, prioritize new event insights
     const seenIds = new Set<string>();
     const deduplicated = newInsights.filter((i) => {
       if (seenIds.has(i.id)) return false;
@@ -172,7 +164,6 @@ const SentientCMORail = () => {
 
     setInsights(deduplicated);
 
-    // Auto-show toast for the first new opportunity/critical insight
     const toastable = deduplicated.find(
       (i) => (i.type === "critical" || i.type === "opportunity") && !toastDismissed.has(i.id)
     );
@@ -183,7 +174,6 @@ const SentientCMORail = () => {
     initialized.current = true;
   }, [user, isExpanded, toastDismissed]);
 
-  // Initial scan + polling
   useEffect(() => {
     if (!user) return;
     scanIntelligence();
@@ -191,14 +181,12 @@ const SentientCMORail = () => {
     return () => clearInterval(interval);
   }, [user, scanIntelligence]);
 
-  // Derive system status
   useEffect(() => {
     const hasCritical = insights.some((i) => i.type === "critical");
     const hasOpp = insights.some((i) => i.type === "opportunity");
     setSystemStatus(hasCritical ? "critical" : hasOpp ? "alert" : "optimal");
   }, [insights]);
 
-  // Auto-dismiss toast after 15s
   useEffect(() => {
     if (!activeToast) return;
     const timer = setTimeout(() => {
@@ -224,7 +212,6 @@ const SentientCMORail = () => {
     setIsExpanded(false);
   }, [navigate]);
 
-  // Don't render on excluded pages, mobile, or not logged in
   if (!user || isMobile || EXCLUDED_PATHS.includes(location.pathname)) return null;
 
   const pulseConfig = {
@@ -235,25 +222,15 @@ const SentientCMORail = () => {
 
   return (
     <>
-      {/* ── Backdrop blur when CMO panel is expanded ── */}
-      {isExpanded && (
-        <div
-          className="fixed inset-0 z-[55] bg-foreground/10 backdrop-blur-sm animate-fade-in"
-          onClick={() => setIsExpanded(false)}
-        />
-      )}
-
-      {/* ── The Sentinel Strip (right edge, always visible) ── */}
-      <div className="fixed right-0 top-0 bottom-0 z-[60] flex">
-        {/* Expanded Panel */}
-        <div
-          className="overflow-hidden flex flex-col bg-background/95 backdrop-blur-xl border-l border-border shadow-2xl"
-          style={{
-            width: isExpanded ? "380px" : "0px",
-            transition: "width 500ms cubic-bezier(0.16, 1, 0.3, 1)",
-          }}
-        >
-          <div className="w-[380px] flex flex-col h-full">
+      {/* ── The CMO Rail (flex child, squeezes canvas) ── */}
+      <aside
+        className="shrink-0 border-l border-border bg-background flex h-full transition-[width] duration-500 ease-[cubic-bezier(0.2,0,0,1)] overflow-hidden"
+        style={{ width: isExpanded ? "380px" : "48px" }}
+      >
+        {/* Inner wrapper keeps content at full width during animation */}
+        <div className="flex h-full" style={{ width: "380px" }}>
+          {/* Expanded Panel Content */}
+          <div className="flex-1 flex flex-col h-full overflow-hidden">
             {/* Panel Header */}
             <div className="h-12 border-b border-border flex items-center justify-between px-5 bg-secondary/30 shrink-0">
               <div className="flex items-center gap-2">
@@ -276,7 +253,6 @@ const SentientCMORail = () => {
 
             {/* Panel Content */}
             <div className="flex-1 overflow-y-auto p-5 space-y-4">
-              {/* Insight Cards */}
               {insights.map((insight) => (
                 <div
                   key={insight.id}
@@ -356,55 +332,52 @@ const SentientCMORail = () => {
               </div>
             </div>
           </div>
-        </div>
 
-        {/* The Strip */}
-        <div
-          className="w-12 h-full bg-background border-l border-border flex flex-col items-center py-4 gap-4 cursor-pointer shrink-0"
-          onClick={() => {
-            setIsExpanded(!isExpanded);
-            dismissToast();
-          }}
-        >
-          {/* Heartbeat Pulse */}
-          <div className="relative group mt-8">
-            <div className={`w-2.5 h-2.5 rounded-full ${pulseConfig.color} ${pulseConfig.shadow} ${pulseConfig.speed}`} />
-            <div className="absolute right-full mr-3 top-1/2 -translate-y-1/2 px-2.5 py-1 bg-foreground text-background text-[9px] font-semibold rounded-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-              {systemStatus === "optimal" ? "System Optimal" : systemStatus === "alert" ? "Opportunity Detected" : "Action Required"}
+          {/* The Sentinel Strip (always visible 48px) */}
+          <div
+            className="w-12 h-full bg-background border-l border-border flex flex-col items-center py-4 gap-4 cursor-pointer shrink-0"
+            onClick={() => {
+              setIsExpanded(!isExpanded);
+              dismissToast();
+            }}
+          >
+            {/* Heartbeat Pulse */}
+            <div className="relative group mt-8">
+              <div className={`w-2.5 h-2.5 rounded-full ${pulseConfig.color} ${pulseConfig.shadow} ${pulseConfig.speed}`} />
+              <div className="absolute right-full mr-3 top-1/2 -translate-y-1/2 px-2.5 py-1 bg-foreground text-background text-[9px] font-semibold rounded-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+                {systemStatus === "optimal" ? "System Optimal" : systemStatus === "alert" ? "Opportunity Detected" : "Action Required"}
+              </div>
             </div>
-          </div>
 
-          {/* Pending count badge */}
-          {pendingReviewCount > 0 && !isExpanded && (
-            <div className="relative">
-              <ImageIcon className="w-4 h-4 text-amber-600" />
-              <span className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 rounded-full bg-amber-500 text-[7px] font-bold text-foreground flex items-center justify-center">
-                {pendingReviewCount}
-              </span>
-            </div>
-          )}
-
-          {/* Module Icons */}
-          <div className="flex-1 flex flex-col gap-3 mt-4 items-center">
-            {systemStatus === "critical" && (
-              <div className="p-1.5 rounded-lg bg-destructive/10 text-destructive">
-                <AlertTriangle className="w-4 h-4" />
+            {pendingReviewCount > 0 && !isExpanded && (
+              <div className="relative">
+                <ImageIcon className="w-4 h-4 text-amber-600" />
+                <span className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 rounded-full bg-amber-500 text-[7px] font-bold text-foreground flex items-center justify-center">
+                  {pendingReviewCount}
+                </span>
               </div>
             )}
-            <div className="p-1.5 text-muted-foreground hover:text-foreground transition-colors">
-              <Activity className="w-4 h-4" />
-            </div>
-            <div className="p-1.5 text-muted-foreground hover:text-foreground transition-colors">
-              <TrendingUp className="w-4 h-4" />
-            </div>
-          </div>
 
-          {/* Toggle Chevron */}
-          <div className="p-1.5 text-muted-foreground hover:text-foreground transition-colors">
-            {isExpanded ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronLeft className="w-3.5 h-3.5" />}
+            <div className="flex-1 flex flex-col gap-3 mt-4 items-center">
+              {systemStatus === "critical" && (
+                <div className="p-1.5 rounded-lg bg-destructive/10 text-destructive">
+                  <AlertTriangle className="w-4 h-4" />
+                </div>
+              )}
+              <div className="p-1.5 text-muted-foreground hover:text-foreground transition-colors">
+                <Activity className="w-4 h-4" />
+              </div>
+              <div className="p-1.5 text-muted-foreground hover:text-foreground transition-colors">
+                <TrendingUp className="w-4 h-4" />
+              </div>
+            </div>
+
+            <div className="p-1.5 text-muted-foreground hover:text-foreground transition-colors">
+              {isExpanded ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronLeft className="w-3.5 h-3.5" />}
+            </div>
           </div>
         </div>
-      </div>
+      </aside>
 
       {/* ── Holographic Toast (ambient overlay, no layout shift) ── */}
       {!isExpanded && activeToast && (
