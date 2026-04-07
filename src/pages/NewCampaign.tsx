@@ -73,6 +73,7 @@ const NewCampaign = () => {
         file_name: ref.title,
         file_url: ref.mediaUrl,
         asset_type: "reference",
+        created_at: new Date().toISOString(),
       }]);
     }
 
