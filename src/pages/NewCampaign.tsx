@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import AssetPlatformSelector from "@/components/AssetPlatformSelector";
 import AssetLibraryPicker, { type LibraryAsset } from "@/components/AssetLibraryPicker";
-import CMOStrategyPanel from "@/components/CMOStrategyPanel";
+
 import CreativeDirectionStep, { type DirectorOutput } from "@/components/CreativeDirectionStep";
 import type { SocialPlatform, ContentType, BrandProfile } from "@/types/campaigns";
 import { CONTENT_TYPE_LABELS } from "@/types/campaigns";
