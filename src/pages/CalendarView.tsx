@@ -248,13 +248,22 @@ const CalendarView = () => {
           </div>
         </div>
 
-        {/* Status */}
-        <Badge variant="outline" className={cn("text-[9px] gap-1 flex-shrink-0", statusInfo.color)}>
-          {statusInfo.icon}{statusInfo.label}
-        </Badge>
-      </div>
-    );
-  };
+        {/* Status + Publish */}
+        <div className="flex items-center gap-1 flex-shrink-0">
+          <Badge variant="outline" className={cn("text-[9px] gap-1", statusInfo.color)}>
+            {statusInfo.icon}{statusInfo.label}
+          </Badge>
+          {(asset.status === "approved" || asset.content_url) && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              onClick={(e) => { e.stopPropagation(); setPublishAsset(asset); }}
+            >
+              <Send className="w-3 h-3" />
+            </Button>
+          )}
+        </div>
 
   return (
     <AppShell>
