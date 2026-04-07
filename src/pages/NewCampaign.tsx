@@ -34,7 +34,7 @@ const NewCampaign = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const showcaseState = location.state as { fromShowcase?: boolean; templateRef?: { id: string; title: string; industryTags?: string[]; moodTags?: string[]; platformTags?: string[] } } | null;
+  const showcaseState = location.state as { fromShowcase?: boolean; templateRef?: { id: string; title: string; mediaUrl?: string; industryTags?: string[]; moodTags?: string[]; platformTags?: string[] } } | null;
 
   const [step, setStep] = useState(0);
   const [title, setTitle] = useState(showcaseState?.templateRef?.title || "");
