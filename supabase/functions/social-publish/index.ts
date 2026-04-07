@@ -28,25 +28,12 @@ async function blotatoFetch(
   return data;
 }
 
-async function getUserBlotatoKey(supabase: any, userId: string): Promise<string> {
-  // Try user's personal key first
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("blotato_api_key")
-    .eq("id", userId)
-    .single();
-
-  if (profile?.blotato_api_key) {
-    return profile.blotato_api_key;
+function getBlotatoKey(): string {
+  const key = Deno.env.get("BLOTATO_API_KEY");
+  if (!key) {
+    throw new Error("Platform Blotato API key not configured. Contact support.");
   }
-
-  // Fallback to server-level key (for admin/founder)
-  const serverKey = Deno.env.get("BLOTATO_API_KEY");
-  if (serverKey) {
-    return serverKey;
-  }
-
-  throw new Error("No Blotato API key configured. Go to Social Settings to add your API key.");
+  return key;
 }
 
 Deno.serve(async (req) => {
@@ -69,74 +56,30 @@ Deno.serve(async (req) => {
       global: { headers: { Authorization: authHeader } },
     });
 
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+    if (userError || !user) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const userId = claimsData.claims.sub as string;
+    const userId = user.id;
 
     const body = await req.json();
     const { action } = body;
 
-    // ─── SAVE API KEY ───
-    if (action === "save-api-key") {
-      const { api_key } = body;
-      if (!api_key || typeof api_key !== "string" || api_key.trim().length < 10) {
-        return new Response(
-          JSON.stringify({ error: "Invalid API key" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-
-      const { error } = await supabase
-        .from("profiles")
-        .update({ blotato_api_key: api_key.trim() })
-        .eq("id", userId);
-
-      if (error) {
-        throw new Error("Failed to save API key: " + error.message);
-      }
-
-      return new Response(JSON.stringify({ success: true }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // ─── CHECK API KEY ───
-    if (action === "check-api-key") {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("blotato_api_key")
-        .eq("id", userId)
-        .single();
-
-      return new Response(
-        JSON.stringify({ has_key: !!profile?.blotato_api_key }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Get user's Blotato API key for all other actions
+    // Get platform-level Blotato key for all API actions
     let blotatoApiKey: string;
     try {
-      blotatoApiKey = await getUserBlotatoKey(supabase, userId);
+      blotatoApiKey = getBlotatoKey();
     } catch (err) {
       return new Response(
-        JSON.stringify({ error: err.message, code: "NO_API_KEY" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ error: err.message }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
-    }
-
-    // ─── LIST ACCOUNTS ───
-    if (action === "list-accounts") {
-      const data = await blotatoFetch("/users/me/accounts", blotatoApiKey);
-      return new Response(JSON.stringify({ accounts: data }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
     }
 
     // ─── SYNC ACCOUNTS ───
@@ -171,6 +114,14 @@ Deno.serve(async (req) => {
         .eq("profile_id", userId);
 
       return new Response(JSON.stringify({ accounts: localAccounts, synced: accounts.length }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ─── LIST ACCOUNTS ───
+    if (action === "list-accounts") {
+      const data = await blotatoFetch("/users/me/accounts", blotatoApiKey);
+      return new Response(JSON.stringify({ accounts: data }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
