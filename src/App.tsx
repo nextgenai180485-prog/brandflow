@@ -86,6 +86,14 @@ const App = () => (
               }
             />
             <Route
+              path="/dashboard/libraries"
+              element={
+                <ProtectedRoute>
+                  <UserLibraries />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/dashboard/admin/libraries"
               element={
                 <ProtectedRoute>
