@@ -28,13 +28,33 @@ async function blotatoFetch(
   return data;
 }
 
+async function getUserBlotatoKey(supabase: any, userId: string): Promise<string> {
+  // Try user's personal key first
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("blotato_api_key")
+    .eq("id", userId)
+    .single();
+
+  if (profile?.blotato_api_key) {
+    return profile.blotato_api_key;
+  }
+
+  // Fallback to server-level key (for admin/founder)
+  const serverKey = Deno.env.get("BLOTATO_API_KEY");
+  if (serverKey) {
+    return serverKey;
+  }
+
+  throw new Error("No Blotato API key configured. Go to Social Settings to add your API key.");
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
 
   try {
-    // Auth
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
@@ -59,16 +79,57 @@ Deno.serve(async (req) => {
     }
     const userId = claimsData.claims.sub as string;
 
-    const blotatoApiKey = Deno.env.get("BLOTATO_API_KEY");
-    if (!blotatoApiKey) {
+    const body = await req.json();
+    const { action } = body;
+
+    // ─── SAVE API KEY ───
+    if (action === "save-api-key") {
+      const { api_key } = body;
+      if (!api_key || typeof api_key !== "string" || api_key.trim().length < 10) {
+        return new Response(
+          JSON.stringify({ error: "Invalid API key" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const { error } = await supabase
+        .from("profiles")
+        .update({ blotato_api_key: api_key.trim() })
+        .eq("id", userId);
+
+      if (error) {
+        throw new Error("Failed to save API key: " + error.message);
+      }
+
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ─── CHECK API KEY ───
+    if (action === "check-api-key") {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("blotato_api_key")
+        .eq("id", userId)
+        .single();
+
       return new Response(
-        JSON.stringify({ error: "BLOTATO_API_KEY not configured" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ has_key: !!profile?.blotato_api_key }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const body = await req.json();
-    const { action } = body;
+    // Get user's Blotato API key for all other actions
+    let blotatoApiKey: string;
+    try {
+      blotatoApiKey = await getUserBlotatoKey(supabase, userId);
+    } catch (err) {
+      return new Response(
+        JSON.stringify({ error: err.message, code: "NO_API_KEY" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     // ─── LIST ACCOUNTS ───
     if (action === "list-accounts") {
@@ -104,7 +165,6 @@ Deno.serve(async (req) => {
         );
       }
 
-      // Fetch updated local accounts
       const { data: localAccounts } = await supabase
         .from("social_accounts")
         .select("*")
@@ -134,7 +194,6 @@ Deno.serve(async (req) => {
         );
       }
 
-      // Get asset URL
       const { data: asset } = await supabase
         .from("generated_assets")
         .select("content_url, content_text, asset_type, platform")
@@ -148,7 +207,6 @@ Deno.serve(async (req) => {
         );
       }
 
-      // Get selected social accounts
       const { data: socialAccounts } = await supabase
         .from("social_accounts")
         .select("*")
@@ -165,7 +223,6 @@ Deno.serve(async (req) => {
       const finalCaption = caption || asset.content_text || "";
       const hashtagString = hashtags?.length ? "\n\n" + hashtags.map((h: string) => h.startsWith("#") ? h : `#${h}`).join(" ") : "";
 
-      // Build Blotato post payload
       const targets: Record<string, any> = {};
       for (const acc of socialAccounts) {
         targets[acc.blotato_account_id] = platform_options?.[acc.platform] || {};
@@ -188,7 +245,6 @@ Deno.serve(async (req) => {
 
       const submissionId = blotatoResult?.id || blotatoResult?.postSubmissionId || blotatoResult?._id;
 
-      // Create publish records
       const records = socialAccounts.map((acc: any) => ({
         profile_id: userId,
         asset_id,
@@ -244,7 +300,6 @@ Deno.serve(async (req) => {
         blotatoApiKey
       );
 
-      // Map Blotato status to our status
       let newStatus = record.status;
       let platformPostUrl = record.platform_post_url;
 
