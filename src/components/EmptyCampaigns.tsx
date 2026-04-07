@@ -104,7 +104,7 @@ const EmptyCampaigns = ({ onCreateClick, hasProfile = true }: EmptyCampaignsProp
       </Button>
 
       {/* Inspiration Showcase with Tabs + Filter Chips */}
-      <div className="w-full max-w-5xl mt-16 px-4">
+      <div className="w-full mt-16">
         <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); setActiveFilter("all"); }}>
           {/* Tab Navigation */}
           <div className="overflow-x-auto scrollbar-hide">
