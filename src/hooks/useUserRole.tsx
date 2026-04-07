@@ -3,9 +3,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 
 export const useUserRole = () => {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
 
-  const { data: roles = [], isLoading } = useQuery({
+  const { data: roles = [], isLoading: queryLoading } = useQuery({
     queryKey: ["user-roles", user?.id],
     enabled: !!user?.id,
     queryFn: async () => {
@@ -17,6 +17,9 @@ export const useUserRole = () => {
       return (data || []).map((r: any) => r.role as string);
     },
   });
+
+  // Still loading if auth hasn't resolved OR if user exists but role query is pending
+  const isLoading = authLoading || (!!user?.id && queryLoading);
 
   return {
     roles,
