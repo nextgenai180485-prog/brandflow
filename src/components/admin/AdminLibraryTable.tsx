@@ -299,6 +299,7 @@ const AdminLibraryTable = ({ tableName }: AdminLibraryTableProps) => {
           <RefreshCw className="h-3 w-3" />
           <span className="hidden sm:inline">Refresh</span>
         </Button>
+        <BulkImportModal tableName={tableName} onImported={() => refetch()} />
         <Button size="sm" onClick={() => { setEditingItem(null); setShowForm(true); }} className="h-8 gap-1 text-xs shrink-0">
           <Plus className="h-3 w-3" />
           <span className="hidden sm:inline">Add New</span>
