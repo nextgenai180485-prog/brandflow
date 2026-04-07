@@ -419,10 +419,10 @@ export default function CampaignSimulator({
             </button>
 
             {/* Variant thumbnails grid */}
-            <div className="grid grid-cols-2 gap-2 mt-3 px-1">
+            <div className="grid grid-cols-2 gap-1.5 mt-2 px-1">
               {ASPECT_VARIANTS.map((v) => (
                 <div key={v.label} className="relative rounded-lg overflow-hidden border border-border bg-secondary/30 hover:border-primary/40 transition-colors cursor-pointer group">
-                  <div style={{ aspectRatio: `${v.w}/${v.h}`, maxHeight: 100 }} className="w-full overflow-hidden">
+                  <div style={{ aspectRatio: `${v.w}/${v.h}`, maxHeight: 60 }} className="w-full overflow-hidden">
                     <img src={imageUrl!} alt={v.label} className="w-full h-full object-cover" />
                   </div>
                   <div className="flex items-center justify-between px-1.5 py-1">
