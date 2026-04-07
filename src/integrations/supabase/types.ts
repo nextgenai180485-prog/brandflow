@@ -714,7 +714,6 @@ export type Database = {
       }
       profiles: {
         Row: {
-          blotato_api_key: string | null
           brand_colors: Json | null
           brand_palette: Json | null
           brand_voice_keywords: string[] | null
@@ -732,7 +731,6 @@ export type Database = {
           website_url: string | null
         }
         Insert: {
-          blotato_api_key?: string | null
           brand_colors?: Json | null
           brand_palette?: Json | null
           brand_voice_keywords?: string[] | null
@@ -750,7 +748,6 @@ export type Database = {
           website_url?: string | null
         }
         Update: {
-          blotato_api_key?: string | null
           brand_colors?: Json | null
           brand_palette?: Json | null
           brand_voice_keywords?: string[] | null
