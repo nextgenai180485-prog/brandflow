@@ -1,10 +1,12 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { MessageSquare, X, Send, Brain, Loader2, Trash2, Maximize2, Minimize2 } from "lucide-react";
+import { X, Send, Brain, Loader2, Trash2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { Drawer, DrawerContent } from "@/components/ui/drawer";
 
 type Msg = { role: "user" | "assistant"; content: string };
 
@@ -19,14 +21,31 @@ const STARTERS = [
 
 const GlobalCMOChat = () => {
   const { user } = useAuth();
+  const isMobile = useIsMobile();
   const [open, setOpen] = useState(false);
-  const [expanded, setExpanded] = useState(false);
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  // Keyboard shortcut: Cmd+K / Ctrl+K + custom event from AppShell
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        setOpen((prev) => !prev);
+      }
+    };
+    const toggleHandler = () => setOpen((prev) => !prev);
+    window.addEventListener("keydown", handler);
+    window.addEventListener("toggle-cso", toggleHandler);
+    return () => {
+      window.removeEventListener("keydown", handler);
+      window.removeEventListener("toggle-cso", toggleHandler);
+    };
+  }, []);
 
   // Load persisted messages on first open
   useEffect(() => {
@@ -46,10 +65,9 @@ const GlobalCMOChat = () => {
     load();
   }, [open, loaded, user]);
 
-  // Auto-scroll to bottom on messages change, initial load, or open
+  // Auto-scroll
   useEffect(() => {
     if (scrollRef.current) {
-      // Use instant scroll on initial load, smooth on updates
       const behavior = loaded ? "smooth" : "instant";
       requestAnimationFrame(() => {
         scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior });
@@ -59,7 +77,7 @@ const GlobalCMOChat = () => {
 
   // Focus input when opened
   useEffect(() => {
-    if (open) inputRef.current?.focus();
+    if (open) setTimeout(() => inputRef.current?.focus(), 100);
   }, [open]);
 
   const persistMessage = useCallback(async (role: string, content: string) => {
@@ -144,7 +162,6 @@ const GlobalCMOChat = () => {
         }
       }
 
-      // Flush remaining
       if (buf.trim()) {
         for (let raw of buf.split("\n")) {
           if (!raw) continue;
@@ -160,12 +177,11 @@ const GlobalCMOChat = () => {
         }
       }
 
-      // Persist assistant message
       if (assistantSoFar) {
         await persistMessage("assistant", assistantSoFar);
       }
     } catch (e) {
-      console.error("CMO Chat stream error:", e);
+      console.error("CSO Chat stream error:", e);
       toast.error("Connection lost. Try again.");
     } finally {
       setIsStreaming(false);
@@ -197,145 +213,160 @@ const GlobalCMOChat = () => {
 
   if (!user) return null;
 
-  const widgetSize = expanded
-    ? "sm:w-[560px] sm:h-[680px]"
-    : "sm:w-[380px] sm:h-[520px]";
-  const mobileSize = "w-[calc(100%-32px)] h-[70vh] bottom-4 right-4 left-4 rounded-2xl border border-border";
-
-  return (
-    <>
-      {/* FAB */}
-      {!open && (
-        <button
-          onClick={() => setOpen(true)}
-          className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-[100] w-12 h-12 rounded-full bg-primary text-primary-foreground shadow-lg hover:shadow-xl transition-all hover:scale-105 flex items-center justify-center"
-          aria-label="Open CSO Chat"
-        >
-          <MessageSquare className="w-5 h-5" />
-          {messages.length > 0 && (
-            <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-destructive text-destructive-foreground text-[9px] font-bold flex items-center justify-center">
-              {messages.filter(m => m.role === "assistant").length}
-            </span>
-          )}
-        </button>
-      )}
-
-      {/* Chat Panel */}
-      {open && (
-        <div className={`fixed z-[100] ${mobileSize} sm:inset-auto sm:bottom-6 sm:right-6 ${widgetSize} sm:rounded-2xl sm:border border-border bg-background shadow-2xl flex flex-col overflow-hidden transition-all duration-200`}>
-          {/* Header */}
-          <div className="flex items-center justify-between border-b border-border px-4 py-2.5 shrink-0 bg-background">
-            <div className="flex items-center gap-2">
-              <div className="flex gap-1">
-                <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-                <div className="w-2 h-2 rounded-full bg-muted-foreground/40" />
-                <div className="w-2 h-2 rounded-full bg-muted-foreground/30" />
-              </div>
-              <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-[0.15em]">
-                CSO Intelligence — Live
-              </span>
-            </div>
-            <div className="flex items-center gap-1">
-              {messages.length > 0 && (
-                <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-muted-foreground" onClick={clearChat}>
-                  <Trash2 className="w-3 h-3" />
-                </Button>
-              )}
-              <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-muted-foreground" onClick={() => setExpanded(!expanded)}>
-                {expanded ? <Minimize2 className="w-3 h-3" /> : <Maximize2 className="w-3 h-3" />}
-              </Button>
-              <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-muted-foreground" onClick={() => setOpen(false)}>
-                <X className="w-3.5 h-3.5" />
-              </Button>
-            </div>
+  const chatContent = (
+    <div className="flex flex-col h-full">
+      {/* Header */}
+      <div className="flex items-center justify-between border-b border-border px-5 py-3 shrink-0 bg-background">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+            <Sparkles className="w-4 h-4 text-primary" />
           </div>
-
-          {/* Messages */}
-          <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
-            {messages.length === 0 ? (
-              <div className="space-y-4 pt-2">
-                <div className="rounded-xl border border-border bg-card p-4 space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Brain className="w-4 h-4 text-primary" />
-                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-                      CSO Online
-                    </span>
-                  </div>
-                  <p className="text-sm text-foreground leading-relaxed">
-                    I have your full brand intelligence loaded — strategy, memory, research, and decision history. Ask me anything strategic.
-                  </p>
-                </div>
-                <div className="space-y-2">
-                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold px-1">
-                    Quick Actions
-                  </p>
-                  {STARTERS.map((s) => (
-                    <button
-                      key={s}
-                      onClick={() => send(s)}
-                      className="w-full text-left text-xs text-foreground bg-secondary/50 hover:bg-secondary rounded-lg px-3 py-2.5 transition-colors border border-border/50 hover:border-border"
-                    >
-                      {s}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ) : (
-              messages.map((msg, i) => (
-                <div key={i} className={msg.role === "user" ? "flex justify-end" : ""}>
-                  {msg.role === "user" ? (
-                    <div className="max-w-[85%] rounded-xl bg-primary text-primary-foreground px-3.5 py-2.5 text-sm">
-                      {msg.content}
-                    </div>
-                  ) : (
-                    <div className="space-y-1">
-                      <Badge variant="outline" className="text-[9px] border-primary/30 text-primary">
-                        CSO
-                      </Badge>
-                      <div className="prose prose-sm dark:prose-invert max-w-none text-sm leading-relaxed">
-                        <MarkdownLite content={msg.content} />
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ))
-            )}
-            {isStreaming && messages[messages.length - 1]?.role !== "assistant" && (
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <Loader2 className="w-3 h-3 animate-spin" />
-                <span className="text-[10px] font-mono">Analyzing intelligence...</span>
-              </div>
-            )}
-          </div>
-
-          {/* Input */}
-          <div className="border-t border-border px-3 py-2.5 shrink-0">
-            <div className="flex items-end gap-2">
-              <textarea
-                ref={inputRef}
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="Ask your CSO anything..."
-                rows={1}
-                className="flex-1 resize-none bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none min-h-[36px] max-h-[120px] py-2"
-                disabled={isStreaming}
-              />
-              <Button
-                size="sm"
-                className="h-8 w-8 p-0 shrink-0"
-                onClick={() => send(input)}
-                disabled={!input.trim() || isStreaming}
-              >
-                <Send className="w-3.5 h-3.5" />
-              </Button>
-            </div>
+          <div>
+            <h2 className="text-sm font-bold text-foreground">Chief Strategy Officer</h2>
+            <p className="text-[10px] text-muted-foreground font-mono tracking-wide">
+              Strategic War Room · History Access: Full
+            </p>
           </div>
         </div>
+        <div className="flex items-center gap-1">
+          {messages.length > 0 && (
+            <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive" onClick={clearChat}>
+              <Trash2 className="w-3.5 h-3.5" />
+            </Button>
+          )}
+          <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-muted-foreground" onClick={() => setOpen(false)}>
+            <X className="w-4 h-4" />
+          </Button>
+        </div>
+      </div>
+
+      {/* Messages */}
+      <div ref={scrollRef} className="flex-1 overflow-y-auto px-5 py-5 space-y-5">
+        {messages.length === 0 ? (
+          <div className="space-y-5 pt-2">
+            <div className="rounded-xl border border-border bg-card p-5 space-y-3">
+              <div className="flex items-center gap-2">
+                <Brain className="w-4 h-4 text-primary" />
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                  CSO Online
+                </span>
+              </div>
+              <p className="text-sm text-foreground leading-relaxed">
+                I have your full brand intelligence loaded — strategy, memory, research, and decision history. Ask me anything strategic.
+              </p>
+            </div>
+            <div className="space-y-2.5">
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold px-1">
+                Quick Actions
+              </p>
+              {STARTERS.map((s) => (
+                <button
+                  key={s}
+                  onClick={() => send(s)}
+                  className="w-full text-left text-xs text-foreground bg-secondary/50 hover:bg-secondary rounded-xl px-4 py-3 transition-colors border border-border/50 hover:border-border"
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : (
+          messages.map((msg, i) => (
+            <div key={i} className={msg.role === "user" ? "flex justify-end" : "flex justify-start gap-3"}>
+              {msg.role === "user" ? (
+                <div className="max-w-[85%] rounded-2xl rounded-tr-sm bg-primary text-primary-foreground px-4 py-3 text-sm">
+                  {msg.content}
+                </div>
+              ) : (
+                <>
+                  <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
+                    <Sparkles className="w-3.5 h-3.5 text-primary" />
+                  </div>
+                  <div className="space-y-1.5 max-w-[90%]">
+                    <Badge variant="outline" className="text-[9px] border-primary/30 text-primary">
+                      CSO
+                    </Badge>
+                    <div className="prose prose-sm dark:prose-invert max-w-none text-sm leading-relaxed">
+                      <MarkdownLite content={msg.content} />
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          ))
+        )}
+        {isStreaming && messages[messages.length - 1]?.role !== "assistant" && (
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <Loader2 className="w-3 h-3 animate-spin" />
+            <span className="text-[10px] font-mono">Analyzing intelligence...</span>
+          </div>
+        )}
+      </div>
+
+      {/* Input */}
+      <div className="border-t border-border px-4 py-3 shrink-0 bg-background">
+        <div className="flex items-end gap-2">
+          <textarea
+            ref={inputRef}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Ask for strategic advice..."
+            rows={1}
+            className="flex-1 resize-none bg-secondary/50 border border-border rounded-xl text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring min-h-[40px] max-h-[120px] px-4 py-2.5"
+            disabled={isStreaming}
+          />
+          <Button
+            size="sm"
+            className="h-10 w-10 p-0 shrink-0 rounded-xl"
+            onClick={() => send(input)}
+            disabled={!input.trim() || isStreaming}
+          >
+            <Send className="w-4 h-4" />
+          </Button>
+        </div>
+        <p className="text-[9px] text-muted-foreground/60 mt-1.5 text-center font-mono">
+          ⌘K to toggle · Full project history access
+        </p>
+      </div>
+    </div>
+  );
+
+  // Mobile: full-screen Drawer
+  if (isMobile) {
+    return (
+      <Drawer open={open} onOpenChange={setOpen}>
+        <DrawerContent className="h-[92vh] p-0">
+          {chatContent}
+        </DrawerContent>
+      </Drawer>
+    );
+  }
+
+  // Desktop: slide-over overlay with glassmorphic backdrop
+  return (
+    <>
+      {/* Backdrop */}
+      {open && (
+        <div
+          className="fixed inset-0 z-[90] bg-foreground/10 backdrop-blur-sm transition-opacity duration-300"
+          onClick={() => setOpen(false)}
+        />
       )}
+
+      {/* Slide-over panel */}
+      <div
+        className={`fixed top-0 right-0 z-[100] h-full w-[480px] bg-background/95 backdrop-blur-xl border-l border-border shadow-2xl transition-transform duration-300 ease-out ${
+          open ? "translate-x-0" : "translate-x-full"
+        }`}
+      >
+        {chatContent}
+      </div>
     </>
   );
 };
+
+/* ─── Markdown renderer ─── */
 
 const MarkdownLite = ({ content }: { content: string }) => {
   const lines = content.split("\n");
