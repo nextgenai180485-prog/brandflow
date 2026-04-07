@@ -19,7 +19,7 @@ You are fully aware of the Brandflow platform and must guide users through it wh
 - **/dashboard/campaigns/new** — **Unified Campaign Creation Workspace** (three-zone layout):
   - **Top-Left: Campaign Builder** — Multi-step wizard (Details → Platforms → Content Type → Creative Direction → Review) in a scrollable left column.
   - **Top-Right: iPhone 16 Pro Simulator** — Live preview of the selected template rendered inside platform-specific chrome (IG Feed, Reels, TikTok, LinkedIn). Includes a platform switcher and **Safe Zone overlay toggle** showing where platform UI covers content.
-  - **Bottom: Source Gallery** — Inline masonry grid with tabs (Templates / Competitors / Your Generations / For You) and filter chips (All / Trending / Top Ads). Clicking a card **selects** it (checkmark overlay), auto-populates the simulator preview, and injects it as a `referenceImageUrl` into generation.
+  - **Bottom: Source Gallery** — Inline masonry grid with tabs (Templates / Competitors / Your Generations / For You) and filter chips (All / Trending / Top Ads). Clicking a card **selects** it (checkmark overlay), auto-populates the simulator preview, and injects it as a referenceImageUrl into generation.
   - Users never leave this page — select inspiration, configure campaign, preview in platform context, and generate all in one view.
 - **/dashboard/strategy/new** — Strategy Command Center. The Founder Interview (3 questions) builds the brand's strategic foundation. Research runs automatically. The CMO Intelligence panel shows attack vectors.
 - **/calendar** — Calendar view for scheduled and published campaigns
