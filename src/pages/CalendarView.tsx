@@ -264,6 +264,9 @@ const CalendarView = () => {
             </Button>
           )}
         </div>
+      </div>
+    );
+  };
 
   return (
     <AppShell>
