@@ -440,20 +440,8 @@ const NewCampaign = () => {
   return (
     <AppShell>
       <div className="flex h-[calc(100vh-3.5rem)] overflow-hidden">
-        {/* LEFT: Tactical Builder */}
+        {/* Tactical Builder — full width, CMO intelligence is now in the global Sentient Rail */}
         {renderLeftPanel()}
-
-        {/* RIGHT: CMO Strategy Mirror */}
-        <div className="hidden lg:flex w-[420px] xl:w-[480px] border-l border-border bg-secondary/20 flex-col shrink-0">
-          <CMOStrategyPanel
-            brandProfile={brandProfile}
-            loadingProfile={loadingProfile}
-            selectedPlatforms={platforms}
-            selectedContentTypes={contentTypes}
-            campaignTitle={title}
-            campaignInstructions={instructions}
-          />
-        </div>
       </div>
     </AppShell>
   );
