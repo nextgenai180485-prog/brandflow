@@ -127,7 +127,7 @@ const App = () => (
             <Route path="*" element={<NotFound />} />
           </Routes>
           <GlobalCMOChat />
-          <SentientCMORail />
+          
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
