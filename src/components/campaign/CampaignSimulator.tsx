@@ -230,6 +230,7 @@ export default function CampaignSimulator({
   const [showSafeZones, setShowSafeZones] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
   const [previewMode, setPreviewMode] = useState<"preview" | "reels" | "feed">("feed");
+  const [activeAspect, setActiveAspect] = useState<string>("9:16");
 
   // Auto-close fullscreen on any click outside the overlay content
   const closeFullscreen = useCallback(() => setFullscreen(false), []);
