@@ -7,7 +7,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { LogOut, ChevronDown } from "lucide-react";
+import { LogOut, ChevronDown, Sparkles } from "lucide-react";
 
 const navItems = [
   { label: "Campaigns", path: "/dashboard" },
@@ -28,6 +28,10 @@ const AppShell = ({ children }: { children: React.ReactNode }) => {
   const handleSignOut = async () => {
     await signOut();
     navigate("/login");
+  };
+
+  const openCSO = () => {
+    window.dispatchEvent(new CustomEvent("toggle-cso"));
   };
 
   return (
@@ -58,25 +62,38 @@ const AppShell = ({ children }: { children: React.ReactNode }) => {
             </nav>
           </div>
 
-          <DropdownMenu>
-            <DropdownMenuTrigger className="flex items-center gap-1.5 rounded-full p-0.5 pr-2 transition-colors hover:bg-accent focus:outline-none">
-              <Avatar className="h-7 w-7">
-                <AvatarFallback className="bg-primary text-primary-foreground text-[10px] font-medium">
-                  {initials}
-                </AvatarFallback>
-              </Avatar>
-              <ChevronDown className="h-3 w-3 text-muted-foreground" />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-44">
-              <DropdownMenuItem
-                onClick={handleSignOut}
-                className="cursor-pointer text-destructive focus:text-destructive text-xs"
-              >
-                <LogOut className="mr-2 h-3.5 w-3.5" />
-                Logout
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <div className="flex items-center gap-2">
+            {/* CSO Trigger */}
+            <button
+              onClick={openCSO}
+              className="relative flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary transition-all hover:bg-primary/20 hover:scale-[1.02] active:scale-[0.98]"
+              title="Open Chief Strategy Officer (⌘K)"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Strategy</span>
+              <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-primary animate-pulse" />
+            </button>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger className="flex items-center gap-1.5 rounded-full p-0.5 pr-2 transition-colors hover:bg-accent focus:outline-none">
+                <Avatar className="h-7 w-7">
+                  <AvatarFallback className="bg-primary text-primary-foreground text-[10px] font-medium">
+                    {initials}
+                  </AvatarFallback>
+                </Avatar>
+                <ChevronDown className="h-3 w-3 text-muted-foreground" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-44">
+                <DropdownMenuItem
+                  onClick={handleSignOut}
+                  className="cursor-pointer text-destructive focus:text-destructive text-xs"
+                >
+                  <LogOut className="mr-2 h-3.5 w-3.5" />
+                  Logout
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
       </header>
 
