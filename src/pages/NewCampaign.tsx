@@ -228,6 +228,8 @@ const NewCampaign = () => {
     // 6. Trigger generation pipeline
     toast.success("Campaign created — generation starting…");
 
+    const referenceImageUrl = showcaseState?.fromShowcase ? showcaseState.templateRef?.mediaUrl : undefined;
+
     supabase.functions.invoke("generate-content", {
       body: {
         campaignId: campaign.id,
@@ -241,6 +243,7 @@ const NewCampaign = () => {
           visual_direction: brandProfile.visual_style,
         } : null,
         creativeDirection: creativeDirection || null,
+        referenceImageUrl: referenceImageUrl || null,
       },
     }).then(({ error: genError }) => {
       if (genError) console.error("[Generation] Trigger error:", genError);

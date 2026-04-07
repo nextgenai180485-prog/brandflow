@@ -654,7 +654,7 @@ const VERTICAL_PHOTOGRAPHY: Record<string, string> = {
 };
 
 // ── Prompt Builders (now powered by Decision Engine + Image Templates) ──
-function buildImagePrompt(platform: string, format: string, brandContext: any, intelligenceBrief: any, decisionWinner: any, imageTemplate?: any): string {
+function buildImagePrompt(platform: string, format: string, brandContext: any, intelligenceBrief: any, decisionWinner: any, imageTemplate?: any, referenceImageUrl?: string | null): string {
   const industry = (brandContext.industry || "general").toLowerCase();
   const baseStyle = intelligenceBrief?.visual_direction || "modern, clean, professional photography style";
   const angle = decisionWinner?.description || "showcase the brand experience";
@@ -670,6 +670,11 @@ function buildImagePrompt(platform: string, format: string, brandContext: any, i
   prompt += `Brand: "${brandContext.businessName || "luxury brand"}". `;
   prompt += `Creative direction: ${angle}. `;
   if (hookText) prompt += `Visual concept: ${hookText}. `;
+
+  // Inject reference style if a showcase template was selected
+  if (referenceImageUrl) {
+    prompt += `Reference style: ${referenceImageUrl}. Match the composition, lighting, and mood of this reference. `;
+  }
 
   // Inject image template modifiers if available
   if (imageTemplate) {
