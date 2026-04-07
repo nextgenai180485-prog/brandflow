@@ -19,7 +19,7 @@ const baseNavItems = [
 ];
 
 const adminNavItems = [
-  { label: "Admin", path: "/dashboard/admin/libraries" },
+  { label: "Admin", path: "/dashboard/admin" },
 ];
 
 const AppShell = ({ children }: { children: React.ReactNode }) => {
