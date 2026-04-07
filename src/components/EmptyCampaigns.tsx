@@ -1,9 +1,12 @@
-import { useState } from "react";
-import { Plus, CheckCircle2, Circle, Sparkles, SearchX } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Plus, CheckCircle2, Circle, Sparkles, SearchX, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { supabase } from "@/integrations/supabase/client";
+import ShowcaseDetailModal, { type ShowcaseItem } from "@/components/ShowcaseDetailModal";
 
+// Static fallback images
 import fashionImg from "@/assets/showcase/fashion-editorial.jpg";
 import skincareImg from "@/assets/showcase/skincare-luxury.jpg";
 import foodImg from "@/assets/showcase/food-hero.jpg";
@@ -26,26 +29,17 @@ const steps = [
   { label: "Review AI-generated content", done: false },
 ];
 
-type ShowcaseCard = {
-  id: string;
-  src: string;
-  label: string;
-  category: string;
-  tabs: string[]; // which tabs this item appears in
-  filters: string[]; // which filter chips apply
-};
-
-const showcaseItems: ShowcaseCard[] = [
-  { id: "1", src: fashionImg, label: "Fashion Editorial", category: "Fashion", tabs: ["templates", "foryou"], filters: ["trending"] },
-  { id: "2", src: skincareImg, label: "Luxury Skincare", category: "Beauty", tabs: ["templates", "foryou"], filters: ["trending", "top"] },
-  { id: "3", src: sneakerImg, label: "Product Showcase", category: "Ecommerce", tabs: ["templates"], filters: ["top"] },
-  { id: "4", src: foodImg, label: "Food & Beverage", category: "Restaurant", tabs: ["templates", "foryou"], filters: ["trending"] },
-  { id: "5", src: techImg, label: "Tech Product Ad", category: "Technology", tabs: ["templates"], filters: ["top"] },
-  { id: "6", src: realestateImg, label: "Real Estate", category: "Property", tabs: ["templates", "foryou"], filters: ["trending", "top"] },
-  { id: "7", src: fitnessImg, label: "Fitness Brand", category: "Health", tabs: ["templates"], filters: ["trending"] },
-  { id: "8", src: coffeeImg, label: "Lifestyle Brand", category: "Lifestyle", tabs: ["templates", "foryou"], filters: ["top"] },
-  { id: "9", src: jewelryImg, label: "Luxury Jewelry", category: "Luxury", tabs: ["templates", "foryou"], filters: ["trending", "top"] },
-  { id: "10", src: travelImg, label: "Travel & Tourism", category: "Travel", tabs: ["templates"], filters: ["trending"] },
+const STATIC_FALLBACKS: ShowcaseItem[] = [
+  { id: "s1", title: "Fashion Editorial", description: null, media_url: fashionImg, thumbnail_url: fashionImg, industry_tags: ["fashion"], mood_tags: ["editorial"], platform_tags: ["instagram"], sealcam_analysis: {}, performance_notes: null },
+  { id: "s2", title: "Luxury Skincare", description: null, media_url: skincareImg, thumbnail_url: skincareImg, industry_tags: ["beauty"], mood_tags: ["luxurious"], platform_tags: ["instagram"], sealcam_analysis: {}, performance_notes: null },
+  { id: "s3", title: "Product Showcase", description: null, media_url: sneakerImg, thumbnail_url: sneakerImg, industry_tags: ["ecommerce"], mood_tags: ["minimal"], platform_tags: ["instagram"], sealcam_analysis: {}, performance_notes: null },
+  { id: "s4", title: "Food & Beverage", description: null, media_url: foodImg, thumbnail_url: foodImg, industry_tags: ["food"], mood_tags: ["warm"], platform_tags: ["instagram"], sealcam_analysis: {}, performance_notes: null },
+  { id: "s5", title: "Tech Product Ad", description: null, media_url: techImg, thumbnail_url: techImg, industry_tags: ["technology"], mood_tags: ["sleek"], platform_tags: ["instagram"], sealcam_analysis: {}, performance_notes: null },
+  { id: "s6", title: "Real Estate", description: null, media_url: realestateImg, thumbnail_url: realestateImg, industry_tags: ["real_estate"], mood_tags: ["aspirational"], platform_tags: ["instagram"], sealcam_analysis: {}, performance_notes: null },
+  { id: "s7", title: "Fitness Brand", description: null, media_url: fitnessImg, thumbnail_url: fitnessImg, industry_tags: ["fitness"], mood_tags: ["energetic"], platform_tags: ["instagram"], sealcam_analysis: {}, performance_notes: null },
+  { id: "s8", title: "Lifestyle Brand", description: null, media_url: coffeeImg, thumbnail_url: coffeeImg, industry_tags: ["lifestyle"], mood_tags: ["cozy"], platform_tags: ["instagram"], sealcam_analysis: {}, performance_notes: null },
+  { id: "s9", title: "Luxury Jewelry", description: null, media_url: jewelryImg, thumbnail_url: jewelryImg, industry_tags: ["jewelry"], mood_tags: ["luxurious"], platform_tags: ["instagram"], sealcam_analysis: {}, performance_notes: null },
+  { id: "s10", title: "Travel & Tourism", description: null, media_url: travelImg, thumbnail_url: travelImg, industry_tags: ["travel"], mood_tags: ["dreamy"], platform_tags: ["instagram"], sealcam_analysis: {}, performance_notes: null },
 ];
 
 const filterChips = [
@@ -58,14 +52,50 @@ const EmptyCampaigns = ({ onCreateClick, hasProfile = true }: EmptyCampaignsProp
   const completedSteps = hasProfile ? [true, false, false] : [false, false, false];
   const [activeTab, setActiveTab] = useState("templates");
   const [activeFilter, setActiveFilter] = useState("all");
+  const [dbItems, setDbItems] = useState<ShowcaseItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedItem, setSelectedItem] = useState<ShowcaseItem | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
 
-  const filteredItems = showcaseItems.filter((item) => {
-    const matchesTab = item.tabs.includes(activeTab);
-    const matchesFilter = activeFilter === "all" || item.filters.includes(activeFilter);
-    return matchesTab && matchesFilter;
+  // Fetch from ad_reference_library
+  useEffect(() => {
+    const fetchItems = async () => {
+      const { data } = await supabase
+        .from("ad_reference_library")
+        .select("id, title, description, media_url, thumbnail_url, industry_tags, mood_tags, platform_tags, sealcam_analysis, performance_notes")
+        .eq("is_active", true)
+        .order("usage_count", { ascending: false })
+        .limit(20);
+
+      if (data && data.length > 0) {
+        setDbItems(data.map((d) => ({
+          ...d,
+          sealcam_analysis: (d.sealcam_analysis as Record<string, string>) || {},
+        })));
+      }
+      setLoading(false);
+    };
+    fetchItems();
+  }, []);
+
+  const showcaseItems = dbItems.length > 0 ? dbItems : STATIC_FALLBACKS;
+
+  // Simple filter: "trending" = first half, "top" = second half (for demo)
+  const filteredItems = showcaseItems.filter((_, i) => {
+    if (activeTab === "competitors" || activeTab === "generations") return false;
+    if (activeTab === "foryou" && i % 2 !== 0) return false;
+    if (activeFilter === "all") return true;
+    if (activeFilter === "trending") return i % 2 === 0;
+    if (activeFilter === "top") return i % 3 === 0;
+    return true;
   });
 
   const hasEmptyState = activeTab === "competitors" || activeTab === "generations";
+
+  const handleCardClick = (item: ShowcaseItem) => {
+    setSelectedItem(item);
+    setModalOpen(true);
+  };
 
   return (
     <div className="flex flex-col items-center justify-center py-16 md:py-24">
@@ -87,7 +117,7 @@ const EmptyCampaigns = ({ onCreateClick, hasProfile = true }: EmptyCampaignsProp
         {steps.map((step, i) => (
           <div key={i} className="flex items-center gap-3 text-sm">
             {completedSteps[i] ? (
-              <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
+              <CheckCircle2 className="w-5 h-5 text-primary shrink-0" />
             ) : (
               <Circle className="w-5 h-5 text-muted-foreground/40 shrink-0" />
             )}
@@ -103,10 +133,9 @@ const EmptyCampaigns = ({ onCreateClick, hasProfile = true }: EmptyCampaignsProp
         Create Your First Campaign
       </Button>
 
-      {/* Inspiration Showcase with Tabs + Filter Chips */}
+      {/* Inspiration Showcase */}
       <div className="w-full mt-16">
         <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); setActiveFilter("all"); }}>
-          {/* Tab Navigation */}
           <div className="overflow-x-auto scrollbar-hide">
             <TabsList className="w-full justify-start bg-transparent p-0 h-auto gap-0 border-b border-border rounded-none">
               <TabsTrigger value="templates" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 py-2.5 text-sm">
@@ -145,9 +174,13 @@ const EmptyCampaigns = ({ onCreateClick, hasProfile = true }: EmptyCampaignsProp
             </div>
           )}
 
-          {/* Tab Content — shared masonry grid or empty state */}
+          {/* Content */}
           <div className="mt-6">
-            {hasEmptyState ? (
+            {loading ? (
+              <div className="flex items-center justify-center py-16">
+                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : hasEmptyState ? (
               <div className="flex flex-col items-center justify-center py-16 text-center">
                 <SearchX className="w-10 h-10 text-muted-foreground/30 mb-4" />
                 <p className="text-sm font-medium text-foreground mb-1">
@@ -169,20 +202,21 @@ const EmptyCampaigns = ({ onCreateClick, hasProfile = true }: EmptyCampaignsProp
                 {filteredItems.map((item) => (
                   <div
                     key={item.id}
-                    className="break-inside-avoid rounded-xl overflow-hidden bg-card border border-border/50 group relative"
+                    onClick={() => handleCardClick(item)}
+                    className="break-inside-avoid rounded-xl overflow-hidden bg-card border border-border/50 group relative cursor-pointer transition-all duration-200 hover:shadow-md hover:border-border hover:scale-[1.01]"
                   >
                     <img
-                      src={item.src}
-                      alt={item.label}
+                      src={item.thumbnail_url || item.media_url || ""}
+                      alt={item.title}
                       className="w-full h-auto object-cover"
                       loading="lazy"
                     />
                     <Badge className="absolute top-2.5 right-2.5 bg-primary text-primary-foreground text-[10px] font-medium px-2 py-0.5 border-0 shadow-sm">
-                      {item.filters.includes("trending") ? "Trending" : "Top"}
+                      {item.mood_tags?.[0] ? item.mood_tags[0].charAt(0).toUpperCase() + item.mood_tags[0].slice(1) : "Template"}
                     </Badge>
                     <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent p-3 pt-8">
-                      <p className="text-[11px] font-medium text-white/90 truncate">{item.label}</p>
-                      <p className="text-[9px] text-white/60">{item.category}</p>
+                      <p className="text-[11px] font-medium text-white/90 truncate">{item.title}</p>
+                      <p className="text-[9px] text-white/60">{item.industry_tags?.[0] || "General"}</p>
                     </div>
                   </div>
                 ))}
@@ -193,10 +227,16 @@ const EmptyCampaigns = ({ onCreateClick, hasProfile = true }: EmptyCampaignsProp
 
         <div className="flex justify-center mt-8">
           <p className="text-xs text-muted-foreground/70 bg-muted/50 px-4 py-2 rounded-full">
-            Click "Create Your First Campaign" to build ads like these
+            Click any template to preview details and create a campaign
           </p>
         </div>
       </div>
+
+      <ShowcaseDetailModal
+        item={selectedItem}
+        open={modalOpen}
+        onOpenChange={setModalOpen}
+      />
     </div>
   );
 };

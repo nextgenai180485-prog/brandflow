@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
 import type { LibrarySelection } from "@/components/LibraryBrowser";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { ArrowLeft, ArrowRight, Loader2, ImageIcon, Sparkles, Film, Camera, Check, VideoIcon } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -33,9 +33,16 @@ const CONTENT_TYPE_ICONS: Record<ContentType, React.ReactNode> = {
 const NewCampaign = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const showcaseState = location.state as { fromShowcase?: boolean; templateRef?: { id: string; title: string; industryTags?: string[]; moodTags?: string[]; platformTags?: string[] } } | null;
+
   const [step, setStep] = useState(0);
-  const [title, setTitle] = useState("");
-  const [instructions, setInstructions] = useState("");
+  const [title, setTitle] = useState(showcaseState?.templateRef?.title || "");
+  const [instructions, setInstructions] = useState(
+    showcaseState?.fromShowcase
+      ? `Inspired by: ${showcaseState.templateRef?.title || "showcase template"}. Tags: ${[...(showcaseState.templateRef?.moodTags || []), ...(showcaseState.templateRef?.industryTags || [])].join(", ")}`
+      : ""
+  );
   const [selectedAssets, setSelectedAssets] = useState<LibraryAsset[]>([]);
   const [platforms, setPlatforms] = useState<SelectedFormat[]>([]);
   const [contentTypes, setContentTypes] = useState<ContentType[]>([]);

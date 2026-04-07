@@ -1,23 +1,31 @@
 
+## Make Showcase Templates Actionable (Preview + Quick-Use)
 
-## Make Showcase Grid Edge-to-Edge (Align with Header)
+### What Changes
 
-**Current state:** The masonry grid sits inside `max-w-5xl` (~64rem), while the header and dashboard content use the full fluid container (`px-4 sm:px-6`).
+**1. Connect showcase to database** — Replace static imported images with a live query to `ad_reference_library` (entries with `thumbnail_url`). This means the showcase automatically updates when admin adds/removes templates.
 
-**Change:** Remove `max-w-5xl` from the showcase wrapper so it inherits the parent's full width, matching header alignment exactly.
+**2. Create `ShowcaseDetailModal` component** — When a user clicks any template card:
+- Full-size image with SEALCaM analysis breakdown (composition, lighting, mood, focal point)
+- Industry/mood/platform tags displayed as badges
+- Performance notes
+- **"Create Campaign from This"** CTA button
 
-### File: `src/components/EmptyCampaigns.tsx`
+**3. Quick-Use flow** — The CTA navigates to `/dashboard/campaigns/new` and passes the template reference (ID, industry, mood, platform tags) as route state. The campaign wizard auto-fills:
+- Title pre-populated (e.g., "Fashion Editorial Campaign")
+- Platform tags → pre-select matching platforms
+- The reference gets auto-attached via the Library Browser in the Creative Direction step
 
-**Line 107** — Change:
-```tsx
-<div className="w-full max-w-5xl mt-16 px-4">
-```
-To:
-```tsx
-<div className="w-full mt-16">
-```
+### Files
 
-The parent container in Dashboard already provides horizontal padding (`px-4 sm:px-6`), so removing both `max-w-5xl` and the redundant `px-4` lets the grid start and end exactly where the header does.
+| File | Action |
+|---|---|
+| `src/components/EmptyCampaigns.tsx` | Replace static imports with DB query, add click handler |
+| `src/components/ShowcaseDetailModal.tsx` | **New** — Detail modal with image, tags, SEALCaM, CTA |
+| `src/pages/NewCampaign.tsx` | Accept route state to pre-fill from template reference |
 
-**Result:** The masonry grid, tabs, and filter chips all align flush with the header edges — consistent with Linear/Stripe full-bleed content patterns. The centered welcome text + CTA above stays centered (it has its own `max-w-xs`/`max-w-sm` constraints).
-
+### Technical Notes
+- Query uses existing `supabase` client with the authenticated RLS policy
+- No new tables or migrations needed — reads from `ad_reference_library`
+- Static showcase images (`src/assets/showcase/*`) become fallback-only (no breakage if DB is empty)
+- Modal uses existing `Dialog` from shadcn
