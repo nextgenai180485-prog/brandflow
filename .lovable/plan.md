@@ -1,45 +1,68 @@
+## Command Center: Enterprise-Grade Dashboard Redesign
 
+### What We're Building
+Replace the current Dashboard (campaign card grid) and Campaign Review page with a **single Command Center** — a living workspace where everything comes to the user.
 
-## Update CSO & CMO to Enterprise-Grade Workspace Awareness
+### Architecture
 
-### What Changes
+#### Zone 1: Activity Feed Header
+- **Real-time stats bar**: Total assets generating, pending review, approved today, published this week
+- **Quick actions**: New Campaign button + smart suggestions from CMO
+- **Strategy widget** stays (collapsible) but becomes more compact
 
-Both AI agents need updated system prompts and the CMO Rail needs new intelligence signals to reflect the redesigned unified campaign workspace.
+#### Zone 2: Campaign Grid (Enhanced)
+- Keep the existing card grid but enhance cards with:
+  - **Live pulse indicator** on generating campaigns (animated ring)
+  - **Progress bar** showing assets completed vs total
+  - **Quick-action hover strip**: Star, Approve All, Open buttons appear on hover
+  - **Inline asset count breakdown** by platform (IG: 3, TT: 2, LI: 1)
 
-### 1. CSO System Prompt Update (`supabase/functions/cmo-chat/index.ts`)
+#### Zone 3: Asset Inspector Sheet (NEW — The Core Innovation)
+- **Slide-in from right** when clicking any campaign card or asset
+- Uses `Sheet` component (shadcn) with 480px width
+- Contains:
+  1. **Campaign header** (title, status, date)
+  2. **Asset carousel** — horizontal strip of all campaign assets, scrollable
+  3. **iPhone 16 Pro Simulator** showing selected asset with platform context
+  4. **Actions panel**: Star, Edit (SeedEdit), Download, Save to Library, Approve, Reject
+  5. **Caption editor** inline
+  6. **AI Rationale** collapsible (why the AI chose this creative direction)
 
-Update the `SYSTEM_PROMPT` platform knowledge section:
+#### Zone 4: Keyboard Review Mode
+- When Sheet is open, arrow keys (← →) cycle through assets
+- `A` key = Approve, `R` = Reject, `D` = Download
+- `Escape` = close sheet
+- Visual indicator: "2 of 8 — Press A to approve"
 
-- **Campaign Creation Workspace** — Replace the current 5-step wizard description with the new unified workspace layout: left builder panel + right iPhone 16 Pro simulator + bottom source gallery
-- **Template Reference Flow** — Add knowledge that users can select templates from the bottom gallery as creative references, which auto-populate the simulator preview and inject `referenceImageUrl` into generation
-- **Platform Preview Intelligence** — CSO can now recommend: "Select that template, then switch the simulator to TikTok view to check your Safe Zones before generating"
-- **Source Gallery Guidance** — CSO knows about the tabs (Templates / Competitors / Your Generations / For You) and filter chips (All / Trending / Top Ads) and can guide users: "Filter by 'Top Ads' in the Competitors tab to find proven formats in your vertical"
-- **Reference-Aware Generation** — When recommending families, CSO can say: "Select a reference from the gallery below — the engine will match its composition and mood via style injection"
+#### Zone 5: Batch Operations Bar
+- Appears at bottom when 2+ assets are selected (checkbox mode)
+- Actions: Approve Selected, Reject Selected, Download All, Schedule Selected
+- Count indicator: "4 assets selected"
 
-### 2. CMO Reactive Prompt Update (`supabase/functions/cmo-agent/index.ts`)
+### Files to Create/Modify
 
-Update `CMO_REACTIVE_PROMPT` to add:
+| File | Action |
+|------|--------|
+| `src/pages/Dashboard.tsx` | **Major rewrite** — Command Center with stats bar, enhanced grid, Sheet integration |
+| `src/components/campaign/AssetInspectorSheet.tsx` | **NEW** — Slide-in sheet with simulator, carousel, actions, keyboard nav |
+| `src/components/campaign/AssetCarousel.tsx` | **NEW** — Horizontal scrollable strip of asset thumbnails |
+| `src/components/campaign/BatchActionBar.tsx` | **NEW** — Bottom floating bar for bulk operations |
+| `src/components/campaign/CampaignCard.tsx` | **NEW** — Enhanced campaign card with live indicators |
+| `src/pages/CampaignReview.tsx` | **Redirect** — Route redirects to Dashboard with sheet auto-open |
+| `src/App.tsx` | Update route for `/dashboard/campaign/:id` to redirect to dashboard |
 
-- **Reference Asset Detection** — When the CMO sees a campaign with `referenceImageUrl`, it validates the reference against the brand strategy: "I see you're using a competitor reference. The Cloner Engine (F8) will reverse-engineer that style — but verify the color palette doesn't clash with your brand primaries."
-- **Template Selection Validation** — CMO can flag mismatches: "That template is optimized for Instagram Feed (4:5). Your selected platform is TikTok (9:16) — the Safe Zone overlay will show content loss."
-- **Workspace Context** — CMO knows the user is in a unified workspace and can reference the simulator: "Check the right panel — your headline is landing in TikTok's dead zone."
+### What Gets Eliminated
+- `CampaignReview.tsx` as a standalone page (becomes a redirect)
+- Full-page navigation for asset review
+- Context loss when reviewing assets
 
-### 3. CMO Sentient Rail Enhancement (`src/components/SentientCMORail.tsx`)
+### Mobile Behavior
+- Sheet becomes **full-screen bottom sheet** (like iOS share sheet)
+- Swipe left/right on simulator to cycle assets
+- Floating "Review Mode" pill for keyboard-less approval
 
-Add new intelligence signals to `scanIntelligence()`:
-
-- **Template Library Signal** — Query `ad_reference_library` for recently added templates and surface: "12 new competitor templates added to your Source Gallery — 3 match your vertical"
-- **Reference Usage Tracking** — When a campaign is created with a reference asset, the CMO notes: "Campaign X was generated from template reference — monitor performance to feed Brand Memory"
-
-### Files Changed
-
-| File | Change |
-|---|---|
-| `supabase/functions/cmo-chat/index.ts` | Update `SYSTEM_PROMPT` with unified workspace knowledge, template reference flow, simulator guidance, and source gallery navigation |
-| `supabase/functions/cmo-agent/index.ts` | Update `CMO_REACTIVE_PROMPT` with reference asset validation, template-platform mismatch detection, and workspace-aware prescriptions |
-| `src/components/SentientCMORail.tsx` | Add `ad_reference_library` query to `scanIntelligence()` for template library signals |
-
-### Deployment
-
-Both edge functions (`cmo-chat`, `cmo-agent`) will be redeployed after prompt updates.
-
+### Technical Notes
+- Reuse existing `CampaignSimulator` inside the Sheet
+- All Supabase queries stay the same (campaigns + generated_assets)
+- No database changes needed
+- Sheet auto-opens when navigating from `/dashboard/campaign/:id` (backward compat)
