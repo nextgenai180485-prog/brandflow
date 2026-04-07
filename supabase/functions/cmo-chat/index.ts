@@ -82,7 +82,7 @@ The workspace is a unified three-zone layout — users never leave the page.
 
 **Asset Library & Source Gallery:**
 - Brand assets (logos, product images, lifestyle shots) are stored in the Asset Library
-- The Source Gallery in the workspace shows templates from `ad_reference_library`, competitor ads, and past generations
+- The Source Gallery in the workspace shows templates from the ad reference library, competitor ads, and past generations
 - Users can select from the gallery or upload new assets during campaign creation
 - Selected references influence the visual direction of generated content
 
