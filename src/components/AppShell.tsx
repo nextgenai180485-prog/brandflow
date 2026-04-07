@@ -8,8 +8,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { LogOut, ChevronDown } from "lucide-react";
+import { LogOut, ChevronDown, Menu, X } from "lucide-react";
 import SentientCMORail from "@/components/SentientCMORail";
+import { useState } from "react";
 
 const baseNavItems = [
   { label: "Campaigns", path: "/dashboard" },
