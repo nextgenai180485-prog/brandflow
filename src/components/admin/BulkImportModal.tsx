@@ -17,6 +17,14 @@ interface BulkImportModalProps {
   onImported: () => void;
 }
 
+const REQUIRED_COLUMNS: Record<string, string[]> = {
+  video_templates: ["template_name", "family"],
+  character_library: ["name"],
+  ad_reference_library: ["title"],
+  image_templates: ["style_name"],
+  hooks: ["hook_text"],
+};
+
 const BulkImportModal = ({ tableName, onImported }: BulkImportModalProps) => {
   const [open, setOpen] = useState(false);
   const [rows, setRows] = useState<Record<string, any>[]>([]);
