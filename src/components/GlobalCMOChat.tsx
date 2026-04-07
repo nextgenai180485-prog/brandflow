@@ -30,7 +30,7 @@ const GlobalCMOChat = () => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  // Keyboard shortcut: Cmd+K / Ctrl+K
+  // Keyboard shortcut: Cmd+K / Ctrl+K + custom event from AppShell
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
@@ -38,8 +38,13 @@ const GlobalCMOChat = () => {
         setOpen((prev) => !prev);
       }
     };
+    const toggleHandler = () => setOpen((prev) => !prev);
     window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
+    window.addEventListener("toggle-cso", toggleHandler);
+    return () => {
+      window.removeEventListener("keydown", handler);
+      window.removeEventListener("toggle-cso", toggleHandler);
+    };
   }, []);
 
   // Load persisted messages on first open
