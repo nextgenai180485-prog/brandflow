@@ -235,6 +235,14 @@ const SentientCMORail = () => {
 
   return (
     <>
+      {/* ── Backdrop blur when CMO panel is expanded ── */}
+      {isExpanded && (
+        <div
+          className="fixed inset-0 z-[55] bg-foreground/10 backdrop-blur-sm animate-fade-in"
+          onClick={() => setIsExpanded(false)}
+        />
+      )}
+
       {/* ── The Sentinel Strip (right edge, always visible) ── */}
       <div className="fixed right-0 top-0 bottom-0 z-[60] flex">
         {/* Expanded Panel */}
