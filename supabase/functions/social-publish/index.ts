@@ -13,7 +13,9 @@ async function blotatoFetch(
   apiKey: string,
   options: RequestInit = {}
 ) {
-  const res = await fetch(`${BLOTATO_BASE}${path}`, {
+  const url = `${BLOTATO_BASE}${path}`;
+  console.log(`[Blotato] ${options.method || "GET"} ${url} (key length: ${apiKey.length})`);
+  const res = await fetch(url, {
     ...options,
     headers: {
       "Content-Type": "application/json",
@@ -21,8 +23,11 @@ async function blotatoFetch(
       ...(options.headers || {}),
     },
   });
-  const data = await res.json();
+  const text = await res.text();
+  let data: any;
+  try { data = JSON.parse(text); } catch { data = { raw: text }; }
   if (!res.ok) {
+    console.error(`[Blotato] ${res.status} response:`, text);
     throw new Error(data?.message || data?.error || `Blotato API error ${res.status}`);
   }
   return data;
