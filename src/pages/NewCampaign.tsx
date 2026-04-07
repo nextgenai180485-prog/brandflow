@@ -94,6 +94,7 @@ const NewCampaign = () => {
     F7: "Ad Creator", F8: "Creative Cloner", F9: "Image Template",
   };
 
+  const handleCreate = async () => {
     if (!user || !title.trim()) return;
     setCreating(true);
 
