@@ -98,7 +98,9 @@ const App = () => (
               path="/dashboard/admin/libraries"
               element={
                 <ProtectedRoute>
-                  <AdminLibraries />
+                  <AdminRoute>
+                    <AdminLibraries />
+                  </AdminRoute>
                 </ProtectedRoute>
               }
             />
