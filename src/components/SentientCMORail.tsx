@@ -383,7 +383,50 @@ const SentientCMORail = () => {
       >
         {!shouldHide && (
           <div className="flex h-full" style={{ width: "380px" }}>
-            {/* Expanded Panel Content */}
+            {/* The Sentinel Strip (always visible 48px) — FIRST so it's visible when collapsed */}
+            <div
+              className="w-12 h-full bg-background border-r border-border flex flex-col items-center py-4 gap-4 cursor-pointer shrink-0"
+              onClick={() => {
+                setIsExpanded(!isExpanded);
+                dismissToast();
+              }}
+            >
+              <div className="relative group mt-8">
+                <div className={`w-2.5 h-2.5 rounded-full ${pulseConfig?.color} ${pulseConfig?.shadow} ${pulseConfig?.speed}`} />
+                <div className="absolute left-full ml-3 top-1/2 -translate-y-1/2 px-2.5 py-1 bg-foreground text-background text-[9px] font-semibold rounded-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+                  {systemStatus === "optimal" ? "System Optimal" : systemStatus === "alert" ? "Opportunity Detected" : "Action Required"}
+                </div>
+              </div>
+
+              {pendingReviewCount > 0 && !isExpanded && (
+                <div className="relative">
+                  <ImageIcon className="w-4 h-4 text-amber-600" />
+                  <span className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 rounded-full bg-amber-500 text-[7px] font-bold text-foreground flex items-center justify-center">
+                    {pendingReviewCount}
+                  </span>
+                </div>
+              )}
+
+              <div className="flex-1 flex flex-col gap-3 mt-4 items-center">
+                {systemStatus === "critical" && (
+                  <div className="p-1.5 rounded-lg bg-destructive/10 text-destructive">
+                    <AlertTriangle className="w-4 h-4" />
+                  </div>
+                )}
+                <div className="p-1.5 text-muted-foreground hover:text-foreground transition-colors">
+                  <Activity className="w-4 h-4" />
+                </div>
+                <div className="p-1.5 text-muted-foreground hover:text-foreground transition-colors">
+                  <TrendingUp className="w-4 h-4" />
+                </div>
+              </div>
+
+              <div className="p-1.5 text-muted-foreground hover:text-foreground transition-colors">
+                {isExpanded ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronLeft className="w-3.5 h-3.5" />}
+              </div>
+            </div>
+
+            {/* Expanded Panel Content — slides in from right */}
             <div className="flex-1 flex flex-col h-full overflow-hidden">
               {/* Panel Header */}
               <div className="h-12 border-b border-border flex items-center justify-between px-5 bg-secondary/30 shrink-0">
@@ -484,49 +527,6 @@ const SentientCMORail = () => {
                     ))}
                   </div>
                 </div>
-              </div>
-            </div>
-
-            {/* The Sentinel Strip (always visible 48px) */}
-            <div
-              className="w-12 h-full bg-background border-l border-border flex flex-col items-center py-4 gap-4 cursor-pointer shrink-0"
-              onClick={() => {
-                setIsExpanded(!isExpanded);
-                dismissToast();
-              }}
-            >
-              <div className="relative group mt-8">
-                <div className={`w-2.5 h-2.5 rounded-full ${pulseConfig?.color} ${pulseConfig?.shadow} ${pulseConfig?.speed}`} />
-                <div className="absolute right-full mr-3 top-1/2 -translate-y-1/2 px-2.5 py-1 bg-foreground text-background text-[9px] font-semibold rounded-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-                  {systemStatus === "optimal" ? "System Optimal" : systemStatus === "alert" ? "Opportunity Detected" : "Action Required"}
-                </div>
-              </div>
-
-              {pendingReviewCount > 0 && !isExpanded && (
-                <div className="relative">
-                  <ImageIcon className="w-4 h-4 text-amber-600" />
-                  <span className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 rounded-full bg-amber-500 text-[7px] font-bold text-foreground flex items-center justify-center">
-                    {pendingReviewCount}
-                  </span>
-                </div>
-              )}
-
-              <div className="flex-1 flex flex-col gap-3 mt-4 items-center">
-                {systemStatus === "critical" && (
-                  <div className="p-1.5 rounded-lg bg-destructive/10 text-destructive">
-                    <AlertTriangle className="w-4 h-4" />
-                  </div>
-                )}
-                <div className="p-1.5 text-muted-foreground hover:text-foreground transition-colors">
-                  <Activity className="w-4 h-4" />
-                </div>
-                <div className="p-1.5 text-muted-foreground hover:text-foreground transition-colors">
-                  <TrendingUp className="w-4 h-4" />
-                </div>
-              </div>
-
-              <div className="p-1.5 text-muted-foreground hover:text-foreground transition-colors">
-                {isExpanded ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronLeft className="w-3.5 h-3.5" />}
               </div>
             </div>
           </div>
