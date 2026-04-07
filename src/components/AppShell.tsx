@@ -29,8 +29,17 @@ const AppShell = ({ children }: { children: React.ReactNode }) => {
   const { isAdmin } = useUserRole();
   const navigate = useNavigate();
   const location = useLocation();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const navItems = [...baseNavItems, ...(isAdmin ? adminNavItems : [])];
+
+  // Derive current page title for mobile header
+  const currentPageTitle =
+    navItems.find((item) =>
+      item.path === "/dashboard"
+        ? location.pathname === "/dashboard"
+        : location.pathname.startsWith(item.path)
+    )?.label ?? "Brandflow";
 
   const initials = user?.user_metadata?.first_name
     ? `${(user.user_metadata.first_name as string)[0]}${(user.user_metadata.last_name as string)?.[0] ?? ""}`
@@ -41,19 +50,39 @@ const AppShell = ({ children }: { children: React.ReactNode }) => {
     navigate("/login");
   };
 
+  const handleMobileNav = (path: string) => {
+    navigate(path);
+    setMobileMenuOpen(false);
+  };
+
   return (
     <div className="flex h-screen bg-background overflow-hidden">
       {/* Left + Center column (canvas) */}
       <div className="flex-1 flex flex-col min-w-0 transition-all duration-500 ease-[cubic-bezier(0.2,0,0,1)]">
         <header className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-sm shrink-0">
           <div className="mx-auto flex h-12 items-center justify-between px-4 sm:px-6">
+            {/* Left: Logo + Desktop Nav */}
             <div className="flex items-center gap-6">
+              {/* Mobile hamburger */}
+              <button
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="md:hidden p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors"
+              >
+                {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              </button>
+
               <span
-                className="text-base font-semibold tracking-tight text-foreground cursor-pointer"
+                className="text-base font-semibold tracking-tight text-foreground cursor-pointer hidden md:block"
                 onClick={() => navigate("/dashboard")}
               >
                 Brandflow
               </span>
+
+              {/* Mobile: contextual page title */}
+              <span className="md:hidden text-sm font-semibold text-foreground">
+                {currentPageTitle}
+              </span>
+
               <nav className="hidden md:flex items-center gap-0.5">
                 {navItems.map((item) => (
                   <button
@@ -93,6 +122,35 @@ const AppShell = ({ children }: { children: React.ReactNode }) => {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
+            </div>
+          </div>
+
+          {/* Mobile slide-down nav */}
+          <div
+            className={`md:hidden overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+              mobileMenuOpen ? "max-h-80 border-t border-border" : "max-h-0"
+            }`}
+          >
+            <div className="px-4 py-3 space-y-1 bg-background">
+              {navItems.map((item) => {
+                const isActive =
+                  item.path === "/dashboard"
+                    ? location.pathname === "/dashboard"
+                    : location.pathname.startsWith(item.path);
+                return (
+                  <button
+                    key={item.path}
+                    onClick={() => handleMobileNav(item.path)}
+                    className={`w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                      isActive
+                        ? "bg-accent text-foreground"
+                        : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+                    }`}
+                  >
+                    {item.label}
+                  </button>
+                );
+              })}
             </div>
           </div>
         </header>
