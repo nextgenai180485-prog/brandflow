@@ -587,6 +587,18 @@ const CalendarView = () => {
           )}
         </div>
       </div>
+
+      {/* Publish Modal */}
+      <PublishModal
+        open={!!publishAsset}
+        onOpenChange={(open) => !open && setPublishAsset(null)}
+        assetId={publishAsset?.id || ""}
+        campaignId={publishAsset?.campaign_id}
+        contentText={publishAsset?.content_text}
+        contentUrl={publishAsset?.content_url}
+        assetType={publishAsset?.asset_type}
+        onPublished={fetchData}
+      />
     </AppShell>
   );
 };
