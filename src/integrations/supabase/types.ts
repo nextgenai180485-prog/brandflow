@@ -766,6 +766,113 @@ export type Database = {
         }
         Relationships: []
       }
+      publish_records: {
+        Row: {
+          asset_id: string
+          blotato_post_submission_id: string | null
+          campaign_id: string | null
+          caption: string | null
+          created_at: string | null
+          error_message: string | null
+          hashtags: string[] | null
+          id: string
+          platform: string
+          platform_post_url: string | null
+          profile_id: string
+          published_at: string | null
+          retry_count: number | null
+          scheduled_at: string | null
+          social_account_id: string | null
+          status: string | null
+        }
+        Insert: {
+          asset_id: string
+          blotato_post_submission_id?: string | null
+          campaign_id?: string | null
+          caption?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          hashtags?: string[] | null
+          id?: string
+          platform: string
+          platform_post_url?: string | null
+          profile_id: string
+          published_at?: string | null
+          retry_count?: number | null
+          scheduled_at?: string | null
+          social_account_id?: string | null
+          status?: string | null
+        }
+        Update: {
+          asset_id?: string
+          blotato_post_submission_id?: string | null
+          campaign_id?: string | null
+          caption?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          hashtags?: string[] | null
+          id?: string
+          platform?: string
+          platform_post_url?: string | null
+          profile_id?: string
+          published_at?: string | null
+          retry_count?: number | null
+          scheduled_at?: string | null
+          social_account_id?: string | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "publish_records_social_account_id_fkey"
+            columns: ["social_account_id"]
+            isOneToOne: false
+            referencedRelation: "social_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      social_accounts: {
+        Row: {
+          auto_publish: boolean | null
+          avatar_url: string | null
+          blotato_account_id: string
+          created_at: string | null
+          display_name: string | null
+          id: string
+          platform: string
+          profile_id: string
+          status: string | null
+          updated_at: string | null
+          username: string | null
+        }
+        Insert: {
+          auto_publish?: boolean | null
+          avatar_url?: string | null
+          blotato_account_id: string
+          created_at?: string | null
+          display_name?: string | null
+          id?: string
+          platform: string
+          profile_id: string
+          status?: string | null
+          updated_at?: string | null
+          username?: string | null
+        }
+        Update: {
+          auto_publish?: boolean | null
+          avatar_url?: string | null
+          blotato_account_id?: string
+          created_at?: string | null
+          display_name?: string | null
+          id?: string
+          platform?: string
+          profile_id?: string
+          status?: string | null
+          updated_at?: string | null
+          username?: string | null
+        }
+        Relationships: []
+      }
       video_templates: {
         Row: {
           aspect_ratio: string

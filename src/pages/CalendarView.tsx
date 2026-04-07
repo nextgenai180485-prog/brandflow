@@ -19,6 +19,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import type { Campaign, GeneratedAsset } from "@/types/campaigns";
+import PublishModal from "@/components/PublishModal";
 
 type ViewMode = "week" | "month";
 type QueueFilter = "all" | "scheduled" | "approved" | "pending_review" | "published";
@@ -54,6 +55,7 @@ const CalendarView = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [showQueue, setShowQueue] = useState(false);
   const [selectedMobileDay, setSelectedMobileDay] = useState<Date>(new Date());
+  const [publishAsset, setPublishAsset] = useState<AssetWithCampaign | null>(null);
 
   const weekStart = useMemo(() => startOfWeek(currentDate, { weekStartsOn: 1 }), [currentDate]);
 
@@ -188,7 +190,19 @@ const CalendarView = () => {
           {caption && <p className="text-[11px] text-muted-foreground line-clamp-2 leading-relaxed">{caption}</p>}
           <div className="flex items-center justify-between pt-1">
             <span className="text-[10px] text-muted-foreground">{format(new Date(asset.created_at), "MMM d, h:mm a")}</span>
-            {asset.format && <Badge variant="secondary" className="text-[9px] px-1.5 py-0 capitalize">{asset.format}</Badge>}
+            <div className="flex items-center gap-1">
+              {asset.format && <Badge variant="secondary" className="text-[9px] px-1.5 py-0 capitalize">{asset.format}</Badge>}
+              {(asset.status === "approved" || asset.content_url) && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6"
+                  onClick={(e) => { e.stopPropagation(); setPublishAsset(asset); }}
+                >
+                  <Send className="w-3 h-3" />
+                </Button>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -234,10 +248,22 @@ const CalendarView = () => {
           </div>
         </div>
 
-        {/* Status */}
-        <Badge variant="outline" className={cn("text-[9px] gap-1 flex-shrink-0", statusInfo.color)}>
-          {statusInfo.icon}{statusInfo.label}
-        </Badge>
+        {/* Status + Publish */}
+        <div className="flex items-center gap-1 flex-shrink-0">
+          <Badge variant="outline" className={cn("text-[9px] gap-1", statusInfo.color)}>
+            {statusInfo.icon}{statusInfo.label}
+          </Badge>
+          {(asset.status === "approved" || asset.content_url) && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              onClick={(e) => { e.stopPropagation(); setPublishAsset(asset); }}
+            >
+              <Send className="w-3 h-3" />
+            </Button>
+          )}
+        </div>
       </div>
     );
   };
@@ -561,6 +587,18 @@ const CalendarView = () => {
           )}
         </div>
       </div>
+
+      {/* Publish Modal */}
+      <PublishModal
+        open={!!publishAsset}
+        onOpenChange={(open) => !open && setPublishAsset(null)}
+        assetId={publishAsset?.id || ""}
+        campaignId={publishAsset?.campaign_id}
+        contentText={publishAsset?.content_text}
+        contentUrl={publishAsset?.content_url}
+        assetType={publishAsset?.asset_type}
+        onPublished={fetchData}
+      />
     </AppShell>
   );
 };
