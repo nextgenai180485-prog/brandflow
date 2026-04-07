@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { Upload, X, Palette } from "lucide-react";
+import { Upload, X, Palette, Sun, Moon } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -23,39 +23,122 @@ interface Props {
 
 const BrandIdentity = ({ colors, onColorsChange, uploadedAssets, onAssetsChange }: Props) => {
   const { user } = useAuth();
-  const fileRef = useRef<HTMLInputElement>(null);
-  const [uploading, setUploading] = useState(false);
+  const brightLogoRef = useRef<HTMLInputElement>(null);
+  const darkLogoRef = useRef<HTMLInputElement>(null);
+  const styleRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState<string | null>(null);
 
-  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const brightLogo = uploadedAssets.find((a) => a.type === "logo_bright");
+  const darkLogo = uploadedAssets.find((a) => a.type === "logo_dark");
+  const styleAssets = uploadedAssets.filter((a) => a.type === "style_reference");
+
+  const handleUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+    assetType: string
+  ) => {
     const files = e.target.files;
     if (!files || !user) return;
-    setUploading(true);
+    setUploading(assetType);
 
-    const newAssets = [...uploadedAssets];
-    for (const file of Array.from(files)) {
-      if (newAssets.length >= 4) break;
-      const ext = file.name.split(".").pop();
-      const path = `${user.id}/${crypto.randomUUID()}.${ext}`;
-      const { error } = await supabase.storage.from("campaign_assets").upload(path, file);
-      if (error) {
-        toast.error(`Failed to upload ${file.name}`);
-        continue;
-      }
-      const { data: urlData } = supabase.storage.from("campaign_assets").getPublicUrl(path);
-      newAssets.push({
-        url: urlData.publicUrl,
-        name: file.name,
-        type: file.type.startsWith("image") ? "logo" : "style_reference",
-      });
+    const file = files[0];
+    const ext = file.name.split(".").pop();
+    const path = `${user.id}/${crypto.randomUUID()}.${ext}`;
+    const { error } = await supabase.storage.from("campaign_assets").upload(path, file);
+    if (error) {
+      toast.error(`Failed to upload ${file.name}`);
+      setUploading(null);
+      return;
     }
-    onAssetsChange(newAssets);
-    setUploading(false);
-    if (fileRef.current) fileRef.current.value = "";
+    const { data: urlData } = supabase.storage.from("campaign_assets").getPublicUrl(path);
+
+    // For logo types, replace existing; for style_reference, append
+    if (assetType === "logo_bright" || assetType === "logo_dark") {
+      const filtered = uploadedAssets.filter((a) => a.type !== assetType);
+      onAssetsChange([
+        ...filtered,
+        { url: urlData.publicUrl, name: file.name, type: assetType },
+      ]);
+    } else {
+      if (styleAssets.length >= 2) {
+        toast.error("Maximum 2 style references allowed.");
+        setUploading(null);
+        return;
+      }
+      onAssetsChange([
+        ...uploadedAssets,
+        { url: urlData.publicUrl, name: file.name, type: assetType },
+      ]);
+    }
+
+    setUploading(null);
+    // Reset file input
+    if (assetType === "logo_bright" && brightLogoRef.current) brightLogoRef.current.value = "";
+    if (assetType === "logo_dark" && darkLogoRef.current) darkLogoRef.current.value = "";
+    if (assetType === "style_reference" && styleRef.current) styleRef.current.value = "";
   };
 
-  const removeAsset = (idx: number) => {
-    onAssetsChange(uploadedAssets.filter((_, i) => i !== idx));
+  const removeAsset = (type: string, idx?: number) => {
+    if (type === "style_reference" && idx !== undefined) {
+      const styleIdx = uploadedAssets.reduce<number[]>((acc, a, i) => {
+        if (a.type === "style_reference") acc.push(i);
+        return acc;
+      }, []);
+      onAssetsChange(uploadedAssets.filter((_, i) => i !== styleIdx[idx]));
+    } else {
+      onAssetsChange(uploadedAssets.filter((a) => a.type !== type));
+    }
   };
+
+  const LogoSlot = ({
+    label,
+    icon: Icon,
+    logo,
+    assetType,
+    inputRef,
+    bgClass,
+  }: {
+    label: string;
+    icon: typeof Sun;
+    logo: { url: string; name: string; type: string } | undefined;
+    assetType: string;
+    inputRef: React.RefObject<HTMLInputElement>;
+    bgClass: string;
+  }) => (
+    <div className="flex-1 space-y-2">
+      <Label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+        <Icon className="w-3.5 h-3.5" /> {label}
+      </Label>
+      {logo ? (
+        <div className={`relative rounded-xl border border-border overflow-hidden group ${bgClass} p-4 flex items-center justify-center h-28`}>
+          <img src={logo.url} alt={logo.name} className="max-h-20 max-w-full object-contain" />
+          <button
+            onClick={() => removeAsset(assetType)}
+            className="absolute top-2 right-2 p-1 rounded-full bg-foreground/80 text-background opacity-0 group-hover:opacity-100 transition-opacity"
+          >
+            <X className="w-3 h-3" />
+          </button>
+        </div>
+      ) : (
+        <button
+          onClick={() => inputRef.current?.click()}
+          disabled={uploading === assetType}
+          className={`w-full h-28 rounded-xl border-2 border-dashed border-border hover:border-primary/50 ${bgClass} flex flex-col items-center justify-center gap-2 transition-colors cursor-pointer`}
+        >
+          <Upload className="w-5 h-5 text-muted-foreground" />
+          <span className="text-xs text-muted-foreground">
+            {uploading === assetType ? "Uploading…" : `Upload ${label}`}
+          </span>
+        </button>
+      )}
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        onChange={(e) => handleUpload(e, assetType)}
+        className="hidden"
+      />
+    </div>
+  );
 
   return (
     <div className="space-y-8">
@@ -67,8 +150,34 @@ const BrandIdentity = ({ colors, onColorsChange, uploadedAssets, onAssetsChange 
           Lock in your brand's visual identity
         </h2>
         <p className="text-sm text-muted-foreground">
-          These colors will govern every asset your CSO generates. No guessing, no off-brand content.
+          These colors and logos will govern every asset your CSO generates. No guessing, no off-brand content.
         </p>
+      </div>
+
+      {/* Logo Upload — Bright & Dark */}
+      <div className="space-y-3">
+        <Label className="flex items-center gap-2">
+          <Upload className="w-4 h-4" /> Brand Logos
+          <span className="text-muted-foreground font-normal text-[10px]">— bright & dark versions for any background</span>
+        </Label>
+        <div className="flex gap-4">
+          <LogoSlot
+            label="Bright Logo"
+            icon={Sun}
+            logo={brightLogo}
+            assetType="logo_bright"
+            inputRef={brightLogoRef}
+            bgClass="bg-muted/30"
+          />
+          <LogoSlot
+            label="Dark Logo"
+            icon={Moon}
+            logo={darkLogo}
+            assetType="logo_dark"
+            inputRef={darkLogoRef}
+            bgClass="bg-foreground/90"
+          />
+        </div>
       </div>
 
       {/* Color Palette */}
@@ -108,17 +217,17 @@ const BrandIdentity = ({ colors, onColorsChange, uploadedAssets, onAssetsChange 
         </div>
       </div>
 
-      {/* Asset Upload */}
+      {/* Style References */}
       <div className="space-y-4">
-        <Label>Logo & Style References <span className="text-muted-foreground font-normal text-[10px]">— up to 4, guides AI generation</span></Label>
+        <Label>Style References <span className="text-muted-foreground font-normal text-[10px]">— up to 2, guides AI generation</span></Label>
 
-        {uploadedAssets.length > 0 && (
+        {styleAssets.length > 0 && (
           <div className="grid grid-cols-2 gap-3">
-            {uploadedAssets.map((a, i) => (
+            {styleAssets.map((a, i) => (
               <div key={i} className="relative rounded-lg border border-border overflow-hidden bg-card group">
                 <img src={a.url} alt={a.name} className="w-full h-32 object-cover" />
                 <button
-                  onClick={() => removeAsset(i)}
+                  onClick={() => removeAsset("style_reference", i)}
                   className="absolute top-2 right-2 p-1 rounded-full bg-foreground/80 text-background opacity-0 group-hover:opacity-100 transition-opacity"
                 >
                   <X className="w-3 h-3" />
@@ -129,24 +238,23 @@ const BrandIdentity = ({ colors, onColorsChange, uploadedAssets, onAssetsChange 
           </div>
         )}
 
-        {uploadedAssets.length < 4 && (
+        {styleAssets.length < 2 && (
           <div>
             <input
-              ref={fileRef}
+              ref={styleRef}
               type="file"
               accept="image/*"
-              multiple
-              onChange={handleUpload}
+              onChange={(e) => handleUpload(e, "style_reference")}
               className="hidden"
             />
             <Button
               variant="outline"
-              onClick={() => fileRef.current?.click()}
-              disabled={uploading}
+              onClick={() => styleRef.current?.click()}
+              disabled={uploading === "style_reference"}
               className="gap-2"
             >
               <Upload className="w-4 h-4" />
-              {uploading ? "Uploading…" : "Upload Images"}
+              {uploading === "style_reference" ? "Uploading…" : "Upload Reference"}
             </Button>
           </div>
         )}
