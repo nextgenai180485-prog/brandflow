@@ -369,11 +369,6 @@ const NewCampaign = () => {
                   <div className="flex flex-wrap gap-1.5">
                     {contentTypes.map((ct) => {
                       const primaryFamily = platforms[0] ? routeFamily(ct, platforms[0].platform) : "F9";
-                      const FAMILY_LABELS: Record<string, string> = {
-                        F1: "UGC Video", F2: "AI Spokesperson", F3: "Product Video",
-                        F4: "Social Batch", F5: "Cinematic Ad", F6: "Elements Board",
-                        F7: "Ad Creator", F8: "Creative Cloner", F9: "Image Template",
-                      };
                       return (
                         <span key={ct} className="px-2 py-0.5 rounded-full bg-secondary text-[11px] font-medium text-foreground">
                           {CONTENT_TYPE_LABELS[ct].label} → {FAMILY_LABELS[primaryFamily] || primaryFamily}
