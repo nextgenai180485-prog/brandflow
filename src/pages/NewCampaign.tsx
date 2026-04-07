@@ -77,6 +77,22 @@ const NewCampaign = () => {
   const toggleContentType = (ct: ContentType) => {
     setContentTypes((prev) => prev.includes(ct) ? prev.filter((t) => t !== ct) : [...prev, ct]);
   };
+  // Auto-route to generation family based on content type + platform
+  const routeFamily = useCallback((ct: ContentType, platform: SocialPlatform): string => {
+    if (ct === "ugc_video") return "F1";
+    if (ct === "pro_video") {
+      if (platform === "linkedin" || platform === "youtube") return "F2";
+      return "F5";
+    }
+    if (platform === "facebook" || platform === "x" || platform === "linkedin") return "F7";
+    return "F9";
+  }, []);
+
+  const FAMILY_LABELS: Record<string, string> = {
+    F1: "UGC Video", F2: "AI Spokesperson", F3: "Product Video",
+    F4: "Social Batch", F5: "Cinematic Ad", F6: "Elements Board",
+    F7: "Ad Creator", F8: "Creative Cloner", F9: "Image Template",
+  };
 
   const handleCreate = async () => {
     if (!user || !title.trim()) return;
@@ -134,6 +150,7 @@ const NewCampaign = () => {
       pro_video: "video",
     };
 
+
     const generationAssets = platforms.flatMap((p) =>
       contentTypes.map((ct) => {
         const key = `${p.platform}|${p.format}`;
@@ -143,6 +160,7 @@ const NewCampaign = () => {
           format: p.format,
           assetType: assetTypeMap[ct] || "image",
           contentType: ct,
+          family: routeFamily(ct, p.platform),
           ...dims,
         };
       })
@@ -349,11 +367,14 @@ const NewCampaign = () => {
                 <div className="p-4">
                   <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">Content Types</p>
                   <div className="flex flex-wrap gap-1.5">
-                    {contentTypes.map((ct) => (
-                      <span key={ct} className="px-2 py-0.5 rounded-full bg-secondary text-[11px] font-medium text-foreground">
-                        {CONTENT_TYPE_LABELS[ct].label}
-                      </span>
-                    ))}
+                    {contentTypes.map((ct) => {
+                      const primaryFamily = platforms[0] ? routeFamily(ct, platforms[0].platform) : "F9";
+                      return (
+                        <span key={ct} className="px-2 py-0.5 rounded-full bg-secondary text-[11px] font-medium text-foreground">
+                          {CONTENT_TYPE_LABELS[ct].label} → {FAMILY_LABELS[primaryFamily] || primaryFamily}
+                        </span>
+                      );
+                    })}
                   </div>
                 </div>
                 {creativeDirection && (
