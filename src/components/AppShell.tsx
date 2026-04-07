@@ -154,7 +154,7 @@ const AppShell = ({ children }: { children: React.ReactNode }) => {
                       : "-translate-y-7 opacity-0"
                   }`}
                 >
-                  <span className="text-sm font-semibold tracking-tight text-foreground">
+                  <span className="text-base font-semibold tracking-tight text-foreground">
                     Brandflow
                   </span>
                 </div>
