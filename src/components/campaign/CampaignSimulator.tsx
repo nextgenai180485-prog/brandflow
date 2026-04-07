@@ -389,43 +389,20 @@ export default function CampaignSimulator({
           {/* ACTIONS */}
           <p className="text-[9px] uppercase tracking-widest text-muted-foreground font-semibold mb-2 px-1">Actions</p>
           <div className="flex flex-col">
-            <button
-              onClick={onStar}
-              className={cn(
-                "flex items-center gap-2.5 px-3 py-2.5 text-xs font-medium transition-colors hover:bg-secondary/50 rounded-lg",
-                isStarred ? "text-amber-500" : "text-foreground"
-              )}
-            >
-              <Star className={cn("w-4 h-4", isStarred && "fill-current")} />
-              Star
+            <button onClick={onStar} className={cn("flex items-center gap-2 px-2.5 py-1.5 text-[11px] font-medium transition-colors hover:bg-secondary/50 rounded-lg", isStarred ? "text-amber-500" : "text-foreground")}>
+              <Star className={cn("w-3.5 h-3.5", isStarred && "fill-current")} /> Star
             </button>
-            <button
-              onClick={onEdit}
-              className="flex items-center gap-2.5 px-3 py-2.5 text-xs font-medium text-primary hover:bg-primary/5 rounded-lg transition-colors"
-            >
-              <Pencil className="w-4 h-4" />
-              Edit
+            <button onClick={onEdit} className="flex items-center gap-2 px-2.5 py-1.5 text-[11px] font-medium text-primary hover:bg-primary/5 rounded-lg transition-colors">
+              <Pencil className="w-3.5 h-3.5" /> Edit
             </button>
-            <button
-              onClick={onDownload}
-              className="flex items-center gap-2.5 px-3 py-2.5 text-xs font-medium text-foreground hover:bg-secondary/50 rounded-lg transition-colors"
-            >
-              <Download className="w-4 h-4" />
-              Download all
+            <button onClick={onDownload} className="flex items-center gap-2 px-2.5 py-1.5 text-[11px] font-medium text-foreground hover:bg-secondary/50 rounded-lg transition-colors">
+              <Download className="w-3.5 h-3.5" /> Download
             </button>
-            <button
-              onClick={onSaveToLibrary}
-              className="flex items-center gap-2.5 px-3 py-2.5 text-xs font-medium text-foreground hover:bg-secondary/50 rounded-lg transition-colors"
-            >
-              <FolderPlus className="w-4 h-4" />
-              Save to Library
+            <button onClick={onSaveToLibrary} className="flex items-center gap-2 px-2.5 py-1.5 text-[11px] font-medium text-foreground hover:bg-secondary/50 rounded-lg transition-colors">
+              <FolderPlus className="w-3.5 h-3.5" /> Save to Library
             </button>
-            <button
-              onClick={onHide}
-              className="flex items-center gap-2.5 px-3 py-2.5 text-xs font-medium text-foreground hover:bg-secondary/50 rounded-lg transition-colors"
-            >
-              <HideIcon className="w-4 h-4" />
-              Hide
+            <button onClick={onHide} className="flex items-center gap-2 px-2.5 py-1.5 text-[11px] font-medium text-foreground hover:bg-secondary/50 rounded-lg transition-colors">
+              <HideIcon className="w-3.5 h-3.5" /> Hide
             </button>
           </div>
 
