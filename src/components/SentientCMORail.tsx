@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { supabase } from "@/integrations/supabase/client";
+import { Drawer, DrawerContent } from "@/components/ui/drawer";
 
 interface Insight {
   id: string;
@@ -211,16 +212,17 @@ const SentientCMORail = () => {
     setIsExpanded(false);
   }, [navigate]);
 
-  // Hide on excluded pages, mobile, or not logged in
-  const shouldHide = !user || isMobile || EXCLUDED_PATHS.includes(location.pathname);
+  // Determine visibility
+  const isExcluded = !user || EXCLUDED_PATHS.includes(location.pathname);
+  const shouldHide = isExcluded || isMobile; // Desktop rail hides on mobile (mobile gets its own UI)
 
-  const pulseConfig = shouldHide ? null : {
+  const pulseConfig = isExcluded ? null : {
     optimal: { color: "bg-emerald-500", shadow: "shadow-[0_0_12px_hsl(160,60%,45%,0.5)]", speed: "animate-[pulse_3s_ease-in-out_infinite]" },
     alert: { color: "bg-amber-500", shadow: "shadow-[0_0_12px_hsl(40,90%,50%,0.5)]", speed: "animate-[pulse_1.5s_ease-in-out_infinite]" },
     critical: { color: "bg-destructive", shadow: "shadow-[0_0_12px_hsl(0,72%,51%,0.5)]", speed: "animate-[pulse_0.7s_ease-in-out_infinite]" },
   }[systemStatus];
 
-  // Always render the aside for flex layout stability, but collapse to 0 width when hidden
+  // Desktop rail width
   const railWidth = shouldHide ? "0px" : isExpanded ? "380px" : "48px";
 
   const toast_el = !shouldHide && !isExpanded && activeToast ? createPortal(
@@ -264,6 +266,115 @@ const SentientCMORail = () => {
     document.body
   ) : null;
 
+  // ── Mobile: Command Deck pill + half-height drawer ──
+  if (isMobile && !isExcluded) {
+    const critCount = insights.filter((i) => i.type === "critical").length;
+    const oppCount = insights.filter((i) => i.type === "opportunity").length;
+    const totalBadge = critCount + oppCount + pendingReviewCount;
+
+    return (
+      <>
+        {/* Floating Command Deck pill — bottom center, left of CSO button */}
+        <button
+          onClick={() => setIsExpanded(true)}
+          className="fixed bottom-4 right-4 z-[70] flex items-center gap-2 px-4 py-2.5 rounded-full bg-foreground text-background shadow-xl hover:scale-105 transition-transform"
+        >
+          <Brain className="w-4 h-4" />
+          <span className="text-[11px] font-bold">CMO</span>
+          {totalBadge > 0 && (
+            <span className="ml-0.5 w-5 h-5 rounded-full bg-amber-500 text-[9px] font-bold text-foreground flex items-center justify-center">
+              {totalBadge}
+            </span>
+          )}
+          <div className={`w-2 h-2 rounded-full ${pulseConfig?.color} ${pulseConfig?.speed}`} />
+        </button>
+
+        <Drawer open={isExpanded} onOpenChange={setIsExpanded}>
+          <DrawerContent className="h-[60vh] p-0">
+            <div className="flex flex-col h-full">
+              {/* Header */}
+              <div className="h-12 border-b border-border flex items-center justify-between px-5 bg-secondary/30 shrink-0">
+                <div className="flex items-center gap-2">
+                  <Brain className="w-4 h-4 text-primary" />
+                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.15em]">
+                    CMO Intelligence
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {pendingReviewCount > 0 && (
+                    <Badge variant="secondary" className="text-[8px]">
+                      {pendingReviewCount} pending
+                    </Badge>
+                  )}
+                  <Badge variant="outline" className="text-[8px] border-emerald-300 text-emerald-700 bg-emerald-50">
+                    LIVE
+                  </Badge>
+                </div>
+              </div>
+
+              {/* Content */}
+              <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                {insights.map((insight) => (
+                  <div
+                    key={insight.id}
+                    className={`rounded-xl border p-3 space-y-1.5 ${
+                      insight.type === "critical"
+                        ? "border-destructive/30 bg-destructive/5"
+                        : insight.type === "opportunity"
+                        ? "border-amber-200 bg-amber-50/50"
+                        : "border-border bg-card"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      {insight.type === "critical" ? (
+                        <AlertTriangle className="w-3.5 h-3.5 text-destructive" />
+                      ) : insight.type === "opportunity" ? (
+                        <Zap className="w-3.5 h-3.5 text-amber-600" />
+                      ) : (
+                        <Shield className="w-3.5 h-3.5 text-primary" />
+                      )}
+                      <span className="text-xs font-bold text-foreground">{insight.title}</span>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground leading-relaxed">{insight.body}</p>
+                    {insight.action && (
+                      <Button
+                        size="sm"
+                        variant={insight.type === "critical" ? "destructive" : "outline"}
+                        className="w-full text-[10px] h-7 mt-1"
+                        onClick={() => handleInsightAction(insight)}
+                      >
+                        {insight.action}
+                      </Button>
+                    )}
+                  </div>
+                ))}
+
+                {/* Stats */}
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="p-2 bg-secondary/50 rounded-xl border border-border text-center">
+                    <p className="text-[7px] uppercase tracking-wider text-muted-foreground font-bold">Campaigns</p>
+                    <p className="text-base font-black text-foreground">{campaignCount}</p>
+                  </div>
+                  <div className="p-2 bg-secondary/50 rounded-xl border border-border text-center">
+                    <p className="text-[7px] uppercase tracking-wider text-muted-foreground font-bold">Review</p>
+                    <p className={`text-base font-black ${pendingReviewCount > 0 ? "text-amber-600" : "text-foreground"}`}>
+                      {pendingReviewCount}
+                    </p>
+                  </div>
+                  <div className="p-2 bg-secondary/50 rounded-xl border border-border text-center">
+                    <p className="text-[7px] uppercase tracking-wider text-muted-foreground font-bold">24h Assets</p>
+                    <p className="text-base font-black text-foreground">{recentAssetCount}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </DrawerContent>
+        </Drawer>
+      </>
+    );
+  }
+
+  // ── Desktop: Flex-child squeeze rail ──
   return (
     <>
       <aside

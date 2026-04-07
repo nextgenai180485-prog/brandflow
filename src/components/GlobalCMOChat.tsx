@@ -332,14 +332,30 @@ const GlobalCMOChat = () => {
     </div>
   );
 
-  // Mobile: full-screen Drawer
+  // Mobile: floating trigger + full-height Drawer
   if (isMobile) {
     return (
-      <Drawer open={open} onOpenChange={setOpen}>
-        <DrawerContent className="h-[92vh] p-0">
-          {chatContent}
-        </DrawerContent>
-      </Drawer>
+      <>
+        {/* Mobile CSO Trigger — fixed bottom-left */}
+        <button
+          onClick={() => setOpen(true)}
+          className="fixed left-4 bottom-4 z-[80] w-11 h-11 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-lg hover:scale-105 transition-transform"
+          title="Open Strategy Core"
+        >
+          <Sparkles className="w-5 h-5" />
+          {!open && (
+            <span className="absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-60" />
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-primary border-2 border-background" />
+            </span>
+          )}
+        </button>
+        <Drawer open={open} onOpenChange={setOpen}>
+          <DrawerContent className="h-[92vh] p-0">
+            {chatContent}
+          </DrawerContent>
+        </Drawer>
+      </>
     );
   }
 
