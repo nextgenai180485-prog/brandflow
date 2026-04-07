@@ -180,19 +180,18 @@ const Onboarding = () => {
     if (!user) return;
     setSaving(true);
 
-    // Save brand assets to DB
+    // Upsert brand assets — clear old entries then insert current set
+    // This ensures logo_bright, logo_dark, and style_reference are always in sync
+    await supabase.from("brand_assets").delete().eq("profile_id", user.id);
     if (uploadedAssets.length > 0) {
-      const existing = await supabase.from("brand_assets").select("id").eq("profile_id", user.id);
-      if (!existing.data || existing.data.length === 0) {
-        await supabase.from("brand_assets").insert(
-          uploadedAssets.map((a) => ({
-            profile_id: user.id,
-            asset_type: a.type,
-            file_url: a.url,
-            file_name: a.name,
-          }))
-        );
-      }
+      await supabase.from("brand_assets").insert(
+        uploadedAssets.map((a) => ({
+          profile_id: user.id,
+          asset_type: a.type,
+          file_url: a.url,
+          file_name: a.name,
+        }))
+      );
     }
 
     // Mark onboarding complete
