@@ -12,7 +12,7 @@ import { LogOut, ChevronDown, Sparkles, Share2 } from "lucide-react";
 const navItems = [
   { label: "Campaigns", path: "/dashboard" },
   { label: "Creative Sandbox", path: "/dashboard/visual-director" },
-  { label: "Libraries", path: "/dashboard/admin/libraries" },
+  { label: "Libraries", path: "/dashboard/libraries" },
   { label: "Calendar", path: "/calendar" },
   { label: "Channels", path: "/dashboard/social-settings" },
 ];

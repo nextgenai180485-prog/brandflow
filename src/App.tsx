@@ -16,6 +16,7 @@ import Onboarding from "./pages/Onboarding";
 import StrategyCommandCenter from "./pages/StrategyCommandCenter";
 import VisualDirector from "./pages/VisualDirector";
 import AdminLibraries from "./pages/AdminLibraries";
+import UserLibraries from "./pages/UserLibraries";
 import SocialSettings from "./pages/SocialSettings";
 import NotFound from "./pages/NotFound";
 import GlobalCMOChat from "./components/GlobalCMOChat";
@@ -81,6 +82,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <CalendarView />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/libraries"
+              element={
+                <ProtectedRoute>
+                  <UserLibraries />
                 </ProtectedRoute>
               }
             />
