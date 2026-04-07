@@ -304,7 +304,7 @@ const GlobalCMOChat = () => {
       </div>
 
       {/* Input */}
-      <div className="border-t border-border px-4 py-3 shrink-0 bg-background">
+      <div className="border-t border-border px-4 py-3 pb-[env(safe-area-inset-bottom,12px)] shrink-0 bg-background">
         <div className="flex items-end gap-2">
           <textarea
             ref={inputRef}
