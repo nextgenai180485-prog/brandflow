@@ -77,8 +77,23 @@ const NewCampaign = () => {
   const toggleContentType = (ct: ContentType) => {
     setContentTypes((prev) => prev.includes(ct) ? prev.filter((t) => t !== ct) : [...prev, ct]);
   };
+  // Auto-route to generation family based on content type + platform
+  const routeFamily = useCallback((ct: ContentType, platform: SocialPlatform): string => {
+    if (ct === "ugc_video") return "F1";
+    if (ct === "pro_video") {
+      if (platform === "linkedin" || platform === "youtube") return "F2";
+      return "F5";
+    }
+    if (platform === "facebook" || platform === "x" || platform === "linkedin") return "F7";
+    return "F9";
+  }, []);
 
-  const handleCreate = async () => {
+  const FAMILY_LABELS: Record<string, string> = {
+    F1: "UGC Video", F2: "AI Spokesperson", F3: "Product Video",
+    F4: "Social Batch", F5: "Cinematic Ad", F6: "Elements Board",
+    F7: "Ad Creator", F8: "Creative Cloner", F9: "Image Template",
+  };
+
     if (!user || !title.trim()) return;
     setCreating(true);
 
