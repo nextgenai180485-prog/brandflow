@@ -1,7 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
-import { Plus, LayoutGrid, Clock, ImageIcon, Video, FileText, Layers, Brain, ChevronDown, Target, TrendingUp, Trash2 } from "lucide-react";
-import { useNavigate, useSearchParams } from "react-router-dom";
-import { format } from "date-fns";
+import { Plus, Brain, ChevronDown, Target, TrendingUp, CheckCircle2, Clock, ImageIcon, Sparkles, BarChart3 } from "lucide-react";
+import { useNavigate, useSearchParams, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -12,16 +11,10 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import type { Campaign, CampaignStatus, GeneratedAsset } from "@/types/campaigns";
-
-const statusConfig: Record<CampaignStatus, { label: string; className: string }> = {
-  draft: { label: "Draft", className: "bg-secondary text-secondary-foreground" },
-  generating: { label: "Generating", className: "animate-pulse bg-blue-50 text-blue-700 border-blue-200" },
-  review: { label: "In Review", className: "bg-amber-100 text-amber-800 border-amber-200" },
-  approved: { label: "Approved", className: "bg-emerald-100 text-emerald-800 border-emerald-200" },
-  scheduled: { label: "Scheduled", className: "bg-violet-100 text-violet-800 border-violet-200" },
-  published: { label: "Published", className: "bg-sky-100 text-sky-800 border-sky-200" },
-};
+import CampaignCard from "@/components/campaign/CampaignCard";
+import AssetInspectorSheet from "@/components/campaign/AssetInspectorSheet";
+import BatchActionBar from "@/components/campaign/BatchActionBar";
+import type { Campaign, GeneratedAsset } from "@/types/campaigns";
 
 interface CampaignWithAssets extends Campaign {
   assets: GeneratedAsset[];
@@ -37,17 +30,29 @@ const Dashboard = () => {
   const [strategy, setStrategy] = useState<any>(null);
   const [strategyOpen, setStrategyOpen] = useState(false);
 
-  // Process C: The "Intrigue" Notification on first arrival from onboarding
+  // Sheet state
+  const [sheetCampaignId, setSheetCampaignId] = useState<string | null>(null);
+  const [sheetAssetId, setSheetAssetId] = useState<string | null>(null);
+
+  // Batch selection
+  const [selectedAssets, setSelectedAssets] = useState<Set<string>>(new Set());
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+
+  // Auto-open sheet from URL param (backward compat with /dashboard/campaign/:id redirect)
+  useEffect(() => {
+    const openCampaign = searchParams.get("open");
+    if (openCampaign && campaigns.length > 0) {
+      setSheetCampaignId(openCampaign);
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, campaigns]);
+
+  // Process C: Welcome notification
   useEffect(() => {
     if (searchParams.get("welcome") === "1") {
-      // Remove param to avoid re-triggering
       setSearchParams({}, { replace: true });
-      // Delayed toast for dramatic effect
       const timer = setTimeout(() => {
-        toast("I've analyzed your market position. I have 3 strategies ready for your first campaign.", {
-          icon: "🧠",
-          duration: 8000,
-        });
+        toast("I've analyzed your market position. I have 3 strategies ready for your first campaign.", { icon: "🧠", duration: 8000 });
       }, 2500);
       return () => clearTimeout(timer);
     }
@@ -56,28 +61,18 @@ const Dashboard = () => {
   // Load brand strategy
   useEffect(() => {
     if (!user) return;
-    supabase
-      .from("brand_strategy" as any)
-      .select("*")
-      .eq("profile_id", user.id)
-      .limit(1)
+    supabase.from("brand_strategy" as any).select("*").eq("profile_id", user.id).limit(1)
       .then(({ data }) => {
-        if (data && data.length > 0 && (data[0] as any).strategy_generated) {
-          setStrategy(data[0]);
-        }
+        if (data && data.length > 0 && (data[0] as any).strategy_generated) setStrategy(data[0]);
       });
   }, [user]);
 
   const fetchCampaigns = useCallback(async () => {
     if (!user) return;
-    const { data: campaignData } = await supabase
-      .from("campaigns")
-      .select("*")
-      .order("created_at", { ascending: false });
-
+    const { data: campaignData } = await supabase.from("campaigns").select("*").order("created_at", { ascending: false });
     if (!campaignData) { setLoading(false); return; }
 
-    const ids = campaignData.map((c) => c.id);
+    const ids = campaignData.map(c => c.id);
     const { data: assetData } = ids.length > 0
       ? await supabase.from("generated_assets").select("*").in("campaign_id", ids).order("created_at", { ascending: true })
       : { data: [] };
@@ -88,13 +83,11 @@ const Dashboard = () => {
       assetMap[a.campaign_id].push(a as GeneratedAsset);
     });
 
-    setCampaigns(
-      campaignData.map((c) => ({
-        ...(c as Campaign),
-        assets: assetMap[c.id] || [],
-        assetCount: (assetMap[c.id] || []).length,
-      }))
-    );
+    setCampaigns(campaignData.map(c => ({
+      ...(c as Campaign),
+      assets: assetMap[c.id] || [],
+      assetCount: (assetMap[c.id] || []).length,
+    })));
     setLoading(false);
   }, [user]);
 
@@ -102,53 +95,118 @@ const Dashboard = () => {
 
   // Poll for generating campaigns
   useEffect(() => {
-    const hasGenerating = campaigns.some((c) => c.status === "generating");
+    const hasGenerating = campaigns.some(c => c.status === "generating");
     if (!hasGenerating) return;
     const interval = setInterval(fetchCampaigns, 4000);
     return () => clearInterval(interval);
   }, [campaigns, fetchCampaigns]);
 
   const deleteCampaign = useCallback(async (campaignId: string) => {
-    // Delete assets first, then campaign
     await supabase.from("generated_assets").delete().eq("campaign_id", campaignId);
     const { error } = await supabase.from("campaigns").delete().eq("id", campaignId);
-    if (error) {
-      toast.error("Failed to delete campaign");
-      return;
-    }
+    if (error) { toast.error("Failed to delete campaign"); return; }
     toast.success("Campaign deleted");
-    setCampaigns((prev) => prev.filter((c) => c.id !== campaignId));
-  }, []);
+    setCampaigns(prev => prev.filter(c => c.id !== campaignId));
+    if (sheetCampaignId === campaignId) setSheetCampaignId(null);
+  }, [sheetCampaignId]);
 
-  const getTypeIcon = (type: string) => {
-    switch (type) {
-      case "video": return <Video className="w-3 h-3" />;
-      case "carousel": return <Layers className="w-3 h-3" />;
-      case "copy": return <FileText className="w-3 h-3" />;
-      default: return <ImageIcon className="w-3 h-3" />;
+  // Stats
+  const totalAssets = campaigns.reduce((s, c) => s + c.assetCount, 0);
+  const pendingReview = campaigns.reduce((s, c) => s + c.assets.filter(a => a.status === "pending_review" && a.content_url).length, 0);
+  const approvedToday = campaigns.reduce((s, c) => s + c.assets.filter(a => {
+    if (a.status !== "approved") return false;
+    const d = new Date(a.updated_at);
+    const today = new Date();
+    return d.toDateString() === today.toDateString();
+  }).length, 0);
+  const generating = campaigns.reduce((s, c) => s + c.assets.filter(a => !a.content_url && a.status !== "rejected").length, 0);
+
+  // Sheet campaign
+  const sheetCampaign = campaigns.find(c => c.id === sheetCampaignId) || null;
+
+  // Batch handlers
+  const handleBatchApprove = async () => {
+    for (const id of selectedAssets) {
+      await supabase.from("generated_assets").update({ status: "approved" }).eq("id", id);
     }
+    setCampaigns(prev => prev.map(c => ({
+      ...c,
+      assets: c.assets.map(a => selectedAssets.has(a.id) ? { ...a, status: "approved" as any } : a)
+    })));
+    toast.success(`${selectedAssets.size} assets approved`);
+    setSelectedAssets(new Set());
+  };
+
+  const handleBatchReject = async () => {
+    for (const id of selectedAssets) {
+      await supabase.from("generated_assets").update({ status: "rejected" }).eq("id", id);
+    }
+    setCampaigns(prev => prev.map(c => ({
+      ...c,
+      assets: c.assets.map(a => selectedAssets.has(a.id) ? { ...a, status: "rejected" as any } : a)
+    })));
+    toast.success(`${selectedAssets.size} assets rejected`);
+    setSelectedAssets(new Set());
+  };
+
+  const handleBatchDownload = async () => {
+    const allAssets = campaigns.flatMap(c => c.assets);
+    for (const id of selectedAssets) {
+      const asset = allAssets.find(a => a.id === id);
+      if (asset?.content_url) {
+        try {
+          const r = await fetch(asset.content_url);
+          const b = await r.blob();
+          const a = document.createElement("a");
+          a.href = URL.createObjectURL(b);
+          a.download = `asset-${asset.platform}-${asset.format}.${asset.asset_type === "video" ? "mp4" : "jpg"}`;
+          a.click();
+          URL.revokeObjectURL(a.href);
+        } catch { window.open(asset.content_url, "_blank"); }
+      }
+    }
+    toast.success(`${selectedAssets.size} assets downloaded`);
   };
 
   return (
     <AppShell>
       <div className="px-4 sm:px-6 pt-4 pb-8">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-4">
           <div>
-            <h1 className="text-lg font-semibold text-foreground tracking-tight">Campaigns</h1>
+            <h1 className="text-lg font-semibold text-foreground tracking-tight">Command Center</h1>
             <p className="text-xs text-muted-foreground mt-0.5">
-              {campaigns.length} campaign{campaigns.length !== 1 ? "s" : ""} · {campaigns.reduce((s, c) => s + c.assetCount, 0)} total assets
+              {campaigns.length} campaign{campaigns.length !== 1 ? "s" : ""} · {totalAssets} total assets
             </p>
           </div>
           <Button size="sm" onClick={() => navigate("/dashboard/strategy/new")} className="h-8 text-xs gap-1.5">
-            <Plus className="w-3.5 h-3.5" />
-            New Campaign
+            <Plus className="w-3.5 h-3.5" /> New Campaign
           </Button>
         </div>
 
+        {/* Live Stats Bar */}
+        {totalAssets > 0 && (
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+            {[
+              { label: "Generating", value: generating, icon: <Sparkles className="w-3.5 h-3.5" />, color: "text-blue-500", pulse: generating > 0 },
+              { label: "Pending Review", value: pendingReview, icon: <Clock className="w-3.5 h-3.5" />, color: "text-amber-500" },
+              { label: "Approved Today", value: approvedToday, icon: <CheckCircle2 className="w-3.5 h-3.5" />, color: "text-emerald-500" },
+              { label: "Total Assets", value: totalAssets, icon: <BarChart3 className="w-3.5 h-3.5" />, color: "text-foreground" },
+            ].map((stat) => (
+              <div key={stat.label} className={`flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl border border-border bg-card ${stat.pulse ? "animate-pulse" : ""}`}>
+                <div className={`${stat.color}`}>{stat.icon}</div>
+                <div>
+                  <p className="text-lg font-bold text-foreground leading-tight">{stat.value}</p>
+                  <p className="text-[10px] text-muted-foreground">{stat.label}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
         {/* Strategy Widget */}
         {strategy && (
-          <Collapsible open={strategyOpen} onOpenChange={setStrategyOpen} className="mb-6">
+          <Collapsible open={strategyOpen} onOpenChange={setStrategyOpen} className="mb-5">
             <CollapsibleTrigger className="w-full">
               <div className="flex items-center justify-between rounded-xl border border-border bg-card px-5 py-3 hover:bg-secondary/50 transition-colors cursor-pointer">
                 <div className="flex items-center gap-3">
@@ -174,7 +232,6 @@ const Dashboard = () => {
             </CollapsibleTrigger>
             <CollapsibleContent>
               <div className="mt-2 rounded-xl border border-border bg-card p-5 space-y-4 animate-in fade-in duration-300">
-                {/* Persona */}
                 {(strategy as any).persona_card?.name && (
                   <div className="flex items-start gap-3">
                     <Target className="w-4 h-4 text-primary mt-0.5 shrink-0" />
@@ -185,7 +242,6 @@ const Dashboard = () => {
                     </div>
                   </div>
                 )}
-                {/* Funnel */}
                 {(strategy as any).funnel_stages && (
                   <div className="flex items-start gap-3">
                     <TrendingUp className="w-4 h-4 text-primary mt-0.5 shrink-0" />
@@ -204,22 +260,17 @@ const Dashboard = () => {
                     </div>
                   </div>
                 )}
-                {/* CMO Directive */}
-                {(strategy as any).cmo_directive && (
-                  <div className="border-t border-border pt-3">
-                    <p className="text-[10px] text-foreground italic">{(strategy as any).cmo_directive}</p>
-                  </div>
-                )}
               </div>
             </CollapsibleContent>
           </Collapsible>
         )}
 
+        {/* Campaign Grid */}
         {loading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {Array.from({ length: 8 }).map((_, i) => (
               <div key={i} className="rounded-xl border border-border bg-card overflow-hidden">
-                <Skeleton className="aspect-[16/10] w-full" />
+                <Skeleton className="aspect-video w-full" />
                 <div className="p-3 space-y-2">
                   <Skeleton className="h-4 w-2/3" />
                   <Skeleton className="h-3 w-1/2" />
@@ -231,124 +282,57 @@ const Dashboard = () => {
           <EmptyCampaigns onCreateClick={() => navigate("/dashboard/strategy/new")} />
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {campaigns.map((campaign) => {
-              const status = statusConfig[campaign.status];
-              const thumbnails = campaign.assets
-                .filter((a) => a.content_url && a.asset_type !== "copy")
-                .slice(0, 4);
-              const typeBreakdown = campaign.assets.reduce<Record<string, number>>((acc, a) => {
-                acc[a.asset_type] = (acc[a.asset_type] || 0) + 1;
-                return acc;
-              }, {});
-
-              return (
-                <div
-                  key={campaign.id}
-                  onClick={() => navigate(`/dashboard/campaign/${campaign.id}`)}
-                  className="group rounded-xl border border-border bg-card overflow-hidden cursor-pointer transition-all hover:shadow-lg hover:border-foreground/15 hover:-translate-y-0.5"
-                >
-                  {/* Thumbnail Grid */}
-                  <div className="aspect-video bg-muted relative overflow-hidden">
-                    {thumbnails.length === 0 ? (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <LayoutGrid className="w-8 h-8 text-muted-foreground/30" />
-                      </div>
-                    ) : thumbnails.length === 1 ? (
-                      <img src={thumbnails[0].content_url!} alt="" className="w-full h-full object-cover" />
-                    ) : (
-                      <div className={`grid h-full w-full ${thumbnails.length === 2 ? "grid-cols-2" : thumbnails.length === 3 ? "grid-cols-2 grid-rows-2" : "grid-cols-2 grid-rows-2"}`}>
-                        {thumbnails.map((t, i) => (
-                          <div key={t.id} className={`relative overflow-hidden ${thumbnails.length === 3 && i === 0 ? "row-span-2" : ""}`}>
-                            <img src={t.content_url!} alt="" className="w-full h-full object-cover" />
-                            {t.asset_type === "video" && (
-                            <div className="absolute inset-0 flex items-center justify-center">
-                                <div className="w-6 h-6 rounded-full bg-foreground/40 flex items-center justify-center">
-                                  <Video className="w-3 h-3 text-background" />
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* Status overlay */}
-                    <div className="absolute top-2 left-2">
-                      <Badge variant="outline" className={`text-[9px] backdrop-blur-md ${status.className}`}>
-                        {status.label}
-                      </Badge>
-                    </div>
-
-                    {/* Asset count overlay */}
-                    {campaign.assetCount > 0 && (
-                      <div className="absolute bottom-2 right-2 px-1.5 py-0.5 rounded bg-foreground/70 backdrop-blur-sm text-[9px] font-medium text-background">
-                        {campaign.assetCount} asset{campaign.assetCount !== 1 ? "s" : ""}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Info */}
-                  <div className="p-3">
-                    <div className="flex items-center justify-between gap-2">
-                      <h3 className="text-sm font-semibold text-foreground truncate group-hover:text-primary transition-colors">
-                        {campaign.title}
-                      </h3>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6 shrink-0 text-muted-foreground hover:text-destructive"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent onClick={(e) => e.stopPropagation()}>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Delete campaign?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              This will permanently delete "{campaign.title}" and all its generated assets. This action cannot be undone.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction
-                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                deleteCampaign(campaign.id);
-                              }}
-                            >
-                              Delete
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </div>
-                    <div className="flex items-center gap-2 mt-1.5 text-[10px] text-muted-foreground">
-                      <span className="flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
-                        {format(new Date(campaign.created_at), "MMM d, yyyy")}
-                      </span>
-                      {Object.entries(typeBreakdown).map(([type, count]) => (
-                        <span key={type} className="flex items-center gap-0.5">
-                          {getTypeIcon(type)} {count}
-                        </span>
-                      ))}
-                    </div>
-                    {campaign.scheduled_at && (
-                      <p className="text-[10px] text-primary/70 mt-1">
-                        Scheduled: {format(new Date(campaign.scheduled_at), "MMM d 'at' h:mm a")}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
+            {campaigns.map(campaign => (
+              <AlertDialog key={campaign.id} open={deleteConfirmId === campaign.id} onOpenChange={(o) => !o && setDeleteConfirmId(null)}>
+                <CampaignCard
+                  campaign={campaign}
+                  assets={campaign.assets}
+                  onClick={() => setSheetCampaignId(campaign.id)}
+                  onDelete={(e) => { e.stopPropagation(); setDeleteConfirmId(campaign.id); }}
+                />
+                <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete campaign?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will permanently delete "{campaign.title}" and all its generated assets.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => { deleteCampaign(campaign.id); setDeleteConfirmId(null); }}>
+                      Delete
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            ))}
           </div>
         )}
       </div>
+
+      {/* Asset Inspector Sheet */}
+      <AssetInspectorSheet
+        open={!!sheetCampaignId}
+        onClose={() => { setSheetCampaignId(null); setSheetAssetId(null); }}
+        campaign={sheetCampaign}
+        assets={sheetCampaign?.assets || []}
+        initialAssetId={sheetAssetId}
+        onAssetsChange={(newAssets) => {
+          setCampaigns(prev => prev.map(c => c.id === sheetCampaignId ? { ...c, assets: newAssets, assetCount: newAssets.length } : c));
+        }}
+        onCampaignChange={(updated) => {
+          setCampaigns(prev => prev.map(c => c.id === updated.id ? { ...c, ...updated } : c));
+        }}
+      />
+
+      {/* Batch Action Bar */}
+      <BatchActionBar
+        selectedCount={selectedAssets.size}
+        onApprove={handleBatchApprove}
+        onReject={handleBatchReject}
+        onDownload={handleBatchDownload}
+        onClear={() => setSelectedAssets(new Set())}
+      />
     </AppShell>
   );
 };
