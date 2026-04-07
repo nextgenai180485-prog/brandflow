@@ -1,75 +1,129 @@
 
 
-# Bi-Cameral Workspace: CSO War Room + CMO Tactical Rail
+# Social Publishing Engine via Blotato API
 
-## Current State
+## What We're Building
 
-The project already has:
-- **GlobalCMOChat** — a floating chat widget (bottom-right bubble) that streams to the `cmo-chat` edge function. Currently labeled "CSO" in spirit but serves as a general-purpose chat.
-- **CMOStrategyPanel** — a right-rail tactical panel used inside the Campaign Wizard (`NewCampaign.tsx`) that provides real-time contextual guidance as users select platforms/content types.
-- **AppShell** — the global layout wrapper with a top navigation bar.
+A complete social publishing pipeline that lets users publish approved assets from the Content Command Center directly to Instagram, TikTok, Facebook, LinkedIn, X, YouTube, and more — powered by Blotato's REST API.
 
-The proposal from the external architect is sound. The split-architecture aligns with what we partially have. The gap is that the two agents share the same backend and the UX doesn't enforce the role separation.
+## Architecture
 
-## What We Will Build
+```text
+Calendar (Content Command Center)
+  └── "Publish" button on approved asset cards
+        └── Publish Modal (platform picker + schedule options)
+              └── Edge Function: social-publish
+                    └── Blotato REST API (https://backend.blotato.com/v2)
+                          ├── GET /users/me/accounts (list connected socials)
+                          ├── POST /posts (publish/schedule)
+                          ├── GET /posts/:id (poll status)
+                          └── POST /media/uploads (presigned upload for local files)
+```
 
-### 1. Rebrand & Clarify Agent Roles
+## Build Steps
 
-| Agent | Role | Location | Interaction |
-|-------|------|----------|-------------|
-| **CMO** (Tactical Co-Pilot) | Context-aware cards, warnings, recommendations. Reacts to what user is doing NOW. | Right rail inside workspace pages (Campaign Wizard, Dashboard) | Push — auto-updates, no chat bubbles |
-| **CSO** (Strategic Architect) | Deep conversational strategy. Knows full project history A-Z. Summonable War Room. | Global slide-over overlay (left or center) | Pull — user initiates conversation |
+### Step 1: Secret + Database
 
-### 2. CSO War Room (Global Overlay)
+- Add `BLOTATO_API_KEY` secret
+- Create two tables via migration:
+  - `social_accounts` — caches Blotato account data (account_id, platform, username, avatar, brand mapping)
+  - `publish_records` — tracks each publish attempt (asset_id, platform, status, blotato_post_id, scheduled_at, published_at, error_message)
+- RLS: scoped to `profile_id = auth.uid()`
 
-**Replace the current floating bubble chat with a slide-over "War Room" panel:**
+### Step 2: Edge Function `social-publish`
 
-- **Trigger**: A glowing "Strategy" button in the AppShell header (desktop) or a floating pill (mobile)
-- **Desktop**: Slide-over panel from the right, 480px wide, glassmorphic backdrop blur on the rest of the app
-- **Mobile**: Full-height drawer (using existing `Drawer` component from vaul) instead of a floating panel
-- **Keyboard shortcut**: `Cmd+K` / `Ctrl+K` to toggle
-- **Content**: The existing streaming chat UI from `GlobalCMOChat`, rebranded as "Chief Strategy Officer"
-- **Persistence**: Same `cmo_chat_messages` table, same `cmo-chat` edge function
+Single edge function with action-based routing:
 
-### 3. CMO Tactical Rail Enhancement
+| Action | What It Does |
+|--------|-------------|
+| `list-accounts` | Calls `GET /users/me/accounts` on Blotato, returns connected platforms |
+| `sync-accounts` | Fetches Blotato accounts and upserts into `social_accounts` table |
+| `publish` | Calls `POST /posts` with asset media URL, caption, platform-specific target fields; creates `publish_records` entry |
+| `schedule` | Same as publish but with `scheduledTime` field at root level |
+| `check-status` | Polls `GET /posts/:postSubmissionId`, updates `publish_records` status |
 
-**Upgrade `CMOStrategyPanel` to be a true "HUD" (Heads-Up Display):**
+Auth: JWT validation in code (existing pattern). Blotato auth: `blotato-api-key` header.
 
-- Already lives in the right rail of the Campaign Wizard — keep it there
-- Add it to the Dashboard as a collapsible right panel showing brand health + next-move cards
-- Card-based UI (not chat bubbles) — status indicators, actionable buttons
-- Reactive: responds to user selections in real-time (already partially implemented)
+### Step 3: Social Settings UI
 
-### 4. Responsive Mobile Strategy
+New section in Settings (or standalone `/settings/social`):
+- Input for Blotato API key (stored via secrets, passed to edge function)
+- "Sync Accounts" button that calls the edge function
+- Display connected platforms as cards with avatar, username, platform badge
+- Toggle auto-publish per account
 
-- **Desktop (≥768px)**: AppShell header + Canvas center + optional CMO rail right. CSO slides from right as overlay.
-- **Mobile (<768px)**: 
-  - CMO rail hidden, replaced by a floating bottom pill showing alert count
-  - Tapping pill opens a half-height Drawer with CMO cards
-  - CSO trigger in mobile header opens full-screen Drawer chat
+### Step 4: Calendar Publish Flow
 
-### 5. File Changes
+Enhance the Content Command Center (`CalendarView.tsx`):
+- Add "Publish" button on asset cards with status `approved`
+- Publish Modal:
+  - Platform selector (shows only synced accounts from `social_accounts`)
+  - Platform-specific fields (TikTok privacy, Facebook page, YouTube title)
+  - Caption editor (pre-filled from `content_text`)
+  - Schedule picker: "Now" / "Pick time" / "Next free slot"
+- On submit: calls `social-publish` edge function
+- Asset status updates to `published` or `scheduled` in real-time
 
-| File | Change |
-|------|--------|
-| `src/components/GlobalCMOChat.tsx` | Refactor from floating bubble to slide-over overlay panel. Add glassmorphic backdrop. Add keyboard shortcut. Rebrand to "Chief Strategy Officer". Mobile: use Drawer. |
-| `src/components/AppShell.tsx` | Add CSO trigger button in header (glowing icon). Add mobile CMO pill. |
-| `src/components/CMOStrategyPanel.tsx` | Minor: ensure card-based UI (already is). No major changes needed. |
-| `src/pages/Dashboard.tsx` | Optionally add a lightweight CMO status strip or "next move" card. |
-| `src/index.css` or `tailwind.config.ts` | Add glassmorphism utility if needed (`backdrop-blur-xl`, `bg-white/90`). |
+### Step 5: Queue Status Tracking
 
-### 6. Technical Details
+- Enhance Queue tab to show `publish_records` data
+- Real-time status: queued → publishing → published / failed
+- Retry button for failed publishes
+- Link to live post URL when published
 
-- **Shared backend**: Both agents use the same `cmo-chat` edge function. The system prompt already handles both tactical and strategic guidance. No backend changes needed.
-- **Keyboard shortcut**: `useEffect` listener on `keydown` for `Cmd+K` / `Ctrl+K` in `GlobalCMOChat.tsx`.
-- **Mobile detection**: Use existing `useIsMobile()` hook to switch between slide-over (desktop) and Drawer (mobile).
-- **State management**: CSO open/close state managed in `GlobalCMOChat`. CMO pill state managed in `AppShell` or a new `CMOPill` component.
-- **No new tables or edge functions** — purely a frontend UX refactor.
+## Technical Details
 
-### 7. Build Order
+- **Blotato Base URL**: `https://backend.blotato.com/v2`
+- **Auth Header**: `blotato-api-key: YOUR_API_KEY`
+- **Media**: Our assets are in public Supabase storage buckets — pass URLs directly to `mediaUrls` (no upload step needed)
+- **Async flow**: `POST /posts` returns `postSubmissionId`, poll with `GET /posts/:id` until `published` or `failed`
+- **Platform targets**: Each platform has specific required fields (e.g., TikTok needs `privacyLevel`, Facebook needs `pageId`)
+- **Rate limits**: 30 POST/min, 60 GET/min — well within our volume
 
-1. Refactor `GlobalCMOChat` into the CSO slide-over overlay (desktop + mobile)
-2. Update `AppShell` with the CSO trigger button and mobile CMO pill
-3. Add keyboard shortcut (Cmd+K)
-4. Polish glassmorphism, animations, responsive breakpoints
+## Database Schema
+
+```sql
+-- social_accounts: cached Blotato account data
+CREATE TABLE social_accounts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  profile_id UUID NOT NULL,
+  blotato_account_id TEXT NOT NULL,
+  platform TEXT NOT NULL,
+  username TEXT,
+  display_name TEXT,
+  avatar_url TEXT,
+  auto_publish BOOLEAN DEFAULT false,
+  status TEXT DEFAULT 'connected',
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE (profile_id, blotato_account_id)
+);
+
+-- publish_records: tracks every publish attempt
+CREATE TABLE publish_records (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  profile_id UUID NOT NULL,
+  asset_id UUID NOT NULL,
+  campaign_id UUID,
+  social_account_id UUID REFERENCES social_accounts(id),
+  platform TEXT NOT NULL,
+  blotato_post_submission_id TEXT,
+  status TEXT DEFAULT 'queued',
+  scheduled_at TIMESTAMPTZ,
+  published_at TIMESTAMPTZ,
+  platform_post_url TEXT,
+  caption TEXT,
+  hashtags TEXT[] DEFAULT '{}',
+  retry_count INTEGER DEFAULT 0,
+  error_message TEXT,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+```
+
+## What the User Needs To Do
+
+1. Sign up for Blotato Business plan ($29/mo for 20 accounts)
+2. Connect social accounts in Blotato's dashboard
+3. Generate API key in Blotato Settings > API
+4. Paste API key into Brandflow's Social Settings page
 
