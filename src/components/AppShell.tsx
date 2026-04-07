@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -9,8 +8,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { LogOut, ChevronDown } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { LogOut, ChevronDown, Share2 } from "lucide-react";
 
 const baseNavItems = [
   { label: "Campaigns", path: "/dashboard" },
@@ -29,20 +27,6 @@ const AppShell = ({ children }: { children: React.ReactNode }) => {
   const { isAdmin } = useUserRole();
   const navigate = useNavigate();
   const location = useLocation();
-  const [brandLogo, setBrandLogo] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!user) return;
-    supabase
-      .from("brand_assets")
-      .select("file_url")
-      .eq("profile_id", user.id)
-      .eq("asset_type", "logo")
-      .limit(1)
-      .then(({ data }) => {
-        if (data && data.length > 0) setBrandLogo(data[0].file_url);
-      });
-  }, [user]);
 
   const navItems = [...baseNavItems, ...(isAdmin ? adminNavItems : [])];
 
@@ -62,21 +46,12 @@ const AppShell = ({ children }: { children: React.ReactNode }) => {
       <header className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-sm">
         <div className="mx-auto flex h-12 items-center justify-between px-4 sm:px-6">
           <div className="flex items-center gap-6">
-            {brandLogo ? (
-              <img
-                src={brandLogo}
-                alt="Brand logo"
-                className="h-7 max-w-[120px] object-contain cursor-pointer"
-                onClick={() => navigate("/dashboard")}
-              />
-            ) : (
-              <span
-                className="text-base font-semibold tracking-tight text-foreground cursor-pointer"
-                onClick={() => navigate("/dashboard")}
-              >
-                Brandflow
-              </span>
-            )}
+            <span
+              className="text-base font-semibold tracking-tight text-foreground cursor-pointer"
+              onClick={() => navigate("/dashboard")}
+            >
+              Brandflow
+            </span>
             <nav className="hidden md:flex items-center gap-0.5">
               {navItems.map((item) => (
                 <button
