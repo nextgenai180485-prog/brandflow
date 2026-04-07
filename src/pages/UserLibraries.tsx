@@ -33,7 +33,7 @@ const UserLibraries = () => {
 
   return (
     <AppShell>
-      <div className="mx-auto max-w-6xl px-4 sm:px-6 py-6">
+      <div className="px-4 sm:px-6 pt-4 pb-8">
         <div className="mb-6">
           <h1 className="text-lg font-bold text-foreground">Content Library</h1>
           <p className="text-xs text-muted-foreground mt-1">

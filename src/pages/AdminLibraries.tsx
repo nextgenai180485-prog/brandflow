@@ -19,7 +19,7 @@ const AdminLibraries = () => {
 
   return (
     <AppShell>
-      <div className="mx-auto max-w-6xl px-3 sm:px-6 py-4 sm:py-6">
+      <div className="px-4 sm:px-6 pt-4 pb-8">
         <div className="mb-4 sm:mb-6">
           <h1 className="text-lg sm:text-xl font-bold text-foreground">Content Libraries</h1>
           <p className="text-xs sm:text-sm text-muted-foreground mt-1">
