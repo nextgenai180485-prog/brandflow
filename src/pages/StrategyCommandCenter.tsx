@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import AppShell from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import CMOStrategyPanel from "@/components/CMOStrategyPanel";
+
 import FounderInterview from "@/components/FounderInterview";
 import type { BrandProfile } from "@/types/campaigns";
 
@@ -305,28 +305,6 @@ const StrategyCommandCenter = () => {
           </div>
         </div>
 
-        <div className="hidden lg:flex w-[420px] xl:w-[480px] border-l border-border bg-secondary/20 flex-col shrink-0">
-          <div className="flex items-center gap-3 border-b border-border px-5 py-3">
-            <div className="flex gap-1.5">
-              <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-              <div className="w-2 h-2 rounded-full bg-muted-foreground/40" />
-              <div className="w-2 h-2 rounded-full bg-muted-foreground/30" />
-            </div>
-            <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-[0.15em]">
-              CSO Intelligence
-            </span>
-          </div>
-          <div className="flex-1 overflow-hidden">
-            <CMOStrategyPanel
-              brandProfile={brandProfile}
-              loadingProfile={researchLoading}
-              selectedPlatforms={[]}
-              selectedContentTypes={[]}
-              campaignTitle=""
-              campaignInstructions=""
-            />
-          </div>
-        </div>
       </div>
     </AppShell>
   );
