@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { useIsMobile } from "@/hooks/use-mobile";
 import AdminLibraryForm from "./AdminLibraryForm";
 
-type TableName = "video_templates" | "character_library" | "ad_reference_library" | "image_templates";
+type TableName = "video_templates" | "character_library" | "ad_reference_library" | "image_templates" | "hooks";
 
 interface AdminLibraryTableProps {
   tableName: TableName;
