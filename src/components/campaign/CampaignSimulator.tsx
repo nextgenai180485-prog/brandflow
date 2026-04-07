@@ -482,17 +482,33 @@ export default function CampaignSimulator({
             <div className="mt-3">
               <p className="text-[9px] uppercase tracking-widest text-muted-foreground font-semibold mb-2 px-1">Aspect Ratio Variants</p>
               <div className="grid grid-cols-2 gap-1.5 mt-2 px-1">
-                {ASPECT_VARIANTS.map((v) => (
-                  <div key={v.label} className="relative rounded-lg overflow-hidden border border-border bg-secondary/30 hover:border-primary/40 transition-colors cursor-pointer group">
-                    <div style={{ aspectRatio: `${v.w}/${v.h}`, maxHeight: 60 }} className="w-full overflow-hidden">
-                      <img src={imageUrl!} alt={v.label} className="w-full h-full object-cover" />
-                    </div>
-                    <div className="flex items-center justify-between px-1.5 py-1">
-                      <span className="text-[9px] font-semibold text-foreground">{v.label}</span>
-                      <span className="text-[10px] text-green-500">✓</span>
-                    </div>
-                  </div>
-                ))}
+                {ASPECT_VARIANTS.map((v) => {
+                  const isActive = activeAspect === v.label;
+                  return (
+                    <button
+                      key={v.label}
+                      onClick={() => setActiveAspect(v.label)}
+                      className={cn(
+                        "relative rounded-lg overflow-hidden border-2 transition-all duration-200 cursor-pointer group text-left",
+                        isActive
+                          ? "border-primary ring-1 ring-primary/30 shadow-sm"
+                          : "border-border hover:border-primary/40"
+                      )}
+                    >
+                      <div style={{ aspectRatio: `${v.w}/${v.h}`, maxHeight: 60 }} className="w-full overflow-hidden bg-secondary/30">
+                        <img src={imageUrl!} alt={v.label} className="w-full h-full object-cover" />
+                      </div>
+                      <div className="flex items-center justify-between px-1.5 py-1">
+                        <span className={cn("text-[9px] font-semibold", isActive ? "text-primary" : "text-foreground")}>{v.label}</span>
+                        {isActive && (
+                          <span className="flex items-center justify-center w-3.5 h-3.5 rounded-full bg-primary">
+                            <span className="text-[8px] text-primary-foreground font-bold">✓</span>
+                          </span>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </div>
