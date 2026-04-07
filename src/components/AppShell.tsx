@@ -62,12 +62,21 @@ const AppShell = ({ children }: { children: React.ReactNode }) => {
       <header className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-sm">
         <div className="mx-auto flex h-12 items-center justify-between px-4 sm:px-6">
           <div className="flex items-center gap-6">
-            <span
-              className="text-base font-semibold tracking-tight text-foreground cursor-pointer"
-              onClick={() => navigate("/dashboard")}
-            >
-              Brandflow
-            </span>
+            {brandLogo ? (
+              <img
+                src={brandLogo}
+                alt="Brand logo"
+                className="h-7 max-w-[120px] object-contain cursor-pointer"
+                onClick={() => navigate("/dashboard")}
+              />
+            ) : (
+              <span
+                className="text-base font-semibold tracking-tight text-foreground cursor-pointer"
+                onClick={() => navigate("/dashboard")}
+              >
+                Brandflow
+              </span>
+            )}
             <nav className="hidden md:flex items-center gap-0.5">
               {navItems.map((item) => (
                 <button
