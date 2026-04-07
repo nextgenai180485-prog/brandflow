@@ -7,13 +7,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { LogOut, ChevronDown, Sparkles } from "lucide-react";
+import { LogOut, ChevronDown, Sparkles, Share2 } from "lucide-react";
 
 const navItems = [
   { label: "Campaigns", path: "/dashboard" },
   { label: "Creative Sandbox", path: "/dashboard/visual-director" },
   { label: "Libraries", path: "/dashboard/admin/libraries" },
   { label: "Calendar", path: "/calendar" },
+  { label: "Channels", path: "/dashboard/social-settings" },
 ];
 
 const AppShell = ({ children }: { children: React.ReactNode }) => {
@@ -51,7 +52,9 @@ const AppShell = ({ children }: { children: React.ReactNode }) => {
                   key={item.path}
                   onClick={() => navigate(item.path)}
                   className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
-                    location.pathname === item.path || (item.path === "/dashboard" && location.pathname.startsWith("/dashboard"))
+                    (item.path === "/dashboard"
+                      ? location.pathname === "/dashboard"
+                      : location.pathname.startsWith(item.path))
                       ? "bg-accent text-foreground"
                       : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
                   }`}
