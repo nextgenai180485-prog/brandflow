@@ -1,45 +1,31 @@
-# F1-F9 Family Intelligence + Auto-Routing
 
-## Phase 1: CSO Agent — Full Family Knowledge Injection
 
-Update the CSO system prompt (`cmo-chat/index.ts`) with complete F1-F9 family taxonomy:
+# Security Hardening Plan
 
-| Family | Name | Best For | Platforms |
-|--------|------|----------|-----------|
-| F1 | UGC Video Ads | Authentic testimonials, before/after, unboxing | TikTok, IG Reels, YT Shorts |
-| F2 | AI Spokesperson | Talking-head authority, explainers, product demos | LinkedIn, YouTube, Facebook |
-| F3 | Product Videography | Hero shots, product-in-motion, lifestyle B-roll | Instagram, Pinterest, eCommerce |
-| F4 | Social Content Batch | Carousel posts, text posts, quote cards | All social platforms |
-| F5 | Cinematic Ad | Premium brand films, aspirational lifestyle ads | YouTube, TV/OTT, LinkedIn |
-| F6 | Core Elements Board | Brand asset prep (logos, color systems, typography) | Internal use / design handoff |
-| F7 | Ad Creator | Static/animated ad creatives with approval gates | Meta Ads, Google Display, LinkedIn |
-| F8 | Creative Cloner | Template-driven recreation from reference ads | Any (mirrors source) |
-| F9 | Image Template | Text overlay compositions, promotional graphics | Instagram, Stories, Email |
+## Summary
+The core chat and campaign flows are already auth-gated and safe. This plan addresses 4 security findings from the scan to bring the system to enterprise-grade.
 
-The CSO will use this to:
-- Recommend families based on brand archetype + funnel stage
-- Explain WHY a family fits ("Your luxury positioning demands F5 Cinematic, not F1 UGC")
-- Map platform selections to optimal families
+## Changes
 
-## Phase 2: Campaign Wizard Auto-Routing
+### 1. Remove dead `blotato_api_key` column from profiles
+Migration to drop the column — it's a leftover from Model B and shouldn't store API keys in user-accessible rows.
 
-Update the Campaign Wizard's content type selection to auto-map user choices to the correct family:
+### 2. Lock down media storage buckets
+Add INSERT/UPDATE/DELETE policies to `brandflow-pv-frames`, `brandflow-pv-videos`, `brandflow-asv-voice`, `brandflow-asv-videos` scoped to `service_role` only (Edge Functions upload, users read).
 
-```
-User picks "UGC Video" + "TikTok" → F1
-User picks "Pro Video" + "LinkedIn" → F2 or F5 (based on brand tier)
-User picks "Image" + "Instagram" → F9 or F7 (based on intent)
-User picks "Social Content" + multi-platform → F4
-```
+### 3. Restrict campaign_assets SELECT to authenticated users
+Replace the anonymous public SELECT policy with one requiring `auth.uid() IS NOT NULL` — assets are still readable by any logged-in user (needed for shared campaigns) but not by anonymous visitors.
 
-The routing logic lives in the campaign creation flow and sets `family` on the campaign/generation request automatically — users never see "F1" or "F9", they see goal-oriented labels.
+### 4. Enable leaked password protection
+Turn on Supabase Auth's leaked password protection via project settings (requires manual toggle in Supabase Dashboard > Authentication > Settings).
 
-## Phase 3: CMO Reactive Panel (Tactical)
+### 5. Tighten RLS role scoping
+Several policies apply to `{public}` role instead of `{authenticated}`. While `auth.uid() = profile_id` already blocks anonymous access (since `auth.uid()` returns null for anon), switching to `{authenticated}` is defense-in-depth best practice. Tables affected: campaigns, generated_assets, brand_assets, profiles, campaign_research, decision_traces, brand_memory, brand_strategy, campaign_assets, cmo_chat_messages.
 
-Add lightweight family awareness to the CMO reactive prompt (`cmo-agent/index.ts`) so it can validate the auto-selected family during campaign setup and suggest alternatives if the strategy doesn't match.
+## Technical Detail
 
-## Files Changed
-- `supabase/functions/cmo-chat/index.ts` — Full family taxonomy in system prompt
-- `supabase/functions/cmo-agent/index.ts` — Family validation awareness
-- `src/pages/NewCampaign.tsx` — Auto-routing logic from content type + platform → family
-- Deploy both edge functions
+All changes are SQL migrations. No UI changes needed. The `blotato_api_key` column removal also requires removing any TypeScript references to `profiles.blotato_api_key` in the frontend.
+
+## What the User Needs To Do
+- Go to Supabase Dashboard > Authentication > Settings and enable "Leaked Password Protection"
+
