@@ -817,6 +817,7 @@ async function processAssetsInBackground(
           console.log(`[Generate] video for ${platform}/${format} via SEALCaM scene ${sceneIndex + 1}/${creativeDirection.scenes.length} (${creativeDirection.family})`);
         } else {
           generatedPrompt = buildVideoPrompt(platform, format, brandContext || {}, intelligenceBrief || {}, decisionWinner);
+          if (referenceImageUrl) generatedPrompt += ` Reference style: ${referenceImageUrl}. Match the composition, lighting, and mood of this reference.`;
           console.log(`[Generate] video for ${platform}/${format} via generic prompt`);
         }
         console.log(`[Generate] video for ${platform}/${format} via Kling 2.5`);
