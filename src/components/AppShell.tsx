@@ -1,4 +1,5 @@
 import { useAuth } from "@/hooks/useAuth";
+import { useUserRole } from "@/hooks/useUserRole";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
   DropdownMenu,
@@ -9,12 +10,16 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { LogOut, ChevronDown, Sparkles, Share2 } from "lucide-react";
 
-const navItems = [
+const baseNavItems = [
   { label: "Campaigns", path: "/dashboard" },
   { label: "Creative Sandbox", path: "/dashboard/visual-director" },
   { label: "Libraries", path: "/dashboard/libraries" },
   { label: "Calendar", path: "/calendar" },
   { label: "Channels", path: "/dashboard/social-settings" },
+];
+
+const adminNavItems = [
+  { label: "Admin", path: "/dashboard/admin/libraries" },
 ];
 
 const AppShell = ({ children }: { children: React.ReactNode }) => {
