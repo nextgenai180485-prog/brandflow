@@ -207,20 +207,21 @@ Deno.serve(async (req) => {
         results.push({ account: acc, result: blotatoResult });
       }
 
-      const submissionId = blotatoResult?.id || blotatoResult?.postSubmissionId || blotatoResult?._id;
-
-      const records = socialAccounts.map((acc: any) => ({
-        profile_id: userId,
-        asset_id,
-        campaign_id: campaign_id || null,
-        social_account_id: acc.id,
-        platform: acc.platform,
-        blotato_post_submission_id: submissionId ? String(submissionId) : null,
-        status: action === "schedule" ? "scheduled" : "publishing",
-        scheduled_at: scheduled_at || null,
-        caption: finalCaption,
-        hashtags: hashtags || [],
-      }));
+      const records = results.map(({ account: acc, result: r }) => {
+        const submissionId = r?.id || r?.postSubmissionId || r?._id;
+        return {
+          profile_id: userId,
+          asset_id,
+          campaign_id: campaign_id || null,
+          social_account_id: acc.id,
+          platform: acc.platform,
+          blotato_post_submission_id: submissionId ? String(submissionId) : null,
+          status: action === "schedule" ? "scheduled" : "publishing",
+          scheduled_at: scheduled_at || null,
+          caption: finalCaption,
+          hashtags: hashtags || [],
+        };
+      });
 
       const { data: insertedRecords, error: insertError } = await supabase
         .from("publish_records")
@@ -234,7 +235,7 @@ Deno.serve(async (req) => {
       return new Response(
         JSON.stringify({
           success: true,
-          blotato_response: blotatoResult,
+          blotato_responses: results.map(r => r.result),
           publish_records: insertedRecords,
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
