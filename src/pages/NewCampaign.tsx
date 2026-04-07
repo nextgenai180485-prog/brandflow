@@ -553,13 +553,13 @@ const NewCampaign = () => {
       <div className="flex flex-col h-[calc(100vh-3.5rem)] overflow-hidden">
         {/* ── Top Zone: Builder (left) + Simulator (right) ── */}
         <div className="flex-1 flex min-h-0">
-          {/* LEFT: Campaign Builder */}
-          <div className="w-[420px] xl:w-[480px] shrink-0 border-r border-border flex flex-col bg-background">
-            <div className="shrink-0 px-5 pt-4 pb-3">
-              <button onClick={() => navigate("/dashboard")} className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors mb-3">
+          {/* LEFT: Campaign Builder — 50% */}
+          <div className="w-1/2 max-w-[560px] shrink-0 border-r border-border flex flex-col bg-background">
+            <div className="shrink-0 px-5 pt-3 pb-2">
+              <button onClick={() => navigate("/dashboard")} className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors mb-2">
                 <ArrowLeft className="w-3.5 h-3.5" /> Back to Dashboard
               </button>
-              <h1 className="text-lg font-semibold text-foreground mb-3">Create Campaign</h1>
+              <h1 className="text-base font-semibold text-foreground mb-2">Create Campaign</h1>
 
               {/* Progress Steps */}
               <div className="flex gap-1.5">
@@ -572,25 +572,39 @@ const NewCampaign = () => {
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-5 pb-4">
+            <div className="flex-1 overflow-y-auto px-5 pb-3">
               {builderContent}
             </div>
 
-            <div className="shrink-0 px-5 pb-4">
+            <div className="shrink-0 px-5 pb-3">
               {footerNav}
             </div>
           </div>
 
-          {/* RIGHT: Phone Simulator */}
-          <div className="flex-1 flex items-center justify-center bg-secondary/20 relative">
+          {/* RIGHT: Phone Simulator + Actions Panel */}
+          <div className="flex-1 flex items-start justify-center bg-secondary/20 relative overflow-y-auto py-4 px-4">
             <CampaignSimulator
               imageUrl={selectedTemplate?.media_url || null}
               brandName={title || "Brand"}
               caption={instructions || "Your campaign content preview"}
+              isStarred={isStarred}
+              onStar={() => { setIsStarred(!isStarred); toast.success(isStarred ? "Removed star" : "Starred!"); }}
+              onEdit={() => toast.info("Opening SeedEdit editor…")}
+              onDownload={() => {
+                if (selectedTemplate?.media_url) {
+                  const a = document.createElement("a");
+                  a.href = selectedTemplate.media_url;
+                  a.download = `${selectedTemplate.title || "asset"}.jpg`;
+                  a.click();
+                  toast.success("Downloading…");
+                }
+              }}
+              onSaveToLibrary={() => setShowSaveModal(true)}
+              onHide={() => { handleTemplateSelect(null); toast.success("Asset hidden"); }}
             />
 
             {/* Subtle label */}
-            <div className="absolute top-4 left-5 flex items-center gap-2 text-muted-foreground">
+            <div className="absolute top-3 left-4 flex items-center gap-2 text-muted-foreground">
               <Layout className="w-3.5 h-3.5" />
               <span className="text-[10px] font-semibold uppercase tracking-widest">Simulator</span>
             </div>
@@ -598,7 +612,7 @@ const NewCampaign = () => {
         </div>
 
         {/* ── Bottom Zone: Source Gallery ── */}
-        <div className="shrink-0 h-[240px] xl:h-[280px] border-t border-border bg-background overflow-hidden">
+        <div className="shrink-0 h-[220px] xl:h-[260px] border-t border-border bg-background overflow-hidden">
           <div className="h-full overflow-y-auto px-4 sm:px-6 py-3">
             <SourceGallery
               selectedId={selectedTemplate?.id || null}
@@ -607,6 +621,17 @@ const NewCampaign = () => {
           </div>
         </div>
       </div>
+
+      {/* Save to Library Modal */}
+      {showSaveModal && selectedTemplate?.media_url && (
+        <SaveToLibraryModal
+          open={showSaveModal}
+          onOpenChange={setShowSaveModal}
+          imageUrl={selectedTemplate.media_url}
+          title={selectedTemplate.title}
+          tags={[...(selectedTemplate.mood_tags || []), ...(selectedTemplate.industry_tags || [])]}
+        />
+      )}
     </AppShell>
   );
 };
