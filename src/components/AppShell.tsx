@@ -42,7 +42,7 @@ const AppShell = ({ children }: { children: React.ReactNode }) => {
   // CSO is now triggered from the left-edge dock in GlobalCMOChat
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pr-12">
       <header className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-sm">
         <div className="mx-auto flex h-12 items-center justify-between px-4 sm:px-6">
           <div className="flex items-center gap-6">
