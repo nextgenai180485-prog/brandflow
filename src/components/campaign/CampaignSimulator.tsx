@@ -249,12 +249,16 @@ export default function CampaignSimulator({
     return <IGFeedContent {...props} />;
   };
 
-  const phoneScale = fullscreen ? 0.78 : 0.62;
+  // Dynamic scale to fit container without scroll
+  const availableHeight = typeof window !== "undefined" ? window.innerHeight - 56 - 220 - 40 : 600;
+  const maxPhoneHeight = availableHeight - 90;
+  const dynamicScale = Math.min(fullscreen ? 0.78 : 0.62, maxPhoneHeight / 852);
+  const phoneScale = Math.max(0.35, dynamicScale);
 
   return (
-    <div className={cn("flex gap-6 items-start", fullscreen && "gap-8", className)}>
+    <div className={cn("flex gap-4 items-start", fullscreen && "gap-6", className)}>
       {/* ── Left: Phone Simulator ── */}
-      <div className="flex flex-col items-center gap-3">
+      <div className="flex flex-col items-center gap-2">
         {/* Preview mode tabs (like reference: Preview | Reels | Feed) */}
         <div className="flex items-center gap-0 p-0.5 bg-secondary/60 rounded-lg border border-border">
           {(["preview", "reels", "feed"] as const).map((mode) => (
@@ -381,52 +385,29 @@ export default function CampaignSimulator({
 
       {/* ── Right: Actions Panel ── */}
       {imageUrl && (
-        <div className="flex flex-col gap-0 min-w-[160px] max-w-[200px] pt-10">
+        <div className="flex flex-col gap-0 min-w-[140px] max-w-[180px] pt-6">
           {/* ACTIONS */}
           <p className="text-[9px] uppercase tracking-widest text-muted-foreground font-semibold mb-2 px-1">Actions</p>
           <div className="flex flex-col">
-            <button
-              onClick={onStar}
-              className={cn(
-                "flex items-center gap-2.5 px-3 py-2.5 text-xs font-medium transition-colors hover:bg-secondary/50 rounded-lg",
-                isStarred ? "text-amber-500" : "text-foreground"
-              )}
-            >
-              <Star className={cn("w-4 h-4", isStarred && "fill-current")} />
-              Star
+            <button onClick={onStar} className={cn("flex items-center gap-2 px-2.5 py-1.5 text-[11px] font-medium transition-colors hover:bg-secondary/50 rounded-lg", isStarred ? "text-amber-500" : "text-foreground")}>
+              <Star className={cn("w-3.5 h-3.5", isStarred && "fill-current")} /> Star
             </button>
-            <button
-              onClick={onEdit}
-              className="flex items-center gap-2.5 px-3 py-2.5 text-xs font-medium text-primary hover:bg-primary/5 rounded-lg transition-colors"
-            >
-              <Pencil className="w-4 h-4" />
-              Edit
+            <button onClick={onEdit} className="flex items-center gap-2 px-2.5 py-1.5 text-[11px] font-medium text-primary hover:bg-primary/5 rounded-lg transition-colors">
+              <Pencil className="w-3.5 h-3.5" /> Edit
             </button>
-            <button
-              onClick={onDownload}
-              className="flex items-center gap-2.5 px-3 py-2.5 text-xs font-medium text-foreground hover:bg-secondary/50 rounded-lg transition-colors"
-            >
-              <Download className="w-4 h-4" />
-              Download all
+            <button onClick={onDownload} className="flex items-center gap-2 px-2.5 py-1.5 text-[11px] font-medium text-foreground hover:bg-secondary/50 rounded-lg transition-colors">
+              <Download className="w-3.5 h-3.5" /> Download
             </button>
-            <button
-              onClick={onSaveToLibrary}
-              className="flex items-center gap-2.5 px-3 py-2.5 text-xs font-medium text-foreground hover:bg-secondary/50 rounded-lg transition-colors"
-            >
-              <FolderPlus className="w-4 h-4" />
-              Save to Library
+            <button onClick={onSaveToLibrary} className="flex items-center gap-2 px-2.5 py-1.5 text-[11px] font-medium text-foreground hover:bg-secondary/50 rounded-lg transition-colors">
+              <FolderPlus className="w-3.5 h-3.5" /> Save to Library
             </button>
-            <button
-              onClick={onHide}
-              className="flex items-center gap-2.5 px-3 py-2.5 text-xs font-medium text-foreground hover:bg-secondary/50 rounded-lg transition-colors"
-            >
-              <HideIcon className="w-4 h-4" />
-              Hide
+            <button onClick={onHide} className="flex items-center gap-2 px-2.5 py-1.5 text-[11px] font-medium text-foreground hover:bg-secondary/50 rounded-lg transition-colors">
+              <HideIcon className="w-3.5 h-3.5" /> Hide
             </button>
           </div>
 
           {/* ASPECT RATIO VARIANTS */}
-          <div className="mt-5">
+          <div className="mt-3">
             <p className="text-[9px] uppercase tracking-widest text-muted-foreground font-semibold mb-2 px-1">Aspect Ratio Variants</p>
             <button className="flex items-center gap-2 px-3 py-2 text-xs text-foreground hover:bg-secondary/50 rounded-lg transition-colors w-full">
               <span className="text-[11px]">+</span>
@@ -438,10 +419,10 @@ export default function CampaignSimulator({
             </button>
 
             {/* Variant thumbnails grid */}
-            <div className="grid grid-cols-2 gap-2 mt-3 px-1">
+            <div className="grid grid-cols-2 gap-1.5 mt-2 px-1">
               {ASPECT_VARIANTS.map((v) => (
                 <div key={v.label} className="relative rounded-lg overflow-hidden border border-border bg-secondary/30 hover:border-primary/40 transition-colors cursor-pointer group">
-                  <div style={{ aspectRatio: `${v.w}/${v.h}`, maxHeight: 100 }} className="w-full overflow-hidden">
+                  <div style={{ aspectRatio: `${v.w}/${v.h}`, maxHeight: 60 }} className="w-full overflow-hidden">
                     <img src={imageUrl!} alt={v.label} className="w-full h-full object-cover" />
                   </div>
                   <div className="flex items-center justify-between px-1.5 py-1">
@@ -454,7 +435,7 @@ export default function CampaignSimulator({
           </div>
 
           {/* Controls */}
-          <div className="mt-5 flex flex-col gap-1.5 px-1">
+          <div className="mt-3 flex flex-col gap-1 px-1">
             <button
               onClick={() => setShowSafeZones(!showSafeZones)}
               className={cn(

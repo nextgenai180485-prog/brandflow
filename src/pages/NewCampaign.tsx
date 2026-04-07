@@ -582,7 +582,7 @@ const NewCampaign = () => {
           </div>
 
           {/* RIGHT: Phone Simulator + Actions Panel */}
-          <div className="flex-1 flex items-start justify-center bg-secondary/20 relative overflow-y-auto py-4 px-4">
+          <div className="flex-1 flex items-center justify-center bg-secondary/20 relative overflow-hidden py-2 px-4">
             <CampaignSimulator
               imageUrl={selectedTemplate?.media_url || null}
               brandName={title || "Brand"}
