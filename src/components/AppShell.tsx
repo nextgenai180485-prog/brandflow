@@ -32,7 +32,6 @@ const AppShell = ({ children }: { children: React.ReactNode }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [tickerMode, setTickerMode] = useState<"context" | "metric">("context");
 
   const navItems = [...baseNavItems, ...(isAdmin ? adminNavItems : [])];
 
@@ -68,19 +67,6 @@ const AppShell = ({ children }: { children: React.ReactNode }) => {
     staleTime: 10_000,
   });
 
-  // Ticker: auto-rotate every 5s on mobile
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setTickerMode((prev) => (prev === "context" ? "metric" : "context"));
-    }, 5000);
-    return () => clearInterval(interval);
-  }, []);
-
-  // Reset ticker to context on route change
-  useEffect(() => {
-    setTickerMode("context");
-  }, [location.pathname]);
-
   const metricDisplay = useMemo(() => {
     if (!metrics) return null;
     if (metrics.pendingReview > 0) {
@@ -103,7 +89,6 @@ const AppShell = ({ children }: { children: React.ReactNode }) => {
       colorClasses: "text-primary bg-primary/10 border-primary/20",
     };
   }, [metrics]);
-
   const handleSignOut = async () => {
     await signOut();
     navigate("/login");
