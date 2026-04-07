@@ -1,0 +1,276 @@
+import { useState, useEffect, useCallback } from "react";
+import { useLocation } from "react-router-dom";
+import {
+  Activity, AlertTriangle, ChevronLeft, ChevronRight,
+  X, Brain, TrendingUp, Zap, Shield, Target,
+  Loader2, Sparkles,
+} from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/useAuth";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { supabase } from "@/integrations/supabase/client";
+
+interface Insight {
+  id: string;
+  type: "critical" | "opportunity" | "info";
+  title: string;
+  body: string;
+  action?: string;
+}
+
+// Pages where the rail should NOT render (public / auth pages)
+const EXCLUDED_PATHS = ["/", "/login", "/signup", "/onboarding"];
+
+const SentientCMORail = () => {
+  const { user } = useAuth();
+  const isMobile = useIsMobile();
+  const location = useLocation();
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [activeToast, setActiveToast] = useState<Insight | null>(null);
+  const [toastDismissed, setToastDismissed] = useState(false);
+
+  // Mock insights — will be replaced by real CMO agent data
+  const [insights] = useState<Insight[]>([
+    {
+      id: "1",
+      type: "info",
+      title: "System Online",
+      body: "CMO Intelligence is monitoring your campaigns. I'll alert you when I detect something actionable.",
+    },
+  ]);
+
+  const [systemStatus, setSystemStatus] = useState<"optimal" | "alert" | "critical">("optimal");
+  const [campaignCount, setCampaignCount] = useState(0);
+
+  // Fetch basic metrics
+  useEffect(() => {
+    if (!user) return;
+    const fetchMetrics = async () => {
+      const { count } = await supabase
+        .from("campaigns")
+        .select("*", { count: "exact", head: true })
+        .eq("profile_id", user.id);
+      setCampaignCount(count || 0);
+    };
+    fetchMetrics();
+  }, [user]);
+
+  // Determine status from insights
+  useEffect(() => {
+    const hasCritical = insights.some((i) => i.type === "critical");
+    const hasOpp = insights.some((i) => i.type === "opportunity");
+    setSystemStatus(hasCritical ? "critical" : hasOpp ? "alert" : "optimal");
+  }, [insights]);
+
+  // Auto-show toast for new critical/opportunity insights
+  useEffect(() => {
+    if (toastDismissed || isExpanded) return;
+    const important = insights.find((i) => i.type === "critical" || i.type === "opportunity");
+    if (important) {
+      const timer = setTimeout(() => setActiveToast(important), 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [insights, toastDismissed, isExpanded]);
+
+  // Auto-dismiss toast after 12s
+  useEffect(() => {
+    if (!activeToast) return;
+    const timer = setTimeout(() => {
+      setActiveToast(null);
+      setToastDismissed(true);
+    }, 12000);
+    return () => clearTimeout(timer);
+  }, [activeToast]);
+
+  // Don't render on excluded pages, mobile, or not logged in
+  if (!user || isMobile || EXCLUDED_PATHS.includes(location.pathname)) return null;
+
+  const pulseConfig = {
+    optimal: { color: "bg-emerald-500", shadow: "shadow-[0_0_12px_hsl(160,60%,45%,0.5)]", speed: "animate-[pulse_3s_ease-in-out_infinite]" },
+    alert: { color: "bg-amber-500", shadow: "shadow-[0_0_12px_hsl(40,90%,50%,0.5)]", speed: "animate-[pulse_1.5s_ease-in-out_infinite]" },
+    critical: { color: "bg-destructive", shadow: "shadow-[0_0_12px_hsl(0,72%,51%,0.5)]", speed: "animate-[pulse_0.7s_ease-in-out_infinite]" },
+  }[systemStatus];
+
+  return (
+    <>
+      {/* ── The Sentinel Strip (right edge, always visible) ── */}
+      <div className="fixed right-0 top-0 bottom-0 z-[60] flex">
+        {/* Expanded Panel */}
+        <div
+          className="overflow-hidden flex flex-col bg-background/95 backdrop-blur-xl border-l border-border shadow-2xl"
+          style={{
+            width: isExpanded ? "380px" : "0px",
+            transition: "width 500ms cubic-bezier(0.16, 1, 0.3, 1)",
+          }}
+        >
+          <div className="w-[380px] flex flex-col h-full">
+            {/* Panel Header */}
+            <div className="h-12 border-b border-border flex items-center justify-between px-5 bg-secondary/30 shrink-0">
+              <div className="flex items-center gap-2">
+                <Brain className="w-4 h-4 text-primary" />
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.15em]">
+                  Active Intelligence
+                </span>
+              </div>
+              <Badge variant="outline" className="text-[8px] border-emerald-300 text-emerald-700 bg-emerald-50">
+                LIVE
+              </Badge>
+            </div>
+
+            {/* Panel Content */}
+            <div className="flex-1 overflow-y-auto p-5 space-y-4">
+              {/* Insight Cards */}
+              {insights.map((insight) => (
+                <div
+                  key={insight.id}
+                  className={`rounded-xl border p-4 space-y-2 animate-fade-in ${
+                    insight.type === "critical"
+                      ? "border-destructive/30 bg-destructive/5"
+                      : insight.type === "opportunity"
+                      ? "border-amber-200 bg-amber-50/50"
+                      : "border-border bg-card"
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    {insight.type === "critical" ? (
+                      <AlertTriangle className="w-4 h-4 text-destructive" />
+                    ) : insight.type === "opportunity" ? (
+                      <Zap className="w-4 h-4 text-amber-600" />
+                    ) : (
+                      <Shield className="w-4 h-4 text-primary" />
+                    )}
+                    <span className="text-xs font-bold text-foreground">{insight.title}</span>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">{insight.body}</p>
+                  {insight.action && (
+                    <Button size="sm" variant="outline" className="w-full text-[10px] h-8 mt-2">
+                      {insight.action}
+                    </Button>
+                  )}
+                </div>
+              ))}
+
+              {/* Stats Grid */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="p-3 bg-secondary/50 rounded-xl border border-border">
+                  <p className="text-[9px] uppercase tracking-wider text-muted-foreground font-bold">Campaigns</p>
+                  <p className="text-lg font-black text-foreground">{campaignCount}</p>
+                </div>
+                <div className="p-3 bg-secondary/50 rounded-xl border border-border">
+                  <p className="text-[9px] uppercase tracking-wider text-muted-foreground font-bold">Status</p>
+                  <p className="text-lg font-black text-emerald-600">Optimal</p>
+                </div>
+              </div>
+
+              {/* Protocol Status */}
+              <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+                <div className="flex items-center gap-2">
+                  <Target className="w-4 h-4 text-primary" />
+                  <span className="text-[10px] font-bold text-foreground uppercase tracking-wider">
+                    Monitoring
+                  </span>
+                </div>
+                <div className="space-y-2">
+                  {[
+                    { label: "Campaign Health", status: "Active" },
+                    { label: "Creative Fatigue", status: "None Detected" },
+                    { label: "Audience Drift", status: "Stable" },
+                  ].map(({ label, status }) => (
+                    <div key={label} className="flex items-center justify-between">
+                      <span className="text-[10px] text-muted-foreground">{label}</span>
+                      <Badge variant="secondary" className="text-[8px]">{status}</Badge>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* The Strip */}
+        <div
+          className="w-12 h-full bg-background border-l border-border flex flex-col items-center py-4 gap-4 cursor-pointer shrink-0"
+          onClick={() => {
+            setIsExpanded(!isExpanded);
+            setActiveToast(null);
+            setToastDismissed(true);
+          }}
+        >
+          {/* Heartbeat Pulse */}
+          <div className="relative group mt-8">
+            <div className={`w-2.5 h-2.5 rounded-full ${pulseConfig.color} ${pulseConfig.shadow} ${pulseConfig.speed}`} />
+            <div className="absolute right-full mr-3 top-1/2 -translate-y-1/2 px-2.5 py-1 bg-foreground text-background text-[9px] font-semibold rounded-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+              {systemStatus === "optimal" ? "System Optimal" : systemStatus === "alert" ? "Opportunity Detected" : "Action Required"}
+            </div>
+          </div>
+
+          {/* Module Icons */}
+          <div className="flex-1 flex flex-col gap-3 mt-4 items-center">
+            {systemStatus === "critical" && (
+              <div className="p-1.5 rounded-lg bg-destructive/10 text-destructive">
+                <AlertTriangle className="w-4 h-4" />
+              </div>
+            )}
+            <div className="p-1.5 text-muted-foreground hover:text-foreground transition-colors">
+              <Activity className="w-4 h-4" />
+            </div>
+            <div className="p-1.5 text-muted-foreground hover:text-foreground transition-colors">
+              <TrendingUp className="w-4 h-4" />
+            </div>
+          </div>
+
+          {/* Toggle Chevron */}
+          <div className="p-1.5 text-muted-foreground hover:text-foreground transition-colors">
+            {isExpanded ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronLeft className="w-3.5 h-3.5" />}
+          </div>
+        </div>
+      </div>
+
+      {/* ── Holographic Toast (ambient overlay, no layout shift) ── */}
+      {!isExpanded && activeToast && (
+        <div className="fixed right-14 top-20 z-[55] w-72 animate-fade-in">
+          <div className="bg-foreground text-background p-4 rounded-xl shadow-2xl border border-foreground/20 relative">
+            {/* Pointer arrow */}
+            <div className="absolute top-4 -right-1.5 w-3 h-3 bg-foreground rotate-45 border-r border-t border-foreground/20" />
+
+            <div className="flex justify-between items-start mb-2">
+              <Badge
+                className={`text-[8px] ${
+                  activeToast.type === "critical"
+                    ? "bg-destructive text-destructive-foreground"
+                    : "bg-amber-500 text-foreground"
+                }`}
+              >
+                {activeToast.type === "critical" ? "Action Required" : "Opportunity"}
+              </Badge>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setActiveToast(null);
+                  setToastDismissed(true);
+                }}
+              >
+                <X className="w-3 h-3 text-background/50 hover:text-background" />
+              </button>
+            </div>
+            <p className="text-xs font-semibold mb-1">{activeToast.title}</p>
+            <p className="text-[11px] text-background/70 leading-relaxed">{activeToast.body}</p>
+            <button
+              onClick={() => {
+                setIsExpanded(true);
+                setActiveToast(null);
+                setToastDismissed(true);
+              }}
+              className="mt-3 w-full py-1.5 bg-background text-foreground text-[10px] font-bold rounded-lg hover:bg-background/90 transition-colors"
+            >
+              View Analysis
+            </button>
+          </div>
+        </div>
+      )}
+    </>
+  );
+};
+
+export default SentientCMORail;
