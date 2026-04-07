@@ -17,6 +17,14 @@ interface BulkImportModalProps {
   onImported: () => void;
 }
 
+const REQUIRED_COLUMNS: Record<string, string[]> = {
+  video_templates: ["template_name", "family"],
+  character_library: ["name"],
+  ad_reference_library: ["title"],
+  image_templates: ["style_name"],
+  hooks: ["hook_text"],
+};
+
 const BulkImportModal = ({ tableName, onImported }: BulkImportModalProps) => {
   const [open, setOpen] = useState(false);
   const [rows, setRows] = useState<Record<string, any>[]>([]);
@@ -157,7 +165,21 @@ const BulkImportModal = ({ tableName, onImported }: BulkImportModalProps) => {
               </Button>
             </div>
 
-            {/* Preview table */}
+            {/* Column validation warning */}
+            {(() => {
+              const required = REQUIRED_COLUMNS[tableName] || [];
+              const headers = Object.keys(rows[0] || {});
+              const missing = required.filter((col) => !headers.includes(col));
+              if (missing.length > 0) {
+                return (
+                  <div className="flex items-start gap-2 p-2.5 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-[11px]">
+                    <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                    <span>Missing required columns: <strong>{missing.join(", ")}</strong>. Import may fail.</span>
+                  </div>
+                );
+              }
+              return null;
+            })()}
             <div className="max-h-48 overflow-auto border border-border rounded-md">
               <table className="w-full text-[10px]">
                 <thead>

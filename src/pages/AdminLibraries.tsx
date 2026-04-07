@@ -28,12 +28,12 @@ const AdminLibraries = () => {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="mb-4 w-full grid grid-cols-5 h-auto p-1">
+          <TabsList className="mb-4 w-full flex overflow-x-auto gap-1 h-auto p-1 no-scrollbar">
             {TABS.map((tab) => (
               <TabsTrigger
                 key={tab.value}
                 value={tab.value}
-                className="gap-1 text-[10px] sm:text-xs px-1.5 sm:px-3 py-2 flex flex-col sm:flex-row items-center"
+                className="gap-1.5 text-xs px-3 py-2 flex items-center shrink-0 whitespace-nowrap"
               >
                 <tab.icon className="h-3.5 w-3.5 shrink-0" />
                 <span className="hidden sm:inline">{tab.fullLabel}</span>
