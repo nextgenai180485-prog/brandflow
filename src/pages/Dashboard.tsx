@@ -248,7 +248,7 @@ const Dashboard = () => {
                   className="group rounded-xl border border-border bg-card overflow-hidden cursor-pointer transition-all hover:shadow-lg hover:border-foreground/15 hover:-translate-y-0.5"
                 >
                   {/* Thumbnail Grid */}
-                  <div className="aspect-[4/5] bg-muted relative overflow-hidden">
+                  <div className="aspect-[16/10] bg-muted relative overflow-hidden">
                     {thumbnails.length === 0 ? (
                       <div className="w-full h-full flex items-center justify-center">
                         <LayoutGrid className="w-8 h-8 text-muted-foreground/30" />
