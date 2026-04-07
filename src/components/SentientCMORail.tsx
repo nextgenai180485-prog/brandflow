@@ -377,6 +377,13 @@ const SentientCMORail = () => {
   // ── Desktop: Flex-child squeeze rail ──
   return (
     <>
+      {/* Click-outside to close on desktop */}
+      {isExpanded && (
+        <div
+          className="fixed inset-0 z-[5]"
+          onClick={() => { setIsExpanded(false); dismissToast(); }}
+        />
+      )}
       <aside
         className="shrink-0 border-l border-border bg-background overflow-hidden transition-[width] duration-500 ease-[cubic-bezier(0.2,0,0,1)]"
         style={{ width: railWidth }}
