@@ -111,6 +111,7 @@ const GlobalCMOChat = () => {
         }
         return [...prev, { role: "assistant", content: assistantSoFar }];
       });
+      scrollToBottom("smooth");
     };
 
     try {
