@@ -238,7 +238,7 @@ const AppShell = ({ children }: { children: React.ReactNode }) => {
         {/* Backdrop — click to dismiss */}
         {mobileMenuOpen && (
           <div
-            className="md:hidden fixed inset-0 bg-foreground/10 z-30 backdrop-blur-[1px] transition-opacity duration-500"
+            className="md:hidden fixed top-12 left-0 right-0 bottom-0 bg-foreground/10 z-30 backdrop-blur-[1px]"
             onClick={() => setMobileMenuOpen(false)}
           />
         )}
