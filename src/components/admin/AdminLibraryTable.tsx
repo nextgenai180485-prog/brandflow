@@ -168,7 +168,7 @@ const AdminLibraryTable = ({ tableName }: AdminLibraryTableProps) => {
                   {config.mobileFields.map((field) => (
                     <span key={field.key} className="text-[10px] text-muted-foreground">
                       <span className="font-medium">{field.label}:</span>{" "}
-                      {String(item[field.key] ?? "—")}
+                      {field.key === "family" ? getFamilyLabel(String(item[field.key] ?? "")) : String(item[field.key] ?? "—")}
                     </span>
                   ))}
                   <span className="text-[10px] text-muted-foreground">
