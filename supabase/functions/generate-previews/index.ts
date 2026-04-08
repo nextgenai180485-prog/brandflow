@@ -7,6 +7,26 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
+// ── AI Provider Routing: OpenRouter (primary) → Lovable AI Gateway (fallback) ──
+function getAIConfig() {
+  const openRouterKey = Deno.env.get("OPENROUTER_API_KEY");
+  if (openRouterKey) {
+    return {
+      url: "https://openrouter.ai/api/v1/chat/completions",
+      headers: { Authorization: `Bearer ${openRouterKey}`, "Content-Type": "application/json" },
+    };
+  }
+  const lovableKey = Deno.env.get("LOVABLE_API_KEY");
+  if (lovableKey) {
+    return {
+      url: "https://ai.gateway.lovable.dev/v1/chat/completions",
+      headers: { Authorization: `Bearer ${lovableKey}`, "Content-Type": "application/json" },
+    };
+  }
+  return null;
+}
+
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -17,7 +37,7 @@ serve(async (req) => {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+    if (!getAIConfig()) throw new Error("No AI provider configured (set OPENROUTER_API_KEY or LOVABLE_API_KEY)");
 
     const adminClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
@@ -77,12 +97,9 @@ serve(async (req) => {
       console.log(`[${tpl.name}] Generating...`);
 
       try {
-        const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        const aiResp = await fetch(getAIConfig()!.url, {
           method: "POST",
-          headers: {
-            Authorization: `Bearer ${LOVABLE_API_KEY}`,
-            "Content-Type": "application/json",
-          },
+          headers: getAIConfig()!.headers,
           body: JSON.stringify({
             model: "google/gemini-2.5-flash-image",
             messages: [{ role: "user", content: tpl.prompt }],

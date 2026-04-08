@@ -7,6 +7,26 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+// ── AI Provider Routing: OpenRouter (primary) → Lovable AI Gateway (fallback) ──
+function getAIConfig() {
+  const openRouterKey = Deno.env.get("OPENROUTER_API_KEY");
+  if (openRouterKey) {
+    return {
+      url: "https://openrouter.ai/api/v1/chat/completions",
+      headers: { Authorization: `Bearer ${openRouterKey}`, "Content-Type": "application/json" },
+    };
+  }
+  const lovableKey = Deno.env.get("LOVABLE_API_KEY");
+  if (lovableKey) {
+    return {
+      url: "https://ai.gateway.lovable.dev/v1/chat/completions",
+      headers: { Authorization: `Bearer ${lovableKey}`, "Content-Type": "application/json" },
+    };
+  }
+  return null;
+}
+
+
 // ══════════════════════════════════════════════════════════════
 // OKLCH COLOR ENGINE — Server-side port from src/lib/colorEngine.ts
 // Converts brand seed hex → perceptually uniform semantic color tokens
@@ -460,8 +480,8 @@ async function runDecisionEngine(
   brandMemory: any[],
   campaignInstructions: string | null
 ): Promise<any> {
-  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-  if (!LOVABLE_API_KEY) {
+  const aiConfig = getAIConfig();
+  if (!aiConfig) {
     return createFallbackDecision(brandContext, intelligenceBrief);
   }
 
@@ -477,9 +497,9 @@ async function runDecisionEngine(
 
   try {
     console.log("[Decision Engine] Scoring creative directions via AI");
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const response = await fetch(getAIConfig()!.url, {
       method: "POST",
-      headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+      headers: getAIConfig()!.headers,
       body: JSON.stringify({
         model: "google/gemini-3-flash-preview",
         messages: [
@@ -658,8 +678,8 @@ async function storeDecisionTrace(
 
 // ── Caption Generation via Lovable AI (campaign-brief-first) ─
 async function generateCaption(platform: string, format: string, brandContext: any, intelligenceBrief: any, decisionWinner: any, imagePrompt: string, campaignCopy?: any, structuredBrief?: any): Promise<string> {
-  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-  if (!LOVABLE_API_KEY) return `Content for ${platform} ${format}`;
+  const aiConfig = getAIConfig();
+  if (!aiConfig) return `Content for ${platform} ${format}`;
 
   const hookSuggestion = decisionWinner?.hook_suggestion || "";
   const angle = decisionWinner?.angle_type || "";
@@ -689,9 +709,9 @@ async function generateCaption(platform: string, format: string, brandContext: a
     if (campaignCopy.bodyCopy) campaignContext += `Copy direction: ${campaignCopy.bodyCopy}. `;
   }
 
-  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+  const response = await fetch(getAIConfig()!.url, {
     method: "POST",
-    headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+    headers: getAIConfig()!.headers,
     body: JSON.stringify({
       model: "google/gemini-3-flash-preview",
       messages: [
@@ -1039,9 +1059,9 @@ async function applyTextOverlay(
     return baseImageUrl;
   }
 
-  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-  if (!LOVABLE_API_KEY) {
-    console.warn("[PostProcess] No LOVABLE_API_KEY, skipping text overlay");
+  const aiConfig = getAIConfig();
+  if (!aiConfig) {
+    console.warn("[PostProcess] No AI provider configured, skipping text overlay");
     return baseImageUrl;
   }
 
@@ -1099,9 +1119,9 @@ CRITICAL RULES:
 - Generous whitespace around text. Never crowd the image.
 - Result must look like a professionally designed social media ad from a Fortune 500 brand.`;
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const response = await fetch(getAIConfig()!.url, {
       method: "POST",
-      headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+      headers: getAIConfig()!.headers,
       body: JSON.stringify({
         model: "google/gemini-2.5-flash-image",
         messages: [
