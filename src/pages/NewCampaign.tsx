@@ -583,7 +583,7 @@ const NewCampaign = () => {
             </div>
           </div>
         </>
-      )
+      )}
 
       {/* ═══ Creative Direction ═══ */}
       {currentStepName === "Creative Direction" && (
