@@ -17,6 +17,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import AssetPlatformSelector from "@/components/AssetPlatformSelector";
 import AssetLibraryPicker, { type LibraryAsset } from "@/components/AssetLibraryPicker";
 import CreativeDirectionStep, { type DirectorOutput } from "@/components/CreativeDirectionStep";
+import CreativeBriefBuilder, { type CreativeBrief as CreativeBriefType, type CampaignCopy } from "@/components/campaign/CreativeBriefBuilder";
 import CampaignSimulator from "@/components/campaign/CampaignSimulator";
 import SwapAssetStrip, { type SwapAsset } from "@/components/campaign/SwapAssetStrip";
 import type { SourceTemplate } from "@/components/campaign/SourceGallery";
