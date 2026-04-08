@@ -257,7 +257,9 @@ const EmptyCampaigns = ({ onCreateClick }: EmptyCampaignsProps) => {
                   <p className="text-[9px] text-muted-foreground capitalize">{ref.mood_tags?.[0] || ref.industry_tags?.[0] || "Template"}</p>
                 </div>
               </div>
-            ))}
+              );
+            })}
+
           </div>
         )}
       </div>
