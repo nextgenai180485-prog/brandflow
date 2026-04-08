@@ -303,10 +303,103 @@ async function generateImageKie(prompt: string, width: number, height: number) {
 }
 
 // ── Video Generation via Replicate Kling 2.5 (Primary) / Kie AI (Fallback) ──
-async function generateVideo(prompt: string, width: number, height: number) {
+// Supports both text-to-video AND image-to-video (starting frame)
+async function generateVideo(prompt: string, width: number, height: number, startingFrameUrl?: string) {
   const REPLICATE_API_KEY = Deno.env.get("REPLICATE_API_KEY");
   const aspectRatio = mapAspectRatio(width, height);
 
+  // ── IMAGE-TO-VIDEO PATH: Use starting frame for product/template swap ──
+  if (startingFrameUrl) {
+    console.log(`[Video] Image-to-Video mode with starting frame`);
+    
+    // Try Kie AI Kling image-to-video first
+    const KIE_AI_API_KEY = Deno.env.get("KIE_AI_API_KEY");
+    if (KIE_AI_API_KEY) {
+      try {
+        console.log(`[Kling I2V] Generating video from starting frame via Kie AI`);
+        const startTime = Date.now();
+        const taskId = await kieCreateTask(KIE_AI_API_KEY, "kling/kling-2.5", {
+          prompt,
+          image_url: startingFrameUrl,
+          aspect_ratio: aspectRatio,
+          resolution: "720p",
+          duration: 5,
+          generate_audio: false,
+          web_search: false,
+        });
+        const result = await kiePollTask(KIE_AI_API_KEY, taskId, 120, 3000);
+        if (result.urls?.length) {
+          console.log(`[Kling I2V] ✅ Image-to-video success`);
+          return { url: result.urls[0], provider: "kie_ai_kling_2.5_i2v", cost: 0.40, timeMs: result.costTime || (Date.now() - startTime) };
+        }
+      } catch (e) {
+        console.error("[Kling I2V] Kie AI failed:", e);
+      }
+    }
+
+    // Fallback: Replicate Kling image-to-video
+    if (REPLICATE_API_KEY) {
+      try {
+        console.log(`[Kling I2V] Trying Replicate image-to-video`);
+        const startTime = Date.now();
+        const response = await fetch("https://api.replicate.com/v1/models/kwaai/kling-v2.5-pro/predictions", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${REPLICATE_API_KEY}`, "Content-Type": "application/json", Prefer: "wait=120" },
+          body: JSON.stringify({
+            input: { prompt, start_image: startingFrameUrl, duration: 5, aspect_ratio: aspectRatio },
+          }),
+        });
+        if (response.ok) {
+          const prediction = await response.json();
+          if (prediction.status === "succeeded" && prediction.output) {
+            const outputUrl = typeof prediction.output === "string" ? prediction.output : prediction.output?.[0] || prediction.output?.video;
+            if (outputUrl) return { url: outputUrl, provider: "replicate_kling_2.5_i2v", cost: 0.40, timeMs: Date.now() - startTime };
+          }
+          // Poll
+          for (let i = 0; i < 120; i++) {
+            await new Promise((r) => setTimeout(r, 3000));
+            const pollResp = await fetch(`https://api.replicate.com/v1/predictions/${prediction.id}`, { headers: { Authorization: `Bearer ${REPLICATE_API_KEY}` } });
+            const pollData = await pollResp.json();
+            if (pollData.status === "succeeded") {
+              const outputUrl = typeof pollData.output === "string" ? pollData.output : pollData.output?.[0] || pollData.output?.video;
+              if (outputUrl) return { url: outputUrl, provider: "replicate_kling_2.5_i2v", cost: 0.40, timeMs: Date.now() - startTime };
+            }
+            if (pollData.status === "failed" || pollData.status === "canceled") break;
+          }
+        }
+      } catch (e) {
+        console.error("[Kling I2V Replicate] Failed:", e);
+      }
+    }
+
+    // Fallback: Kie AI Seedance image-to-video
+    if (KIE_AI_API_KEY) {
+      try {
+        console.log(`[Seedance I2V] Trying Seedance 2 image-to-video`);
+        const startTime = Date.now();
+        const taskId = await kieCreateTask(KIE_AI_API_KEY, "bytedance/seedance-2", {
+          prompt,
+          image_url: startingFrameUrl,
+          aspect_ratio: aspectRatio,
+          resolution: "720p",
+          duration: 8,
+          generate_audio: false,
+          web_search: false,
+        });
+        const result = await kiePollTask(KIE_AI_API_KEY, taskId, 120, 3000);
+        if (result.urls?.length) {
+          console.log(`[Seedance I2V] ✅ Image-to-video success`);
+          return { url: result.urls[0], provider: "kie_ai_seedance_2_i2v", cost: 0.35, timeMs: result.costTime || (Date.now() - startTime) };
+        }
+      } catch (e) {
+        console.error("[Seedance I2V] Failed:", e);
+      }
+    }
+
+    console.warn("[Video I2V] All image-to-video providers failed, falling back to text-to-video");
+  }
+
+  // ── TEXT-TO-VIDEO PATH (original) ──
   if (REPLICATE_API_KEY) {
     try {
       console.log(`[Kling 2.5] Generating video via Replicate, aspect: ${aspectRatio}`);
@@ -1355,6 +1448,15 @@ async function processAssetsInBackground(
         }
 
       } else if (assetType === "video") {
+        // ══════════════════════════════════════════════════════════
+        // VIDEO PIPELINE: Template + Product Swap → Image → Video
+        // 1. Build prompt from SEALCaM/creative direction
+        // 2. If user has assets (product/model), generate a hero IMAGE first
+        //    with product swap (using the full image pipeline)
+        // 3. Use that hero image as starting frame for image-to-video
+        // 4. Result: video that looks like the template but features user's product
+        // ══════════════════════════════════════════════════════════
+        
         let generatedPrompt = "";
         if (creativeDirection?.scenes?.length) {
           const sceneIndex = i % creativeDirection.scenes.length;
@@ -1365,28 +1467,96 @@ async function processAssetsInBackground(
           console.log(`[Generate] video for ${platform}/${format} via generic prompt`);
         }
 
-        // Add concise platform direction (no text/copy in video prompt either)
+        // Add concise platform direction
         const platSeed = PLATFORM_SEEDS[platform.toLowerCase()] || "";
         generatedPrompt += ` ${platSeed}`;
 
-        // Add campaign tone context only (not full copy)
         if (structuredBrief?.tone?.length) {
           generatedPrompt += ` Mood: ${structuredBrief.tone.join(", ")}.`;
         }
 
-        // User asset context for video
-        if (userAssets?.some((a: any) => a.role === "product")) {
-          generatedPrompt += " Feature the provided product prominently.";
-        }
-        if (userAssets?.some((a: any) => a.role === "model")) {
-          generatedPrompt += " Feature the provided person as the main subject.";
+        // ── HERO IMAGE PIPELINE: Generate starting frame with product/model swap ──
+        const hasUserProductOrModel = userAssets?.some((a: any) => a.role === "product" || a.role === "model");
+        const hasTemplateRef = (templateRefs?.length ?? 0) > 0 || referenceImageUrl;
+        let startingFrameUrl: string | undefined;
+
+        if (hasUserProductOrModel || hasTemplateRef) {
+          try {
+            console.log(`[Video Pipeline] Generating hero starting frame with product/model swap`);
+            
+            // Use the full image prompt bundle for the hero frame
+            const matchedTemplate = imageTemplates?.find(
+              (t: any) => (t.platform === platform || !t.platform) && (t.format === format || !t.format)
+            ) || imageTemplates?.[0] || null;
+
+            const bundle = buildPromptBundle(
+              platform, format, brandContext || {}, assetDirection, matchedTemplate,
+              userAssets, null, structuredBrief, referenceImageUrl, templateRefs,
+            );
+
+            // Hero frame prompt: combine visual prompt + video-specific motion cues
+            const heroPrompt = `${bundle.visualPrompt} ${bundle.platformSeed} Cinematic still frame composition suitable for animation. Strong visual anchor, clear subject placement.`;
+
+            const heroResult = await generateImage(
+              heroPrompt,
+              width || 1080,
+              height || 1920,
+              bundle.imageRefs.length > 0 ? bundle.imageRefs : undefined,
+            );
+
+            // Optional: SeedEdit identity refinement on hero frame
+            if (heroResult.url && (bundle.creativeMode === "identity_swap" || bundle.creativeMode === "product_in_scene" || bundle.creativeMode === "duo_editorial")) {
+              try {
+                const modelAsset = userAssets?.find((a: any) => a.role === "model");
+                const productAsset = userAssets?.find((a: any) => a.role === "product");
+                let editPrompt = "";
+                if (bundle.creativeMode === "identity_swap" && modelAsset?.url) {
+                  editPrompt = "Refine the person's face to match the reference exactly. Keep composition unchanged.";
+                } else if (bundle.creativeMode === "product_in_scene" && productAsset?.url) {
+                  editPrompt = "Refine the product to match the reference exactly. Keep composition unchanged.";
+                } else if (bundle.creativeMode === "duo_editorial") {
+                  editPrompt = "Refine both person and product to match references exactly. Keep composition unchanged.";
+                }
+                if (editPrompt) {
+                  console.log(`[Video Pipeline] Running SeedEdit refinement on hero frame`);
+                  const refined = await editImageSeedEdit(heroResult.url, editPrompt, 0.35);
+                  if (refined?.url) {
+                    startingFrameUrl = refined.url;
+                    actualCost += heroResult.cost + refined.cost;
+                    console.log(`[Video Pipeline] ✅ Hero frame refined via SeedEdit`);
+                  }
+                }
+              } catch (e) {
+                console.warn(`[Video Pipeline] SeedEdit refinement failed, using unrefined hero:`, e);
+              }
+            }
+
+            if (!startingFrameUrl) {
+              startingFrameUrl = heroResult.url;
+              actualCost += heroResult.cost;
+            }
+
+            actualProvider = `${heroResult.provider}+`;
+            console.log(`[Video Pipeline] ✅ Hero starting frame ready: ${startingFrameUrl ? "yes" : "no"}`);
+          } catch (e) {
+            console.warn(`[Video Pipeline] Hero frame generation failed, falling back to text-to-video:`, e);
+          }
+        } else {
+          // No user assets — add generic product/model context to prompt
+          if (userAssets?.some((a: any) => a.role === "product")) {
+            generatedPrompt += " Feature the provided product prominently.";
+          }
+          if (userAssets?.some((a: any) => a.role === "model")) {
+            generatedPrompt += " Feature the provided person as the main subject.";
+          }
         }
 
-        const result = await generateVideo(generatedPrompt, width || 1080, height || 1920);
-        contentUrl = result.url;
-        actualProvider = result.provider;
-        actualCost = result.cost;
-        generationTimeMs = result.timeMs;
+        // ── GENERATE VIDEO (image-to-video if hero frame exists, otherwise text-to-video) ──
+        const videoResult = await generateVideo(generatedPrompt, width || 1080, height || 1920, startingFrameUrl);
+        contentUrl = videoResult.url;
+        actualProvider = (actualProvider === "pending" ? "" : actualProvider) + videoResult.provider;
+        actualCost += videoResult.cost;
+        generationTimeMs = videoResult.timeMs;
       }
 
       // Generate caption (this uses full campaign copy — that's correct for captions)
