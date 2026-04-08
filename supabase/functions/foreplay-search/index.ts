@@ -71,7 +71,8 @@ Deno.serve(async (req) => {
 
     if (cursor) params.set("cursor", cursor);
     if (offset) params.set("offset", String(offset));
-    params.set("limit", String(limit));
+    const maxLimit = isBrandEndpoint ? Math.min(Number(limit), 10) : Math.min(Number(limit), 25);
+    params.set("limit", String(maxLimit));
 
     const url = `${FOREPLAY_BASE}/api/${endpoint}?${params.toString()}`;
     console.log("Foreplay request:", url);
