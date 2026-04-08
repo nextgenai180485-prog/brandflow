@@ -46,7 +46,7 @@ const NewCampaign = () => {
   const [searchParams] = useSearchParams();
   const isMobile = useIsMobile();
   const resumeDraftId = searchParams.get("draft") || null;
-  const showcaseState = location.state as { fromShowcase?: boolean; templateRef?: { id: string; title: string; mediaUrl?: string; industryTags?: string[]; moodTags?: string[]; platformTags?: string[] }; bulkRefs?: { id: string; title: string; mediaUrl?: string; industryTags?: string[]; moodTags?: string[]; platformTags?: string[] }[] } | null;
+  const showcaseState = location.state as { fromShowcase?: boolean; templateRef?: { id: string; title: string; mediaUrl?: string; industryTags?: string[]; moodTags?: string[]; platformTags?: string[] }; bulkRefs?: { id: string; title: string; mediaUrl?: string; industryTags?: string[]; moodTags?: string[]; platformTags?: string[] }[]; libraryRefs?: { id: string; title: string; mediaUrl?: string; type: string; data: any }[] } | null;
 
   const [step, setStep] = useState(0);
   const [title, setTitle] = useState(showcaseState?.templateRef?.title || "");
