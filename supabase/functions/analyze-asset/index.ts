@@ -62,10 +62,10 @@ serve(async (req) => {
     // Mode-specific extraction schemas
     const modes: Record<string, { system: string; schema: any }> = {
       sealcam: {
-        system: `You are an elite visual analyst. Extract a SEALCaM (Subject, Environment, Action, Lighting, Camera, Metatokens) breakdown from this image. Be precise, cinematic, and technical. Describe exactly what you see — not what you imagine.`,
+        system: `You are an elite visual analyst. Extract a SEALCaM (Subject, Environment, Action, Lighting, Camera, Metatokens) breakdown from this image. Be precise, cinematic, and technical. Describe exactly what you see — not what you imagine. Also infer template metadata from what you observe.`,
         schema: {
           name: "extract_sealcam",
-          description: "Extract SEALCaM cinematic analysis from an image",
+          description: "Extract SEALCaM cinematic analysis and template metadata from an image",
           parameters: {
             type: "object",
             properties: {
@@ -78,8 +78,15 @@ serve(async (req) => {
               mood: { type: "string", description: "Overall emotional tone in 2-4 words" },
               composition: { type: "string", description: "Framing, rule of thirds, leading lines, negative space, visual weight" },
               color_palette: { type: "array", items: { type: "string" }, description: "3-6 dominant colors as descriptive names" },
+              suggested_template_name: { type: "string", description: "A concise, descriptive template name based on the visual content (e.g., 'Urban Lifestyle Hero', 'Clean Product Spotlight')" },
+              suggested_family: { type: "string", enum: ["F1_UGC", "F2_SPOKESPERSON", "F5_CINEMATIC", "F8_CREATIVE_CLONER"], description: "Best matching generation family: F1_UGC (user-generated content feel), F2_SPOKESPERSON (talking head/presenter), F5_CINEMATIC (cinematic/commercial quality), F8_CREATIVE_CLONER (template-driven/clone style)" },
+              suggested_mood: { type: "string", description: "Single mood keyword (e.g., aspirational, authentic, cinematic, dramatic, educational, energetic, epic, inspirational, luxurious, professional, urgent, warm)" },
+              suggested_aspect_ratio: { type: "string", enum: ["9:16", "16:9", "1:1", "4:5"], description: "Detected or recommended aspect ratio" },
+              suggested_hook_type: { type: "string", enum: ["question", "shock", "story", "statistic", "challenge", "visual"], description: "Best matching hook type based on the content style" },
+              suggested_tags: { type: "array", items: { type: "string" }, description: "5-8 relevant tags for categorization (e.g., lifestyle, product, outdoor, minimal, bold)" },
+              suggested_duration_s: { type: "number", description: "Recommended video duration in seconds (15, 30, or 60) based on content complexity" },
             },
-            required: ["subject", "environment", "action", "lighting", "camera", "metatokens", "mood", "composition", "color_palette"],
+            required: ["subject", "environment", "action", "lighting", "camera", "metatokens", "mood", "composition", "color_palette", "suggested_template_name", "suggested_family", "suggested_mood"],
           },
         },
       },
