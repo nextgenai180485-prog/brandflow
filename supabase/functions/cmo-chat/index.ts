@@ -172,7 +172,7 @@ serve(async (req) => {
       });
     }
 
-    const { messages } = body;
+    const { messages, stream: shouldStream = true } = body;
     if (!Array.isArray(messages) || messages.length === 0 || messages.length > 50) {
       return new Response(JSON.stringify({ error: "Invalid messages array (1-50 messages)" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
