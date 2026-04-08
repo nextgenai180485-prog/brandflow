@@ -169,13 +169,13 @@ const LibraryTabGrid = ({ tab, search, isSelected, toggleAsset, onChange, select
     setLoading(true);
     let query = supabase.from(tab.table as any).select("*");
 
-    if (tab.isUserAssets && user) {
+    if (tab.value === "your_assets" && user) {
       query = query.eq("profile_id", user.id);
-    } else if (!tab.isUserAssets) {
+    } else if (!tab.value === "your_assets") {
       query = query.eq("is_active", true);
     }
 
-    if (tab.isUserAssets) {
+    if (tab.value === "your_assets") {
       query = query.order("created_at", { ascending: false });
     } else {
       query = query.order("usage_count", { ascending: false });
@@ -184,7 +184,7 @@ const LibraryTabGrid = ({ tab, search, isSelected, toggleAsset, onChange, select
     const { data } = await query;
     setItems(data || []);
     setLoading(false);
-  }, [tab.table, tab.isUserAssets, user]);
+  }, [tab.table, tab.value === "your_assets", user]);
 
   useEffect(() => { loadItems(); }, [loadItems]);
 
@@ -265,7 +265,7 @@ const LibraryTabGrid = ({ tab, search, isSelected, toggleAsset, onChange, select
   return (
     <div className="space-y-3">
       {/* Upload button for user assets tab */}
-      {tab.isUserAssets && (
+      {tab.value === "your_assets" && (
         <label className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-border bg-card cursor-pointer hover:bg-secondary/50 transition-colors">
           {uploading ? (
             <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
@@ -283,7 +283,7 @@ const LibraryTabGrid = ({ tab, search, isSelected, toggleAsset, onChange, select
         <div className="flex flex-col items-center justify-center py-12 gap-2">
           <tab.icon className="h-8 w-8 text-muted-foreground/30" />
           <p className="text-xs text-muted-foreground">
-            {tab.isUserAssets ? "No uploads yet. Add your first asset above." : "No items found"}
+            {tab.value === "your_assets" ? "No uploads yet. Add your first asset above." : "No items found"}
           </p>
         </div>
       ) : (
