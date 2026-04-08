@@ -17,6 +17,7 @@ import fitnessImg from "@/assets/showcase/fitness-energy.jpg";
 interface EmptyCampaignsProps {
   onCreateClick: (selectedRefs?: ShowcaseRef[]) => void;
   hasProfile?: boolean;
+  onSelectionChange?: (refs: ShowcaseRef[]) => void;
 }
 
 interface ShowcaseRef {
