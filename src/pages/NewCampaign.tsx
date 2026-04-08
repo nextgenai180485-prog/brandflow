@@ -660,7 +660,7 @@ const NewCampaign = () => {
             {mobileTab === "preview" && (
               <div className="flex items-center justify-center py-6 px-4">
                 <CampaignSimulator
-                  imageUrl={selectedTemplate?.media_url || null}
+                  imageUrl={simulatorPreviewUrl}
                   brandName={title || "Brand"}
                   caption={instructions || "Your campaign content preview"}
                 />
