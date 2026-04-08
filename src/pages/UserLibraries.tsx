@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { getFamilyLabel } from "@/lib/familyLabels";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,7 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, Film, Users, Image, Megaphone, Eye, Zap, Radar, Globe, Loader2, VideoIcon, Tag, Building2 } from "lucide-react";
+import { Search, Film, Users, Image, Megaphone, Eye, Zap, Radar, Globe, Loader2, VideoIcon, Tag, Building2, Check, ArrowRight, X, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -23,6 +24,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+
+interface LibrarySelectionItem {
+  id: string;
+  type: string;
+  name: string;
+  thumbnail?: string;
+  data: any;
+}
 
 const TABS = [
   { value: "video_templates", label: "Video Templates", icon: Film, table: "video_templates" as const, nameField: "template_name",
