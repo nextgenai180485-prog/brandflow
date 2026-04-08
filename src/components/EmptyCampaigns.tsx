@@ -15,7 +15,7 @@ import realestateImg from "@/assets/showcase/realestate-luxury.jpg";
 import fitnessImg from "@/assets/showcase/fitness-energy.jpg";
 
 interface EmptyCampaignsProps {
-  onCreateClick: () => void;
+  onCreateClick: (selectedRefs?: ShowcaseRef[]) => void;
   hasProfile?: boolean;
 }
 
