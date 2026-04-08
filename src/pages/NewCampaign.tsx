@@ -351,12 +351,12 @@ const NewCampaign = () => {
             onBriefChange={setStructuredBrief}
             copy={campaignCopy}
             onCopyChange={setCampaignCopy}
-            brandContext={brandProfile ? {
-              businessName: brandProfile.business_name || undefined,
-              industry: brandProfile.industry || undefined,
-              voiceTone: brandProfile.brand_voice_tone || undefined,
-              targetAudience: brandProfile.target_audience || undefined,
-            } : undefined}
+            brandContext={{
+              businessName: businessName || undefined,
+              industry: industry || undefined,
+              voiceTone: brandProfile?.brand_voice_detected || undefined,
+              targetAudience: brandProfile?.target_audience_detected || undefined,
+            }}
           />
 
           {/* Selected reference assets strip */}
