@@ -173,7 +173,7 @@ async function generateVideo(prompt: string, width: number, height: number) {
         method: "POST",
         headers: { Authorization: `Bearer ${REPLICATE_API_KEY}`, "Content-Type": "application/json", Prefer: "wait=120" },
         body: JSON.stringify({
-          input: { prompt, duration: 5, aspect_ratio: aspectRatio, negative_prompt: "blurry, low quality, distorted, watermark, text overlay, amateur" },
+          input: { prompt, duration: 5, aspect_ratio: aspectRatio, negative_prompt: "blurry, low quality, distorted, watermark, text overlay, amateur, AI-generated look, plastic skin, over-smoothed, artificial blur" },
         }),
       });
       if (!response.ok) {
