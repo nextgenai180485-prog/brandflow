@@ -189,136 +189,210 @@ const UserLibraries = () => {
   );
 };
 
-// ── Industry categories for quick discovery ──
-const AD_CATEGORIES = [
-  { label: "E-commerce", keyword: "ecommerce", icon: "🛒" },
-  { label: "Real Estate", keyword: "real estate", icon: "🏠" },
-  { label: "SaaS / Tech", keyword: "saas software", icon: "💻" },
-  { label: "Beauty", keyword: "beauty skincare", icon: "💄" },
-  { label: "Fitness", keyword: "fitness gym", icon: "💪" },
-  { label: "Finance", keyword: "finance investing", icon: "💰" },
-  { label: "Food & Bev", keyword: "food beverage", icon: "🍕" },
-  { label: "Fashion", keyword: "fashion clothing", icon: "👗" },
-  { label: "Education", keyword: "education course", icon: "📚" },
-  { label: "Health", keyword: "health wellness supplement", icon: "🏥" },
-  { label: "Travel", keyword: "travel tourism", icon: "✈️" },
-  { label: "Auto", keyword: "automotive car", icon: "🚗" },
+// ── Foreplay Niches (from API) ──
+const FOREPLAY_NICHES = [
+  "Fashion", "Beauty", "Health & Wellness", "Fitness", "Food & Beverage",
+  "E-Commerce", "SaaS", "Finance", "Real Estate", "Education",
+  "Travel", "Automotive", "Gaming", "Entertainment", "Home & Garden",
+  "Pets", "Sports", "Technology", "Luxury", "Parenting",
+  "B2B", "Agency", "Service Business", "Supplements", "Apparel",
+  "Jewelry", "Skincare", "Haircare", "Dental", "Insurance",
 ];
 
-const POPULAR_BRANDS = [
-  "Nike", "Apple", "Shopify", "Tesla", "Amazon", "Coca-Cola",
-  "Samsung", "Adidas", "Netflix", "Spotify", "Uber", "Airbnb",
-  "McDonald's", "Disney", "Microsoft", "Google", "Meta", "TikTok",
-  "Zara", "H&M", "Sephora", "Peloton", "Calm", "Headspace",
-];
-
-const ALPHA_GROUPS = ["A-D", "E-H", "I-L", "M-P", "Q-T", "U-Z"] as const;
-const ALPHA_MAP: Record<string, string[]> = {
-  "A-D": ["A", "B", "C", "D"],
-  "E-H": ["E", "F", "G", "H"],
-  "I-L": ["I", "J", "K", "L"],
-  "M-P": ["M", "N", "O", "P"],
-  "Q-T": ["Q", "R", "S", "T"],
-  "U-Z": ["U", "V", "W", "X", "Y", "Z"],
+const NICHE_ICONS: Record<string, string> = {
+  "Fashion": "👗", "Beauty": "💄", "Health & Wellness": "🏥", "Fitness": "💪",
+  "Food & Beverage": "🍕", "E-Commerce": "🛒", "SaaS": "💻", "Finance": "💰",
+  "Real Estate": "🏠", "Education": "📚", "Travel": "✈️", "Automotive": "🚗",
+  "Gaming": "🎮", "Entertainment": "🎬", "Home & Garden": "🏡", "Pets": "🐾",
+  "Sports": "⚽", "Technology": "📱", "Luxury": "💎", "Parenting": "👶",
+  "B2B": "🏢", "Agency": "📊", "Service Business": "🔧", "Supplements": "💊",
+  "Apparel": "👕", "Jewelry": "💍", "Skincare": "✨", "Haircare": "💇",
+  "Dental": "🦷", "Insurance": "🛡️",
 };
+
+type SearchMode = "ads" | "brands";
 
 // ── Ad Intelligence Gallery (Foreplay) ──
 const AdIntelligenceGallery = ({ onPreview }: { onPreview: (item: any) => void }) => {
   const [query, setQuery] = useState("");
+  const [searchMode, setSearchMode] = useState<SearchMode>("ads");
   const [platform, setPlatform] = useState<string>("all");
   const [format, setFormat] = useState<string>("all");
+  const [selectedNiche, setSelectedNiche] = useState<string | null>(null);
   const [results, setResults] = useState<any[]>([]);
+  const [brandResults, setBrandResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
   const [credits, setCredits] = useState<number | null>(null);
-  const [activeAlpha, setActiveAlpha] = useState<string | null>(null);
+  const [showAllNiches, setShowAllNiches] = useState(false);
 
-  const doSearch = useCallback(async (searchQuery: string) => {
-    if (!searchQuery.trim()) return;
-    setQuery(searchQuery);
+  const doAdSearch = useCallback(async (searchQuery: string, niche?: string) => {
     setLoading(true);
     setSearched(true);
+    setSearchMode("ads");
+    setBrandResults([]);
 
     try {
       const body: any = { endpoint: "discovery/ads", limit: 25 };
 
       if (searchQuery.includes(".") && !searchQuery.includes(" ")) {
         body.domain = searchQuery.trim();
-      } else {
+      } else if (searchQuery.trim()) {
         body.keyword = searchQuery.trim();
       }
 
+      if (niche || selectedNiche) body.niche = niche || selectedNiche;
       if (platform !== "all") body.platform = platform;
       if (format !== "all") body.display_format = format;
 
       const { data, error } = await supabase.functions.invoke("foreplay-search", { body });
-
       if (error) throw error;
       if (!data.success) throw new Error(data.error);
 
       setResults(data.data || []);
-      if (data.metadata?.credits_remaining != null) {
-        setCredits(data.metadata.credits_remaining);
-      }
+      if (data.metadata?.credits_remaining != null) setCredits(data.metadata.credits_remaining);
     } catch (err: any) {
       toast.error(err.message || "Failed to search ads");
       setResults([]);
     } finally {
       setLoading(false);
     }
-  }, [platform, format]);
+  }, [platform, format, selectedNiche]);
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") doSearch(query);
+  const doBrandSearch = useCallback(async (searchQuery: string) => {
+    if (!searchQuery.trim()) return;
+    setLoading(true);
+    setSearched(true);
+    setSearchMode("brands");
+    setResults([]);
+
+    try {
+      const body: any = { endpoint: "discovery/brands", keyword: searchQuery.trim(), limit: 25 };
+      const { data, error } = await supabase.functions.invoke("foreplay-search", { body });
+      if (error) throw error;
+      if (!data.success) throw new Error(data.error);
+
+      setBrandResults(data.data || []);
+      if (data.metadata?.credits_remaining != null) setCredits(data.metadata.credits_remaining);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to search brands");
+      setBrandResults([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const handleBrandClick = (brand: any) => {
+    // Search ads by brand domain or name
+    const domain = brand.websites?.[0]?.replace(/^https?:\/\//, "").replace(/\/$/, "") || brand.url?.replace(/^https?:\/\//, "").replace(/\/$/, "");
+    if (domain) {
+      setQuery(domain);
+      doAdSearch(domain);
+    } else {
+      setQuery(brand.name);
+      doAdSearch(brand.name);
+    }
   };
 
-  const filteredBrands = useMemo(() => {
-    if (!activeAlpha) return POPULAR_BRANDS;
-    const letters = ALPHA_MAP[activeAlpha] || [];
-    return POPULAR_BRANDS.filter(b => letters.includes(b[0].toUpperCase()));
-  }, [activeAlpha]);
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      if (searchMode === "brands") doBrandSearch(query);
+      else doAdSearch(query);
+    }
+  };
+
+  const handleNicheClick = (niche: string) => {
+    setSelectedNiche(niche);
+    setQuery("");
+    doAdSearch("", niche);
+  };
+
+  const backToDiscovery = () => {
+    setSearched(false);
+    setResults([]);
+    setBrandResults([]);
+    setQuery("");
+    setSelectedNiche(null);
+  };
+
+  const visibleNiches = showAllNiches ? FOREPLAY_NICHES : FOREPLAY_NICHES.slice(0, 12);
 
   return (
     <div className="space-y-4">
-      {/* Search + Filters */}
-      <div className="flex gap-2">
-        <div className="relative flex-1">
-          <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search by brand, keyword, or domain (e.g. nike, skincare, nike.com)..."
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={handleKeyDown}
-            className="pl-9 h-9 text-sm"
-          />
+      {/* Search Mode Tabs + Search Bar */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <div className="flex bg-muted rounded-md p-0.5">
+            <Button
+              variant={searchMode === "ads" ? "default" : "ghost"}
+              size="sm"
+              className="h-7 px-3 text-[11px] rounded-sm"
+              onClick={() => { setSearchMode("ads"); if (searched) backToDiscovery(); }}
+            >
+              <Radar className="w-3 h-3 mr-1" /> Ads
+            </Button>
+            <Button
+              variant={searchMode === "brands" ? "default" : "ghost"}
+              size="sm"
+              className="h-7 px-3 text-[11px] rounded-sm"
+              onClick={() => { setSearchMode("brands"); if (searched) backToDiscovery(); }}
+            >
+              <Building2 className="w-3 h-3 mr-1" /> Brands
+            </Button>
+          </div>
+          <span className="text-[10px] text-muted-foreground">582K+ brands indexed</span>
         </div>
-        <Select value={platform} onValueChange={setPlatform}>
-          <SelectTrigger className="w-[110px] h-9 text-xs">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Platforms</SelectItem>
-            <SelectItem value="facebook">Facebook</SelectItem>
-            <SelectItem value="instagram">Instagram</SelectItem>
-            <SelectItem value="tiktok">TikTok</SelectItem>
-            <SelectItem value="youtube">YouTube</SelectItem>
-            <SelectItem value="linkedin">LinkedIn</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select value={format} onValueChange={setFormat}>
-          <SelectTrigger className="w-[100px] h-9 text-xs">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Formats</SelectItem>
-            <SelectItem value="image">Image</SelectItem>
-            <SelectItem value="video">Video</SelectItem>
-            <SelectItem value="carousel">Carousel</SelectItem>
-          </SelectContent>
-        </Select>
-        <Button onClick={() => doSearch(query)} disabled={loading || !query.trim()} className="h-9 px-4">
-          {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
-        </Button>
+
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder={searchMode === "brands"
+                ? "Search brands (e.g. Nike, Apple, Shopify)..."
+                : "Search ads by keyword or domain (e.g. skincare, nike.com)..."
+              }
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={handleKeyDown}
+              className="pl-9 h-9 text-sm"
+            />
+          </div>
+          {searchMode === "ads" && (
+            <>
+              <Select value={platform} onValueChange={setPlatform}>
+                <SelectTrigger className="w-[110px] h-9 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Platforms</SelectItem>
+                  <SelectItem value="facebook">Facebook</SelectItem>
+                  <SelectItem value="instagram">Instagram</SelectItem>
+                  <SelectItem value="tiktok">TikTok</SelectItem>
+                  <SelectItem value="youtube">YouTube</SelectItem>
+                  <SelectItem value="linkedin">LinkedIn</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={format} onValueChange={setFormat}>
+                <SelectTrigger className="w-[100px] h-9 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Formats</SelectItem>
+                  <SelectItem value="image">Image</SelectItem>
+                  <SelectItem value="video">Video</SelectItem>
+                  <SelectItem value="carousel">Carousel</SelectItem>
+                </SelectContent>
+              </Select>
+            </>
+          )}
+          <Button
+            onClick={() => searchMode === "brands" ? doBrandSearch(query) : doAdSearch(query)}
+            disabled={loading || !query.trim()}
+            className="h-9 px-4"
+          >
+            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+          </Button>
+        </div>
       </div>
 
       {credits !== null && (
@@ -328,74 +402,52 @@ const AdIntelligenceGallery = ({ onPreview }: { onPreview: (item: any) => void }
         </div>
       )}
 
-      {/* Discovery Section — shown when no search yet */}
-      {!searched && !loading && (
-        <div className="space-y-5">
-          {/* Industry Categories */}
-          <div>
-            <div className="flex items-center gap-1.5 mb-2">
+      {/* Niche filter chips — always visible in ads mode */}
+      {searchMode === "ads" && (
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-1.5">
               <Tag className="w-3.5 h-3.5 text-muted-foreground" />
-              <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Browse by Industry</span>
+              <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Industry / Niche</span>
             </div>
-            <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2">
-              {AD_CATEGORIES.map((cat) => (
-                <Button
-                  key={cat.keyword}
-                  variant="outline"
-                  size="sm"
-                  className="h-auto py-2.5 px-3 flex flex-col items-center gap-1 text-xs hover:border-primary/50 hover:bg-primary/5 transition-all"
-                  onClick={() => doSearch(cat.keyword)}
-                >
-                  <span className="text-lg">{cat.icon}</span>
-                  <span className="text-[10px] font-medium">{cat.label}</span>
-                </Button>
-              ))}
-            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-[10px] h-5 px-2 text-muted-foreground"
+              onClick={() => setShowAllNiches(!showAllNiches)}
+            >
+              {showAllNiches ? "Show less" : `Show all (${FOREPLAY_NICHES.length})`}
+            </Button>
           </div>
-
-          {/* Popular Brands with Alpha Filter */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-1.5">
-                <Building2 className="w-3.5 h-3.5 text-muted-foreground" />
-                <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Popular Brands</span>
-              </div>
-              <div className="flex gap-1">
-                <Badge
-                  variant={activeAlpha === null ? "default" : "outline"}
-                  className="text-[9px] px-1.5 py-0 cursor-pointer"
-                  onClick={() => setActiveAlpha(null)}
-                >
-                  All
-                </Badge>
-                {ALPHA_GROUPS.map((g) => (
-                  <Badge
-                    key={g}
-                    variant={activeAlpha === g ? "default" : "outline"}
-                    className="text-[9px] px-1.5 py-0 cursor-pointer hover:bg-primary/10"
-                    onClick={() => setActiveAlpha(prev => prev === g ? null : g)}
-                  >
-                    {g}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-1.5">
-              {filteredBrands.map((brand) => (
-                <Button
-                  key={brand}
-                  variant="outline"
-                  size="sm"
-                  className="h-7 px-3 text-[11px] hover:border-primary/50 hover:bg-primary/5"
-                  onClick={() => doSearch(brand)}
-                >
-                  {brand}
-                </Button>
-              ))}
-              {filteredBrands.length === 0 && (
-                <p className="text-xs text-muted-foreground py-2">No brands in this range. Try a different letter group.</p>
-              )}
-            </div>
+          <div className="flex flex-wrap gap-1.5">
+            {visibleNiches.map((niche) => (
+              <Badge
+                key={niche}
+                variant={selectedNiche === niche ? "default" : "outline"}
+                className="text-[10px] px-2 py-0.5 cursor-pointer hover:bg-primary/10 transition-colors"
+                onClick={() => {
+                  if (selectedNiche === niche) {
+                    setSelectedNiche(null);
+                    if (searched && !query) backToDiscovery();
+                  } else {
+                    handleNicheClick(niche);
+                  }
+                }}
+              >
+                <span className="mr-1">{NICHE_ICONS[niche] || "📁"}</span>
+                {niche}
+              </Badge>
+            ))}
+            {selectedNiche && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-[10px] h-5 px-2 text-muted-foreground"
+                onClick={() => { setSelectedNiche(null); backToDiscovery(); }}
+              >
+                Clear filter
+              </Button>
+            )}
           </div>
         </div>
       )}
@@ -404,14 +456,57 @@ const AdIntelligenceGallery = ({ onPreview }: { onPreview: (item: any) => void }
       {loading ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
           {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="h-40 rounded-lg bg-muted animate-pulse" />
+            <div key={i} className="h-52 rounded-lg bg-muted animate-pulse" />
           ))}
         </div>
-      ) : results.length > 0 ? (
+      ) : searched && searchMode === "brands" && brandResults.length > 0 ? (
         <>
           <div className="flex items-center justify-between">
-            <p className="text-xs text-muted-foreground">{results.length} ads found</p>
-            <Button variant="ghost" size="sm" className="text-[10px] h-6" onClick={() => { setSearched(false); setResults([]); setQuery(""); }}>
+            <p className="text-xs text-muted-foreground">{brandResults.length} brands found</p>
+            <Button variant="ghost" size="sm" className="text-[10px] h-6" onClick={backToDiscovery}>
+              ← Back to discovery
+            </Button>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+            {brandResults.map((brand: any) => (
+              <Card
+                key={brand.id}
+                className="group cursor-pointer transition-all hover:shadow-md hover:border-primary/30 overflow-hidden"
+                onClick={() => handleBrandClick(brand)}
+              >
+                <div className="relative aspect-square bg-muted flex items-center justify-center overflow-hidden">
+                  {brand.avatar ? (
+                    <img src={brand.avatar} alt={brand.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <Building2 className="h-10 w-10 text-muted-foreground/30" />
+                  )}
+                  {brand.verification_status === "BLUE_VERIFIED" && (
+                    <div className="absolute top-1.5 right-1.5 bg-blue-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-[8px]">✓</div>
+                  )}
+                </div>
+                <CardContent className="p-2.5">
+                  <p className="text-xs font-medium text-foreground truncate">{brand.name}</p>
+                  {brand.category && <p className="text-[10px] text-muted-foreground mt-0.5 truncate">{brand.category}</p>}
+                  {brand.description?.text && <p className="text-[9px] text-muted-foreground mt-0.5 truncate">{brand.description.text}</p>}
+                  <div className="flex flex-wrap gap-0.5 mt-1.5">
+                    {brand.niches?.slice(0, 2).map((n: string, i: number) => (
+                      <Badge key={i} variant="secondary" className="text-[7px] px-1 py-0">{n}</Badge>
+                    ))}
+                  </div>
+                  <p className="text-[9px] text-primary mt-1.5">Click to see their ads →</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </>
+      ) : searched && searchMode === "ads" && results.length > 0 ? (
+        <>
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-muted-foreground">
+              {results.length} ads found
+              {selectedNiche && <span className="ml-1">in <strong>{selectedNiche}</strong></span>}
+            </p>
+            <Button variant="ghost" size="sm" className="text-[10px] h-6" onClick={backToDiscovery}>
               ← Back to discovery
             </Button>
           </div>
@@ -449,9 +544,10 @@ const AdIntelligenceGallery = ({ onPreview }: { onPreview: (item: any) => void }
                     <p className="text-xs font-medium text-foreground truncate">{name}</p>
                     {brandName && <p className="text-[10px] text-muted-foreground mt-0.5 truncate">{brandName}</p>}
                     <div className="flex flex-wrap gap-0.5 mt-1.5">
-                      {ad.display_format && <Badge variant="secondary" className="text-[7px] px-1 py-0">{ad.display_format}</Badge>}
-                      {ad.running_duration?.days > 0 && <Badge variant="outline" className="text-[7px] px-1 py-0">{ad.running_duration.days}d active</Badge>}
+                      {ad.display_format && <Badge variant="secondary" className="text-[7px] px-1 py-0 uppercase">{ad.display_format}</Badge>}
                       {Array.isArray(ad.publisher_platform) && ad.publisher_platform[0] && <Badge variant="outline" className="text-[7px] px-1 py-0">{ad.publisher_platform[0]}</Badge>}
+                      {ad.niches?.[0] && <Badge variant="outline" className="text-[7px] px-1 py-0">{ad.niches[0]}</Badge>}
+                      {ad.running_duration?.days > 0 && <Badge variant="outline" className="text-[7px] px-1 py-0">{ad.running_duration.days}d</Badge>}
                     </div>
                   </CardContent>
                 </Card>
@@ -462,10 +558,22 @@ const AdIntelligenceGallery = ({ onPreview }: { onPreview: (item: any) => void }
       ) : searched ? (
         <div className="text-center py-12">
           <Radar className="h-8 w-8 text-muted-foreground/40 mx-auto mb-2" />
-          <p className="text-sm text-muted-foreground">No ads found. Try different keywords or filters.</p>
-          <Button variant="ghost" size="sm" className="mt-2 text-xs" onClick={() => { setSearched(false); setResults([]); setQuery(""); }}>
+          <p className="text-sm text-muted-foreground">No {searchMode} found. Try different keywords or filters.</p>
+          <Button variant="ghost" size="sm" className="mt-2 text-xs" onClick={backToDiscovery}>
             ← Back to discovery
           </Button>
+        </div>
+      ) : !loading && searchMode === "ads" ? (
+        <div className="text-center py-8">
+          <Radar className="h-10 w-10 text-muted-foreground/20 mx-auto mb-3" />
+          <p className="text-sm text-muted-foreground font-medium">Search ads or click a niche above to discover winning creatives</p>
+          <p className="text-xs text-muted-foreground mt-1">Or switch to Brands to browse 582K+ indexed brands</p>
+        </div>
+      ) : !loading && searchMode === "brands" ? (
+        <div className="text-center py-8">
+          <Building2 className="h-10 w-10 text-muted-foreground/20 mx-auto mb-3" />
+          <p className="text-sm text-muted-foreground font-medium">Search for any brand to see their ad library</p>
+          <p className="text-xs text-muted-foreground mt-1">Type a brand name and hit Enter or click Search</p>
         </div>
       ) : null}
     </div>
