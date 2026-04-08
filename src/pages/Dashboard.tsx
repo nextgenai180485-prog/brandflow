@@ -322,12 +322,21 @@ const Dashboard = () => {
           />
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {campaigns.map(campaign => (
+            {campaigns.map(campaign => {
+              const isDraft = campaign.status === "draft" && campaign.assets.length === 0;
+              return (
               <AlertDialog key={campaign.id} open={deleteConfirmId === campaign.id} onOpenChange={(o) => !o && setDeleteConfirmId(null)}>
                 <CampaignCard
                   campaign={campaign}
                   assets={campaign.assets}
-                  onClick={() => navigate(`/dashboard/campaign/${campaign.id}`)}
+                  isDraft={isDraft}
+                  onClick={() => {
+                    if (isDraft) {
+                      navigate(`/dashboard/campaigns/new?draft=${campaign.id}`);
+                    } else {
+                      navigate(`/dashboard/campaign/${campaign.id}`);
+                    }
+                  }}
                   onDelete={(e) => { e.stopPropagation(); setDeleteConfirmId(campaign.id); }}
                   onDuplicate={(e) => { e.stopPropagation(); duplicateCampaign(campaign); }}
                 />
