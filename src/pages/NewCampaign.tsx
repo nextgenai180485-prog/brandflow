@@ -114,7 +114,9 @@ const NewCampaign = () => {
   // Auto-save on every meaningful state change
   useEffect(() => {
     if (!user || showcaseState?.fromShowcase) return;
-    if (!title.trim() && platforms.length === 0 && contentTypes.length === 0) return;
+    // Save on ANY meaningful interaction — no guard requiring title
+    const hasAnyData = title.trim() || platforms.length > 0 || contentTypes.length > 0 || swapAssets.length > 0 || selectedAssets.length > 0;
+    if (!hasAnyData) return;
     saveDraft({
       title, instructions, structuredBrief, campaignCopy,
       platforms, contentTypes, includeLogo, step,
@@ -376,15 +378,13 @@ const NewCampaign = () => {
 
   const currentStepName = STEPS[step];
   const canProceedStep0 = title.trim().length > 0;
-  const canProceedStep1 = platforms.length > 0;
-  const canProceedStep2 = contentTypes.length > 0;
+  const canProceedStep1 = platforms.length > 0 && contentTypes.length > 0;
   const canProceedCreativeDirection = !hasVideoContent || !!creativeDirection;
-  const canCreate = canProceedStep0 && canProceedStep1 && canProceedStep2 && canProceedCreativeDirection && !creating;
+  const canCreate = canProceedStep0 && canProceedStep1 && canProceedCreativeDirection && !creating;
 
   const handleNext = () => {
-    if (currentStepName === "Details" && !canProceedStep0) { toast.error("Enter a campaign name."); return; }
-    if (currentStepName === "Platforms" && !canProceedStep1) { toast.error("Select at least one platform."); return; }
-    if (currentStepName === "Content Type" && !canProceedStep2) { toast.error("Select at least one content type."); return; }
+    if (currentStepName === "Campaign Brief" && !canProceedStep0) { toast.error("Enter a campaign name."); return; }
+    if (currentStepName === "Assets & Delivery" && !canProceedStep1) { toast.error("Select at least one platform and content type."); return; }
     if (currentStepName === "Creative Direction" && !canProceedCreativeDirection) { toast.error("Structure your creative brief before proceeding."); return; }
     setStep(step + 1);
   };
