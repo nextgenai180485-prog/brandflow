@@ -218,7 +218,7 @@ const SentientCMORail = () => {
     if (activeToast) {
       setToastDismissed((prev) => new Set(prev).add(activeToast.id));
       setActiveToast(null);
-      setToastSuppressed(true);
+      toastSuppressedRef.current = true;
     }
   }, [activeToast]);
 
