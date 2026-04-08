@@ -398,9 +398,6 @@ const SentientCMORail = () => {
           </div>
         )}
       </aside>
-
-      {/* Toast portaled to body so it doesn't break flex layout */}
-      {toast_el}
     </>
   );
 };
