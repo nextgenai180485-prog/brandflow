@@ -344,7 +344,7 @@ async function generateVideo(prompt: string, width: number, height: number, star
         const startTime = Date.now();
         const response = await fetch("https://api.replicate.com/v1/models/kwaai/kling-v2.5-pro/predictions", {
           method: "POST",
-          headers: { Authorization: `Bearer ${REPLICATE_API_KEY}`, "Content-Type": "application/json", Prefer: "wait=120" },
+          headers: { Authorization: `Bearer ${REPLICATE_API_KEY}`, "Content-Type": "application/json", Prefer: "wait=60" },
           body: JSON.stringify({
             input: { prompt, start_image: startingFrameUrl, duration: 5, aspect_ratio: aspectRatio },
           }),
@@ -377,14 +377,12 @@ async function generateVideo(prompt: string, width: number, height: number, star
       try {
         console.log(`[Seedance I2V] Trying Seedance 2 image-to-video`);
         const startTime = Date.now();
-        const taskId = await kieCreateTask(KIE_AI_API_KEY, "bytedance/seedance-2", {
+        const taskId = await kieCreateTask(KIE_AI_API_KEY, "bytedance/seedance-2.0", {
           prompt,
-          image_url: startingFrameUrl,
+          image_urls: [startingFrameUrl],
           aspect_ratio: aspectRatio,
-          resolution: "720p",
-          duration: 8,
-          generate_audio: false,
-          web_search: false,
+          duration: "8",
+          sound: false,
         });
         const result = await kiePollTask(KIE_AI_API_KEY, taskId, 120, 3000);
         if (result.urls?.length) {
@@ -406,7 +404,7 @@ async function generateVideo(prompt: string, width: number, height: number, star
       const startTime = Date.now();
       const response = await fetch("https://api.replicate.com/v1/models/kwaai/kling-v2.5-pro/predictions", {
         method: "POST",
-        headers: { Authorization: `Bearer ${REPLICATE_API_KEY}`, "Content-Type": "application/json", Prefer: "wait=120" },
+        headers: { Authorization: `Bearer ${REPLICATE_API_KEY}`, "Content-Type": "application/json", Prefer: "wait=60" },
         body: JSON.stringify({
           input: { prompt, duration: 5, aspect_ratio: aspectRatio, negative_prompt: "blurry, low quality, distorted, watermark, text overlay, amateur, AI-generated look, plastic skin, over-smoothed, artificial blur" },
         }),
@@ -449,18 +447,18 @@ async function generateVideo(prompt: string, width: number, height: number, star
   }
 
   try {
-    console.log(`[Kling 2.5 Kie] Generating video, aspect: ${aspectRatio}`);
-    const taskId = await kieCreateTask(KIE_AI_API_KEY, "kling/kling-2.5", {
-      prompt, aspect_ratio: aspectRatio, resolution: "720p", duration: 5, generate_audio: false, web_search: false,
+    console.log(`[Kling 2.6 Kie] Generating text-to-video, aspect: ${aspectRatio}`);
+    const taskId = await kieCreateTask(KIE_AI_API_KEY, "kling-2.6/text-to-video", {
+      prompt, aspect_ratio: aspectRatio, duration: "5", sound: false,
     });
     const result = await kiePollTask(KIE_AI_API_KEY, taskId, 100, 3000);
-    if (!result.urls?.length) throw new Error("Kling 2.5 returned no video URLs");
-    return { url: result.urls[0], provider: "kie_ai_kling_2.5", cost: 0.35, timeMs: result.costTime };
-  } catch (e) { console.error("[Kling 2.5 Kie] Failed:", e); }
+    if (!result.urls?.length) throw new Error("Kling 2.6 returned no video URLs");
+    return { url: result.urls[0], provider: "kie_ai_kling_2.6", cost: 0.35, timeMs: result.costTime };
+  } catch (e) { console.error("[Kling 2.6 Kie] Failed:", e); }
 
   try {
-    const taskId = await kieCreateTask(KIE_AI_API_KEY, "kling/kling-3.0", {
-      prompt, aspect_ratio: aspectRatio, resolution: "720p", duration: 5, generate_audio: false, web_search: false,
+    const taskId = await kieCreateTask(KIE_AI_API_KEY, "kling-3.0", {
+      prompt, aspect_ratio: aspectRatio, duration: "5", sound: false, mode: "pro",
     });
     const result = await kiePollTask(KIE_AI_API_KEY, taskId, 100, 3000);
     if (!result.urls?.length) throw new Error("Kling 3.0 returned no video URLs");
@@ -468,8 +466,8 @@ async function generateVideo(prompt: string, width: number, height: number, star
   } catch (e) { console.error("[Kling 3.0 Kie] Failed:", e); }
 
   try {
-    const taskId = await kieCreateTask(KIE_AI_API_KEY, "bytedance/seedance-2", {
-      prompt, aspect_ratio: aspectRatio, resolution: "720p", duration: 8, generate_audio: false, web_search: false,
+    const taskId = await kieCreateTask(KIE_AI_API_KEY, "bytedance/seedance-2.0", {
+      prompt, aspect_ratio: aspectRatio, duration: "8", sound: false,
     });
     const result = await kiePollTask(KIE_AI_API_KEY, taskId, 100, 3000);
     if (!result.urls?.length) throw new Error("Seedance returned no video URLs");
