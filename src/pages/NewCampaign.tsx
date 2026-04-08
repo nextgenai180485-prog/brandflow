@@ -821,7 +821,19 @@ const NewCampaign = () => {
               <button onClick={() => navigate("/dashboard")} className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors mb-2">
                 <ArrowLeft className="w-3.5 h-3.5" /> Back to Dashboard
               </button>
-              <h1 className="text-base font-semibold text-foreground mb-2">Create Campaign</h1>
+              <div className="flex items-center gap-2 mb-2">
+                <h1 className="text-base font-semibold text-foreground">Create Campaign</h1>
+                {saveStatus === "saving" && (
+                  <span className="flex items-center gap-1 text-[10px] text-muted-foreground animate-pulse">
+                    <Loader2 className="w-3 h-3 animate-spin" /> Saving…
+                  </span>
+                )}
+                {saveStatus === "saved" && (
+                  <span className="flex items-center gap-1 text-[10px] text-emerald-500">
+                    <CheckCircle2 className="w-3 h-3" /> Saved
+                  </span>
+                )}
+              </div>
 
               {/* Progress Steps */}
               <div className="flex gap-1.5">
