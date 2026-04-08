@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { Plus, Brain, ChevronDown, Target, TrendingUp, CheckCircle2, Clock, ImageIcon, Sparkles, BarChart3 } from "lucide-react";
-import { useNavigate, useSearchParams, useParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -10,9 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import CampaignCard from "@/components/campaign/CampaignCard";
-import AssetInspectorSheet from "@/components/campaign/AssetInspectorSheet";
 import BatchActionBar from "@/components/campaign/BatchActionBar";
 import type { Campaign, GeneratedAsset } from "@/types/campaigns";
 
@@ -328,7 +327,7 @@ const Dashboard = () => {
                 <CampaignCard
                   campaign={campaign}
                   assets={campaign.assets}
-                  onClick={() => setSheetCampaignId(campaign.id)}
+                  onClick={() => navigate(`/dashboard/campaign/${campaign.id}`)}
                   onDelete={(e) => { e.stopPropagation(); setDeleteConfirmId(campaign.id); }}
                   onDuplicate={(e) => { e.stopPropagation(); duplicateCampaign(campaign); }}
                 />
@@ -352,20 +351,6 @@ const Dashboard = () => {
         )}
       </div>
 
-      {/* Asset Inspector Sheet */}
-      <AssetInspectorSheet
-        open={!!sheetCampaignId}
-        onClose={() => { setSheetCampaignId(null); setSheetAssetId(null); }}
-        campaign={sheetCampaign}
-        assets={sheetCampaign?.assets || []}
-        initialAssetId={sheetAssetId}
-        onAssetsChange={(newAssets) => {
-          setCampaigns(prev => prev.map(c => c.id === sheetCampaignId ? { ...c, assets: newAssets, assetCount: newAssets.length } : c));
-        }}
-        onCampaignChange={(updated) => {
-          setCampaigns(prev => prev.map(c => c.id === updated.id ? { ...c, ...updated } : c));
-        }}
-      />
 
       {/* Batch Action Bar */}
       <BatchActionBar

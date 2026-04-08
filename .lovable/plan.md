@@ -1,54 +1,32 @@
-## Creative Brief Builder + AI Copy Generator
 
-### 1. Structured Brief Section (replaces plain textarea)
+## Replace Slide-In Sheet → Full-Page Campaign Review
 
-**Collapsible form fields:**
-- **Objective** — dropdown: Awareness / Consideration / Conversion / Engagement
-- **Message Angle** — short input: "What's the core message?" (e.g. "Our product saves 3 hours/week")
-- **Tone** — chip selector: Professional, Playful, Urgent, Luxurious, Edgy, Warm, Bold
-- **CTA Goal** — dropdown: Shop Now / Learn More / Sign Up / Book Demo / Download / Custom
-- **Target Emotion** — chip selector: Trust, Excitement, FOMO, Curiosity, Aspiration, Relief
+The current slide-in sheet is a constrained overlay that fights with the dashboard. Enterprise tools use a **dedicated review page** — you click a campaign card and navigate into a full workspace.
 
-**Freeform override** — collapsible textarea: "Additional instructions for the AI" (power user escape hatch)
+### Architecture
 
-All structured fields get serialized into a `creativeBrief` object passed to the generation engine.
+**`/dashboard/campaign/:id`** — Full-page Campaign Review
 
-### 2. AI Copy Generator (new section below brief)
+**Layout**: Same enterprise workspace pattern as the campaign creator:
+- **Left panel (50%)**: Asset grid with thumbnails, approval/reject buttons, batch actions, caption editor
+- **Right panel (50%)**: iPhone 16 Pro Simulator showing the active asset at full fidelity
 
-**"Generate Copy" button** — calls the `cmo-chat` or a new `generate-copy` edge function with:
-- The structured brief fields
-- Brand profile (voice, tone, audience)
-- Selected reference context
+**Top bar**: Campaign title, status badge, back-to-dashboard button, bulk actions (Approve All, Download All)
 
-**Returns editable fields:**
-- **Headline** — large input
-- **Subheadline** — medium input  
-- **CTA Text** — small input
-- **Body Copy** — textarea (optional, for carousel/post captions)
+**Asset grid behavior**:
+- Cards show thumbnail + platform badge + status indicator
+- Click a card → it loads in the simulator on the right
+- Keyboard nav (arrows, A/R/D) still works
+- Multi-select for batch approve/reject/download
 
-User can edit any field before proceeding. A "Regenerate" button re-runs the AI.
+### Changes
 
-### Files
+1. **`src/pages/CampaignReview.tsx`** — Rewrite as full-page workspace (not the existing unused file)
+2. **`src/App.tsx`** — Add route `/dashboard/campaign/:id`
+3. **`src/pages/Dashboard.tsx`** — Change card click from `setSheetCampaignId` to `navigate(/dashboard/campaign/${id})`
+4. **Remove**: `AssetInspectorSheet` import and usage from Dashboard
 
-1. **New: `src/components/campaign/CreativeBriefBuilder.tsx`** — structured brief form + AI copy section
-2. **Edit: `src/pages/NewCampaign.tsx`** — replace plain textarea with `CreativeBriefBuilder`, wire state
-3. **Edit: `supabase/functions/generate-content/index.ts`** — accept structured brief + copy fields in payload
-
-### State Shape
-```ts
-interface CreativeBrief {
-  objective: 'awareness' | 'consideration' | 'conversion' | 'engagement';
-  messageAngle: string;
-  tone: string[];
-  ctaGoal: string;
-  targetEmotion: string[];
-  freeformNotes: string;
-}
-
-interface CampaignCopy {
-  headline: string;
-  subheadline: string;
-  ctaText: string;
-  bodyCopy: string;
-}
-```
+### Result
+- Campaign card click → navigates to `/dashboard/campaign/:id`
+- Full viewport workspace with asset grid + simulator
+- No overlay, no slide-in, no fighting for space
