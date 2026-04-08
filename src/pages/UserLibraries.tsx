@@ -195,7 +195,7 @@ const UserLibraries = () => {
 
           {TABS.map((tab) => (
             <TabsContent key={tab.value} value={tab.value}>
-              {tab.value === "ad_intelligence" ? (
+               {tab.value === "ad_intelligence" ? (
                 <AdIntelligenceGallery onPreview={setPreviewItem} />
               ) : (
                 <LibraryGallery
@@ -205,15 +205,49 @@ const UserLibraries = () => {
                   search={search}
                   categoryFilters={categoryFilters}
                   onPreview={setPreviewItem}
+                  selectedIds={selectedItems.map(s => s.id)}
+                  onToggleSelect={(item) => toggleSelection(item, tab.value, tab.nameField)}
                 />
               )}
             </TabsContent>
           ))}
         </Tabs>
 
-        {/* Preview Dialog */}
-        <Dialog open={!!previewItem} onOpenChange={() => setPreviewItem(null)}>
-          <DialogContent className="max-w-lg">
+        {/* Floating Selection Bar */}
+        {selectedItems.length > 0 && (
+          <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-primary text-primary-foreground rounded-full shadow-lg px-5 py-3 flex items-center gap-4 animate-in slide-in-from-bottom-4 fade-in duration-200">
+            <div className="flex items-center gap-2">
+              <div className="flex -space-x-2">
+                {selectedItems.slice(0, 4).map((s) => (
+                  <div key={s.id} className="w-8 h-8 rounded-full border-2 border-primary bg-primary-foreground/10 flex items-center justify-center overflow-hidden">
+                    {s.thumbnail ? (
+                      <img src={s.thumbnail} alt={s.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <Check className="w-3 h-3" />
+                    )}
+                  </div>
+                ))}
+              </div>
+              <span className="text-sm font-medium">{selectedItems.length} selected</span>
+            </div>
+            <Button
+              size="sm"
+              variant="secondary"
+              className="h-8 text-xs gap-1.5 font-semibold"
+              onClick={handleUseInCampaign}
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              Use in Campaign
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Button>
+            <button
+              onClick={() => setSelectedItems([])}
+              className="ml-1 p-1 rounded-full hover:bg-primary-foreground/20 transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
             <DialogHeader>
               <DialogTitle className="text-sm">
                 {previewItem?.name || previewItem?.headline || previewItem?.[currentTab.nameField] || "Details"}
