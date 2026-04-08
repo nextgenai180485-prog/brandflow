@@ -275,10 +275,9 @@ const NewCampaign = () => {
     );
 
     const brandContext = {
-      businessName: brandProfile?.summary?.split(".")[0] || title,
-      industry: "general",
-      brandVoice: brandProfile?.brand_voice_detected || "professional",
-      targetAudience: brandProfile?.target_audience_detected || "general audience",
+      businessName: businessName || title,
+      industry: industry || "general",
+      includeLogo,
     };
 
     const primaryPlatform = platforms[0]?.platform || "instagram";
