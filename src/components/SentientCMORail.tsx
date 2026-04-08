@@ -136,16 +136,6 @@ const SentientCMORail = () => {
     ]);
     setRecentAssetCount(recentCount || 0);
 
-    // Template library signal
-    if ((templateCount || 0) > 0 && campaignList.length === 0) {
-      newInsights.push({
-        id: "template-library-available",
-        type: "opportunity",
-        title: `${templateCount} Templates in Source Gallery`,
-        body: `Your Source Gallery has ${templateCount} ready-to-use templates. Browse them in the Campaign Workspace to find proven formats for your vertical.`,
-        action: "Create Campaign",
-      });
-    }
 
     if (pendingList.length > 0) {
       newInsights.push({
