@@ -1377,7 +1377,7 @@ async function processAssetsInBackground(
           console.log(`[Image Templates] Using template: "${matchedTemplate.style_name}" for ${platform}/${format}`);
         }
 
-        const bundle = buildPromptBundle(
+        bundle = buildPromptBundle(
           platform, format, brandContext || {}, assetDirection, matchedTemplate,
           userAssets, campaignCopy, structuredBrief, referenceImageUrl, templateRefs,
         );
