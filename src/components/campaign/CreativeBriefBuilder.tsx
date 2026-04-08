@@ -95,12 +95,13 @@ const CreativeBriefBuilder = ({ brief, onBriefChange, copy, onCopyChange, brandC
           messages: [
             { role: "user", content: prompt },
           ],
+          stream: false,
         },
       });
 
       if (error) throw error;
 
-      const response = data?.reply || data?.message || "";
+      const response = data?.reply || "";
       const parsed = parseCopyResponse(response);
       onCopyChange(parsed);
       setCopyGenerated(true);
