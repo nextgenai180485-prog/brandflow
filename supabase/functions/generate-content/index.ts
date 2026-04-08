@@ -67,8 +67,13 @@ function mapAspectRatio(width: number, height: number): string {
   return "9:16";
 }
 
-// ── Image Generation via Replicate Seedream 5 (Primary) ─────
-async function generateImage(prompt: string, width: number, height: number) {
+// ── Image Generation with optional reference image ──────────
+async function generateImage(prompt: string, width: number, height: number, referenceImageUrls?: string[]) {
+  // If user provided reference images (product/model), use image-to-image pipeline
+  if (referenceImageUrls?.length) {
+    return await generateImageWithReference(prompt, width, height, referenceImageUrls);
+  }
+
   const REPLICATE_API_KEY = Deno.env.get("REPLICATE_API_KEY");
   if (!REPLICATE_API_KEY) {
     console.warn("[Seedream 5] No REPLICATE_API_KEY, falling back to Kie AI");
@@ -78,11 +83,11 @@ async function generateImage(prompt: string, width: number, height: number) {
   const aspectRatio = mapAspectRatio(width, height);
   try {
     console.log(`[Seedream 5] Generating image via Replicate, aspect: ${aspectRatio}`);
-    const response = await fetch("https://api.replicate.com/v1/predictions", {
+    // Use /models/{owner}/{name}/predictions endpoint which accepts model identifier directly
+    const response = await fetch("https://api.replicate.com/v1/models/bytedance/seedream-3.0/predictions", {
       method: "POST",
       headers: { Authorization: `Bearer ${REPLICATE_API_KEY}`, "Content-Type": "application/json", Prefer: "wait" },
       body: JSON.stringify({
-        model: "bytedance/seedream-3.0",
         input: {
           prompt,
           aspect_ratio: aspectRatio,
@@ -125,6 +130,67 @@ async function generateImage(prompt: string, width: number, height: number) {
   }
 }
 
+// ── Image Generation WITH user reference images (product/model) ──
+// Uses FLUX with IP-Adapter style reference for actual image incorporation
+async function generateImageWithReference(prompt: string, width: number, height: number, referenceImageUrls: string[]) {
+  const REPLICATE_API_KEY = Deno.env.get("REPLICATE_API_KEY");
+  const primaryRef = referenceImageUrls[0];
+  const startTime = Date.now();
+
+  // Strategy 1: Replicate FLUX Redux (image variation with prompt guidance)
+  if (REPLICATE_API_KEY) {
+    try {
+      console.log(`[Img2Img] Generating with ${referenceImageUrls.length} reference image(s) via Replicate FLUX`);
+      const response = await fetch("https://api.replicate.com/v1/models/black-forest-labs/flux-1.1-pro-ultra/predictions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${REPLICATE_API_KEY}`, "Content-Type": "application/json", Prefer: "wait=120" },
+        body: JSON.stringify({
+          input: {
+            prompt: `${prompt} Incorporate the subject from the reference image naturally into the scene.`,
+            image: primaryRef,
+            image_prompt_strength: 0.35,
+            aspect_ratio: mapAspectRatio(width, height),
+            output_format: "png",
+            safety_tolerance: 5,
+          },
+        }),
+      });
+      if (!response.ok) {
+        const err = await response.text();
+        console.error(`[FLUX Img2Img] Replicate error ${response.status}: ${err}`);
+        throw new Error(`FLUX img2img error: ${response.status}`);
+      }
+      const prediction = await response.json();
+      if (prediction.status === "succeeded" && prediction.output) {
+        const url = typeof prediction.output === "string" ? prediction.output : prediction.output?.[0];
+        if (url) return { url, provider: "replicate_flux_img2img", cost: 0.06, timeMs: Date.now() - startTime };
+      }
+      // Poll
+      for (let i = 0; i < 60; i++) {
+        await new Promise((r) => setTimeout(r, 3000));
+        const pollResp = await fetch(`https://api.replicate.com/v1/predictions/${prediction.id}`, {
+          headers: { Authorization: `Bearer ${REPLICATE_API_KEY}` },
+        });
+        const pollData = await pollResp.json();
+        if (pollData.status === "succeeded" && pollData.output) {
+          const url = typeof pollData.output === "string" ? pollData.output : pollData.output?.[0];
+          if (url) return { url, provider: "replicate_flux_img2img", cost: 0.06, timeMs: Date.now() - startTime };
+        }
+        if (pollData.status === "failed" || pollData.status === "canceled") {
+          throw new Error(`FLUX img2img failed: ${pollData.error || "Unknown"}`);
+        }
+      }
+      throw new Error("FLUX img2img timed out");
+    } catch (e) {
+      console.error("[FLUX Img2Img] Failed, falling back to text-to-image with description:", e);
+    }
+  }
+
+  // Strategy 2: Fallback to standard text-to-image (describe the reference instead)
+  console.warn("[Img2Img] All image-reference providers failed, falling back to text-only generation");
+  return await generateImageKie(prompt, width, height);
+}
+
 // ── Image Fallback via Kie AI Seedream 4.5 ──────────────────
 async function generateImageKie(prompt: string, width: number, height: number) {
   const KIE_AI_API_KEY = Deno.env.get("KIE_AI_API_KEY")!;
@@ -150,11 +216,10 @@ async function generateVideo(prompt: string, width: number, height: number) {
     try {
       console.log(`[Kling 2.5] Generating video via Replicate, aspect: ${aspectRatio}`);
       const startTime = Date.now();
-      const response = await fetch("https://api.replicate.com/v1/predictions", {
+      const response = await fetch("https://api.replicate.com/v1/models/kwaai/kling-v2.5-pro/predictions", {
         method: "POST",
         headers: { Authorization: `Bearer ${REPLICATE_API_KEY}`, "Content-Type": "application/json", Prefer: "wait=120" },
         body: JSON.stringify({
-          model: "kwaai/kling-v2.5-pro",
           input: {
             prompt,
             duration: 5,
@@ -840,16 +905,24 @@ async function processAssetsInBackground(
         if (campaignCopy.ctaText) campaignContext += `CTA: "${campaignCopy.ctaText}". `;
       }
 
-      // Build user asset references for prompt injection
+      // Build user asset references — collect actual image URLs for img2img pipeline
       let userAssetContext = "";
+      const userImageRefs: string[] = [];
       if (userAssets?.length) {
         const includeLogo = brandContext?.includeLogo !== false;
         const productAssets = userAssets.filter((a: any) => a.role === "product");
         const modelAssets = userAssets.filter((a: any) => a.role === "model");
         const logoAssets = includeLogo ? userAssets.filter((a: any) => a.role === "logo") : [];
-        if (productAssets.length) userAssetContext += `Feature this product: ${productAssets.map((a: any) => a.url).join(", ")}. `;
-        if (modelAssets.length) userAssetContext += `Use this model/person: ${modelAssets.map((a: any) => a.url).join(", ")}. `;
-        if (logoAssets.length) userAssetContext += `Include brand logo: ${logoAssets.map((a: any) => a.url).join(", ")}. `;
+        
+        // Collect actual image URLs for the img2img pipeline (product and model only)
+        for (const a of [...productAssets, ...modelAssets]) {
+          if (a.url) userImageRefs.push(a.url);
+        }
+        
+        // Also add text context for prompt enrichment
+        if (productAssets.length) userAssetContext += `The image must prominently feature the user's product. `;
+        if (modelAssets.length) userAssetContext += `The image must feature the exact person/model provided by the user as the main subject. `;
+        if (logoAssets.length) userAssetContext += `Include brand logo overlay. `;
       }
 
       // Template reference URLs for style matching
@@ -874,10 +947,17 @@ async function processAssetsInBackground(
         }
 
         generatedPrompt = buildImagePrompt(platform, format, brandContext || {}, intelligenceBrief || {}, assetDirection, matchedTemplate, referenceImageUrl);
-        // Inject variation + campaign brief + user assets + template refs
+        // Inject variation + campaign brief + user context + template refs
         generatedPrompt += variationContext + campaignContext + userAssetContext + templateRefContext;
-        console.log(`[Generate] ${assetType} for ${platform}/${format} via Replicate Seedream 5`);
-        const result = await generateImage(generatedPrompt, width || 1080, height || 1080);
+        
+        // Pass actual user image URLs to the img2img pipeline when available
+        const hasUserImages = userImageRefs.length > 0;
+        if (hasUserImages) {
+          console.log(`[Generate] ${assetType} for ${platform}/${format} via Img2Img pipeline with ${userImageRefs.length} reference image(s)`);
+        } else {
+          console.log(`[Generate] ${assetType} for ${platform}/${format} via text-to-image`);
+        }
+        const result = await generateImage(generatedPrompt, width || 1080, height || 1080, hasUserImages ? userImageRefs : undefined);
         contentUrl = result.url;
         actualProvider = result.provider;
         actualCost = result.cost;
