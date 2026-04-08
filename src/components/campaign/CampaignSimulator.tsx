@@ -374,7 +374,7 @@ export default function CampaignSimulator({
   }, [fullscreen]);
 
   return (
-    <div data-simulator-root className={cn(
+    <div data-simulator-root="" className={cn(
       "flex gap-4 items-start transition-all duration-300",
       fullscreen && "absolute inset-0 z-20 bg-secondary/40 backdrop-blur-sm flex items-center justify-center rounded-xl",
       className
