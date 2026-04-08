@@ -21,11 +21,19 @@ serve(async (req) => {
 
     const adminClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    // Fetch all templates missing preview_url
+    // Parse optional limit from body
+    let limit = 2;
+    try {
+      const body = await req.json();
+      if (body?.limit) limit = Math.min(body.limit, 5);
+    } catch { /* no body is fine */ }
+
+    // Fetch templates missing preview_url
     const { data: templates, error: fetchErr } = await adminClient
       .from("image_templates")
       .select("id, style_name, vertical, format, style_guide")
-      .is("preview_url", null);
+      .is("preview_url", null)
+      .limit(limit);
 
     if (fetchErr) throw fetchErr;
     if (!templates || templates.length === 0) {
