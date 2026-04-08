@@ -1,58 +1,60 @@
 
-
-# Add Preview Thumbnails to Image Templates + Generate Previews for All 10 Existing Templates
+# Foreplay Ad Intelligence Integration
 
 ## What This Does
-Adds a `preview_url` column to the `image_templates` table and a file upload field in the admin form, so every image template has a visual thumbnail users can browse. Then generates 10 realistic preview images (one per existing template) using the Gemini image engine, uploads them to the `library-assets` bucket, and updates each row.
+Adds a **live competitor ad search** powered by Foreplay's Discovery API directly into BrandFlow's Content Library and Campaign Wizard. Users search by keyword, domain, or niche — see real winning ads with thumbnails — click to auto-extract SEALCaM analysis — and select ads as style references for campaign generation. Zero friction: search → see → select → generate.
 
-## Current State
-- 10 image templates exist (Clean Product Hero, Lifestyle Product Integration, Dark Luxury Showcase, etc.)
-- Each has a `style_guide` JSON describing mood, lighting, composition, background — but no visual preview
-- The admin form for `image_templates` has no file upload field
-- The library browser shows templates as text-only rows
+## Architecture
 
-## Plan
+### 1. Secret: `FOREPLAY_API_KEY`
+- Store via `add_secret` tool — user provides their Foreplay API key
 
-### Step 1 — Database Migration
-Add `preview_url TEXT` column to `image_templates` table.
+### 2. Edge Function: `foreplay-search` 
+Single edge function that proxies Discovery API searches with these capabilities:
+- **Search ads** by keyword, domain, niche, platform, format (image/video)
+- **Filter** by live status, running duration, language, market target
+- **Returns** thumbnail, video URL, headline, CTA, brand name, display format, categories, running duration
+- Passes through `X-Credits-Remaining` header so the UI can show credit balance
+- Handles 402 (out of credits) and 429 (rate limited) gracefully
 
-### Step 2 — Admin Form Update (`AdminLibraryForm.tsx`)
-Add a `{ key: "preview_url", label: "Preview Thumbnail", type: "file", folder: "image-templates" }` entry to the `image_templates` field config — right after `style_name`.
+### 3. UI: "Ad Intelligence" Tab in Both Libraries
 
-### Step 3 — Admin Table Update (`AdminLibraryTable.tsx`)
-Show the preview thumbnail inline in the image_templates table rows — a small 32x32 rounded image next to the style name.
+**UserLibraries.tsx** (`/dashboard/libraries`):
+- New 6th tab: "Ad Intelligence" with `Search` icon
+- Shows a search bar with filters (keyword, platform dropdown, format dropdown)
+- Results render as the same card grid with thumbnails
+- Click a result → detail dialog showing ad copy, CTA, brand, running duration
+- "Analyze Style" button → calls `analyze-asset` edge function with the ad's image/thumbnail URL to auto-extract SEALCaM JSON
 
-### Step 4 — Library Picker Update (`AssetLibraryPicker.tsx`)
-When rendering image template items in the content library modal, display the `preview_url` thumbnail so users can visually browse styles.
+**AssetLibraryPicker.tsx** (campaign wizard modal):
+- New 7th tab: "Ad Intel" 
+- Same search + results grid
+- Ads are selectable just like any other library asset — clicking adds them to `selectedAssets`
+- The ad's thumbnail/video URL becomes the `file_url` on the LibraryAsset, with `source_tab: "ad_intelligence"`
+- Selected ads flow into the generation engine as style references (same as image/video templates)
 
-### Step 5 — Generate 10 Preview Images via Edge Function
-Create a one-time script in an edge function (`seededit` or a temporary invocation) that:
-1. For each of the 10 templates, uses their `style_guide` (mood, lighting, composition, background) to build a prompt
-2. Calls the Lovable AI Gateway (Gemini 2.5 Flash Image) to generate a realistic preview
-3. Uploads the resulting image to `library-assets/image-templates/`
-4. Updates the `preview_url` column for each template
+### 4. Data Flow (No New Tables)
+- Foreplay ads are **not stored** in our DB — they're searched live and selected ephemerally for the campaign session
+- Selected ads are converted to `LibraryAsset` objects with the Foreplay thumbnail/image URL
+- The generation engine already consumes `templateRefs` from selected assets — Foreplay ads slot in identically
+- If a user wants to permanently save a Foreplay ad, they can use the existing "Save to Library" flow (future enhancement)
 
-Each prompt will incorporate the template's exact style_guide values (e.g., "soft studio three-point lighting, centered product hero composition, clean white background") combined with the photorealism anchors (Nikon Z8, organic textures, cinematic film grain) to produce world-class preview thumbnails.
+### 5. Enterprise-Grade Details
+- **Credit awareness**: Show remaining Foreplay credits in the UI header
+- **Debounced search**: 500ms debounce on search input to avoid burning credits
+- **Error handling**: 402 → "Foreplay credits exhausted" toast, 429 → "Rate limited, retry in a moment"
+- **Smart defaults**: Pre-fill search with user's industry from their profile
 
-## Technical Details
+## Files Changed
 
-**Migration SQL:**
-```sql
-ALTER TABLE image_templates ADD COLUMN preview_url TEXT;
-```
+| File | Change |
+|------|--------|
+| `supabase/functions/foreplay-search/index.ts` | **New** — Edge function proxying Foreplay Discovery API |
+| `src/pages/UserLibraries.tsx` | Add "Ad Intelligence" tab with live search |
+| `src/components/AssetLibraryPicker.tsx` | Add "Ad Intel" tab in campaign picker modal |
 
-**Preview generation prompt pattern:**
-```
-Professional {vertical} photography preview. {style_guide.composition}, 
-{style_guide.lighting}, {style_guide.background}. {style_guide.color_treatment}. 
-Shot on Nikon Z8 45.7MP, 85mm f/1.8. Organic skin tones, subtle cinematic 
-film grain. No AI artifacts, no stylization. Format: {format}.
-```
-
-**Files Changed:**
-- `image_templates` table — add `preview_url` column
-- `src/components/admin/AdminLibraryForm.tsx` — add file upload field for preview
-- `src/components/admin/AdminLibraryTable.tsx` — show thumbnail in rows
-- `src/components/AssetLibraryPicker.tsx` — show thumbnail in library modal
-- `supabase/functions/generate-content/index.ts` — add a helper or use a one-time script to generate the 10 previews
-
+## What It Does NOT Do (Keeping Scope Tight)
+- Does NOT create new DB tables (ads are ephemeral/live-searched)
+- Does NOT replace existing template previews
+- Does NOT integrate Spyder or SwipeFile APIs (can add later)
+- Does NOT auto-save Foreplay ads to our library (future feature)
