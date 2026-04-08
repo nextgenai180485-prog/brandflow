@@ -1170,7 +1170,7 @@ async function processAssetsInBackground(
     if (placeholderId === "error") return null;
     const { platform, format, aspectRatio, width, height, assetType } = assetItem;
     const startTime = Date.now();
-    const { platform, format, aspectRatio, width, height, assetType } = asset;
+    
 
     // Rotate through creative directions
     const directionPool = allDirections?.length ? allDirections : [decisionWinner];
