@@ -691,6 +691,38 @@ const NewCampaign = () => {
                 );
               })}
             </div>
+
+            {/* Real-time generation breakdown */}
+            {contentTypes.length > 0 && platforms.length > 0 && (
+              <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 space-y-2">
+                <div className="flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-primary" />
+                  <p className="text-xs font-semibold text-foreground">
+                    What you'll get: {Math.max(1, selectedAssets.length) * platforms.length * contentTypes.length} assets
+                  </p>
+                </div>
+                <div className="space-y-1">
+                  {contentTypes.map(ct => (
+                    <div key={ct} className="flex items-start gap-2 text-[10px] text-muted-foreground">
+                      <CheckCircle2 className="w-3 h-3 text-primary mt-0.5 shrink-0" />
+                      <span>
+                        <strong className="text-foreground">{CONTENT_TYPE_LABELS[ct].label}</strong>
+                        {" — "}
+                        {platforms.map(p => {
+                          const family = routeFamily(ct, p.platform);
+                          return `${p.platform} ${p.format} (${FAMILY_LABELS[family]})`;
+                        }).join(", ")}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                {contentTypes.length > 1 && (
+                  <p className="text-[9px] text-muted-foreground/70 italic">
+                    Each content type generates separately — you'll receive distinct {contentTypes.map(ct => CONTENT_TYPE_LABELS[ct].label.toLowerCase()).join(" and ")} creatives.
+                  </p>
+                )}
+              </div>
+            )}
           </div>
         </>
       )}
