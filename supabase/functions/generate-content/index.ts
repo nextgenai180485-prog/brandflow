@@ -173,7 +173,7 @@ async function generateVideo(prompt: string, width: number, height: number) {
         method: "POST",
         headers: { Authorization: `Bearer ${REPLICATE_API_KEY}`, "Content-Type": "application/json", Prefer: "wait=120" },
         body: JSON.stringify({
-          input: { prompt, duration: 5, aspect_ratio: aspectRatio, negative_prompt: "blurry, low quality, distorted, watermark, text overlay, amateur" },
+          input: { prompt, duration: 5, aspect_ratio: aspectRatio, negative_prompt: "blurry, low quality, distorted, watermark, text overlay, amateur, AI-generated look, plastic skin, over-smoothed, artificial blur" },
         }),
       });
       if (!response.ok) {
@@ -753,13 +753,24 @@ function buildPromptBundle(
     toneDirective = `Mood: ${structuredBrief.tone.join(", ")}. `;
   }
 
+  // ── PHOTOREALISM ANCHOR — injected into every generation ──
+  // This block eliminates "AI look" and enforces cinema-grade realism.
+  const REALISM_ANCHOR = [
+    "Maintain accurate, organic skin tones with realistic color balance.",
+    "Subtle cinematic film grain, professional movie-still look.",
+    "Shot on Nikon Z8 45.7MP mirrorless, natural lens character.",
+    "Background untouched — only slightly cleaner if noisy, no artificial blur.",
+    "Preserve all facial features, expressions, hair strands, and natural imperfections.",
+    "Photorealistic result, professional camera look, high-quality enhancement only — no stylization.",
+  ].join(" ");
+
   // Assemble visual prompt — STRICTLY visual, no text/copy instructions
   let visualPrompt = `${subjectDirective}${angle}. `;
   if (hookVisual) visualPrompt += `Visual concept: ${hookVisual}. `;
   visualPrompt += `${styleDirective}. ${formatRule}. ${toneDirective}`;
-  visualPrompt += `Photorealistic, professional post-processing, natural color grading. `;
+  visualPrompt += `${REALISM_ANCHOR} `;
   visualPrompt += `No text, no watermarks, no logos, no borders, no UI elements. `;
-  visualPrompt += `Avoid: stock photo feel, clipart, illustration, 3D render, cartoon.`;
+  visualPrompt += `Avoid: stock photo feel, clipart, illustration, 3D render, cartoon, AI-generated look.`;
 
   // ── 3. Extract text overlay metadata (for post-processing) ──
   const textOverlay: TextOverlayMeta = {

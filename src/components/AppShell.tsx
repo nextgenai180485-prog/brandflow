@@ -17,7 +17,6 @@ import { supabase } from "@/integrations/supabase/client";
 const baseNavItems = [
   { label: "Campaigns", path: "/dashboard" },
   { label: "Generations", path: "/dashboard/generations" },
-  { label: "Creative Sandbox", path: "/dashboard/visual-director" },
   { label: "Libraries", path: "/dashboard/libraries" },
   { label: "Calendar", path: "/calendar" },
   { label: "Channels", path: "/dashboard/social-settings" },
