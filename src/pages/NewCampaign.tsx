@@ -1,11 +1,12 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
 import type { LibrarySelection } from "@/components/LibraryBrowser";
-import { useNavigate, useLocation } from "react-router-dom";
-import { ArrowLeft, ArrowRight, Loader2, ImageIcon, Sparkles, Film, Camera, Check, VideoIcon, Layout, Brain, X } from "lucide-react";
+import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
+import { ArrowLeft, ArrowRight, Loader2, ImageIcon, Sparkles, Film, Camera, Check, VideoIcon, Layout, Brain, X, CloudOff, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useAutoSaveDraft } from "@/hooks/useAutoSaveDraft";
 import { useIsMobile } from "@/hooks/use-mobile";
 import AppShell from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
