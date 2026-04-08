@@ -34,7 +34,7 @@ const SentientCMORail = () => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [activeToast, setActiveToast] = useState<Insight | null>(null);
   const [toastDismissed, setToastDismissed] = useState<Set<string>>(new Set());
-  const [toastSuppressed, setToastSuppressed] = useState(false);
+  const toastSuppressedRef = useRef(false);
   const [insights, setInsights] = useState<Insight[]>([]);
   const [systemStatus, setSystemStatus] = useState<"optimal" | "alert" | "critical">("optimal");
   const [campaignCount, setCampaignCount] = useState(0);
@@ -185,7 +185,7 @@ const SentientCMORail = () => {
     const toastable = deduplicated.find(
       (i) => (i.type === "critical" || i.type === "opportunity") && !toastDismissed.has(i.id)
     );
-    if (toastable && !isExpanded && !toastSuppressed) {
+    if (toastable && !isExpanded && !toastSuppressedRef.current) {
       setActiveToast(toastable);
     }
 
