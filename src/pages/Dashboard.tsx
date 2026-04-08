@@ -301,6 +301,7 @@ const Dashboard = () => {
                 <CampaignCard
                   campaign={campaign}
                   assets={campaign.assets}
+                  onClick={() => setSheetCampaignId(campaign.id)}
                   onDelete={(e) => { e.stopPropagation(); setDeleteConfirmId(campaign.id); }}
                   onDuplicate={(e) => { e.stopPropagation(); duplicateCampaign(campaign); }}
                 />
