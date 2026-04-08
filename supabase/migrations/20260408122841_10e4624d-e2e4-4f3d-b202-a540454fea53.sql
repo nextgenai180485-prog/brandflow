@@ -1,0 +1,1 @@
+ALTER TABLE public.image_templates ADD COLUMN preview_url TEXT;

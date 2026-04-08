@@ -672,6 +672,7 @@ export type Database = {
           is_active: boolean
           negative_prompt: string
           platform: string | null
+          preview_url: string | null
           prompt_modifiers: string[]
           quality_tier: string
           style_guide: Json
@@ -688,6 +689,7 @@ export type Database = {
           is_active?: boolean
           negative_prompt?: string
           platform?: string | null
+          preview_url?: string | null
           prompt_modifiers?: string[]
           quality_tier?: string
           style_guide?: Json
@@ -704,6 +706,7 @@ export type Database = {
           is_active?: boolean
           negative_prompt?: string
           platform?: string | null
+          preview_url?: string | null
           prompt_modifiers?: string[]
           quality_tier?: string
           style_guide?: Json
