@@ -16,12 +16,13 @@ const statusConfig: Record<CampaignStatus, { label: string; className: string }>
 interface CampaignCardProps {
   campaign: Campaign;
   assets: GeneratedAsset[];
+  isDraft?: boolean;
   onClick: () => void;
   onDelete: (e: React.MouseEvent) => void;
   onDuplicate?: (e: React.MouseEvent) => void;
 }
 
-export default function CampaignCard({ campaign, assets, onClick, onDelete, onDuplicate }: CampaignCardProps) {
+export default function CampaignCard({ campaign, assets, isDraft, onClick, onDelete, onDuplicate }: CampaignCardProps) {
   const status = statusConfig[campaign.status as CampaignStatus] || statusConfig.draft;
   const thumbnails = assets.filter(a => a.content_url && a.asset_type !== "copy").slice(0, 4);
   const isGenerating = campaign.status === "generating";
