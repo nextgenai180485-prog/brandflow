@@ -451,6 +451,26 @@ const NewCampaign = () => {
             activeIndex={activeSwapIndex}
             onActiveChange={setActiveSwapIndex}
           />
+
+          {/* Logo inclusion toggle */}
+          <div className="flex items-center justify-between p-3 rounded-xl border border-border bg-card">
+            <div className="space-y-0.5">
+              <Label className="text-sm font-medium">Include brand logo</Label>
+              <p className="text-[10px] text-muted-foreground">Add your logo as a watermark/overlay in generated creatives</p>
+            </div>
+            <button
+              onClick={() => setIncludeLogo(!includeLogo)}
+              className={cn(
+                "relative w-10 h-5 rounded-full transition-colors",
+                includeLogo ? "bg-primary" : "bg-muted"
+              )}
+            >
+              <span className={cn(
+                "absolute top-0.5 w-4 h-4 rounded-full bg-background shadow transition-transform",
+                includeLogo ? "left-5" : "left-0.5"
+              )} />
+            </button>
+          </div>
         </>
       )}
 
