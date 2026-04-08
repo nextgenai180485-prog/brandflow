@@ -43,7 +43,9 @@ const NewCampaign = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const isMobile = useIsMobile();
+  const resumeDraftId = searchParams.get("draft") || null;
   const showcaseState = location.state as { fromShowcase?: boolean; templateRef?: { id: string; title: string; mediaUrl?: string; industryTags?: string[]; moodTags?: string[]; platformTags?: string[] }; bulkRefs?: { id: string; title: string; mediaUrl?: string; industryTags?: string[]; moodTags?: string[]; platformTags?: string[] }[] } | null;
 
   const [step, setStep] = useState(0);
