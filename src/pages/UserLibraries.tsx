@@ -766,7 +766,7 @@ const LibraryGallery = ({ table, nameField, icon: Icon, search, categoryFilters,
             <CardContent className="p-2.5">
               <p className="text-xs font-medium text-foreground truncate">{name}</p>
               {item.mood && <p className="text-[10px] text-muted-foreground mt-0.5">{item.mood}</p>}
-              {item.family && <Badge variant="outline" className="text-[8px] mt-1 mr-1">{item.family}</Badge>}
+              {item.family && <Badge variant="outline" className="text-[8px] mt-1 mr-1">{getFamilyLabel(item.family)}</Badge>}
               {item.vertical && <Badge variant="outline" className="text-[8px] mt-1">{item.vertical}</Badge>}
               {tags.length > 0 && (
                 <div className="flex flex-wrap gap-0.5 mt-1.5">
@@ -809,7 +809,7 @@ const ItemDetail = ({ item, tab }: { item: any; tab: (typeof TABS)[number] }) =>
         {item.family && (
           <div>
             <span className="text-muted-foreground">Family:</span>{" "}
-            <span className="font-medium text-foreground">{item.family}</span>
+            <span className="font-medium text-foreground">{getFamilyLabel(item.family)}</span>
           </div>
         )}
         {item.mood && (
