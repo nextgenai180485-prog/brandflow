@@ -248,8 +248,8 @@ export default function CampaignSimulator({
           <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center">
             <ImageIcon className="w-7 h-7" />
           </div>
-          <p className="text-[12px] font-medium text-center px-6">Select a template below to preview</p>
-          <p className="text-[10px] text-center px-8 text-muted-foreground/60">Choose from the Source Gallery or upload your own creative</p>
+          <p className="text-[12px] font-medium text-center px-6">Preview will appear here</p>
+          <p className="text-[10px] text-center px-8 text-muted-foreground/60">Select platforms and content types to see a live preview</p>
         </div>
       );
     }
@@ -260,7 +260,7 @@ export default function CampaignSimulator({
   };
 
   // Dynamic scale to fit container without scroll
-  const availableHeight = typeof window !== "undefined" ? window.innerHeight - 56 - 220 - 40 : 600;
+  const availableHeight = typeof window !== "undefined" ? window.innerHeight - 56 - 40 : 600;
   const maxPhoneHeight = availableHeight - 90;
   const dynamicScale = Math.min(0.62, maxPhoneHeight / 852);
   const phoneScale = Math.max(0.35, dynamicScale);
