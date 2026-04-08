@@ -71,6 +71,7 @@ const EmptyCampaigns = ({ onCreateClick }: EmptyCampaignsProps) => {
   const [refs, setRefs] = useState<ShowcaseRef[]>(STATIC_REFS);
   const [loading, setLoading] = useState(true);
   const [brandReadiness, setBrandReadiness] = useState({ score: 0, missing: [] as string[] });
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   // Fetch showcase refs
   useEffect(() => {
@@ -106,6 +107,17 @@ const EmptyCampaigns = ({ onCreateClick }: EmptyCampaignsProps) => {
     });
   }, [user]);
 
+  const toggleSelect = (ref: ShowcaseRef) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(ref.id)) next.delete(ref.id);
+      else next.add(ref.id);
+      return next;
+    });
+  };
+
+  const selectedRefs = refs.filter(r => selectedIds.has(r.id));
+
   const handleTemplate = (template: typeof CAMPAIGN_TEMPLATES[0]) => {
     navigate("/dashboard/campaigns/new", {
       state: {
@@ -115,32 +127,34 @@ const EmptyCampaigns = ({ onCreateClick }: EmptyCampaignsProps) => {
           platforms: template.platforms,
           instructions: template.instructions,
         },
+        ...(selectedRefs.length > 0 && {
+          bulkRefs: selectedRefs.map(r => ({
+            id: r.id, title: r.title,
+            mediaUrl: r.media_url || r.thumbnail_url,
+            industryTags: r.industry_tags, moodTags: r.mood_tags, platformTags: r.platform_tags,
+          })),
+        }),
       },
     });
   };
 
-  const handleShowcaseRef = (ref: ShowcaseRef) => {
-    navigate("/dashboard/campaigns/new", {
-      state: {
-        fromShowcase: true,
-        templateRef: {
-          id: ref.id,
-          title: ref.title,
-          mediaUrl: ref.media_url || ref.thumbnail_url,
-          industryTags: ref.industry_tags,
-          moodTags: ref.mood_tags,
-          platformTags: ref.platform_tags,
-        },
-      },
-    });
+  const handleCreateWithSelection = () => {
+    onCreateClick(selectedRefs.length > 0 ? selectedRefs : undefined);
   };
 
   return (
     <div className="space-y-8">
       {/* Hero section */}
-      <div>
-        <h2 className="text-xl font-semibold text-foreground">Launch your first campaign</h2>
-        <p className="text-sm text-muted-foreground mt-0.5">Choose a template or start from an inspiration reference</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-semibold text-foreground">Launch your first campaign</h2>
+          <p className="text-sm text-muted-foreground mt-0.5">Choose a template or select inspiration references below</p>
+        </div>
+        {selectedIds.size > 0 && (
+          <Button size="sm" onClick={handleCreateWithSelection} className="h-8 text-xs gap-1.5">
+            <Plus className="w-3.5 h-3.5" /> Create with {selectedIds.size} ref{selectedIds.size > 1 ? "s" : ""}
+          </Button>
+        )}
       </div>
 
       {/* Brand readiness + templates row */}
