@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import AppShell from "@/components/AppShell";
@@ -24,12 +24,33 @@ import {
 } from "@/components/ui/dialog";
 
 const TABS = [
-  { value: "video_templates", label: "Video Templates", icon: Film, table: "video_templates" as const, nameField: "template_name" },
-  { value: "character_library", label: "Characters", icon: Users, table: "character_library" as const, nameField: "name" },
-  { value: "ad_reference_library", label: "Ad References", icon: Megaphone, table: "ad_reference_library" as const, nameField: "title" },
-  { value: "image_templates", label: "Image Templates", icon: Image, table: "image_templates" as const, nameField: "style_name" },
-  { value: "hooks", label: "Hooks", icon: Zap, table: "hooks" as const, nameField: "hook_text" },
-  { value: "ad_intelligence", label: "Ad Intel", icon: Radar, table: "foreplay" as const, nameField: "name" },
+  { value: "video_templates", label: "Video Templates", icon: Film, table: "video_templates" as const, nameField: "template_name",
+    categories: [
+      { key: "family", label: "Family", options: ["F1_UGC", "F2_SPOKESPERSON", "F5_CINEMATIC"] },
+      { key: "mood", label: "Mood", options: ["aspirational", "authentic", "cinematic", "dramatic", "educational", "energetic", "epic", "inspirational", "luxurious", "professional", "urgent", "warm"] },
+    ]},
+  { value: "character_library", label: "Characters", icon: Users, table: "character_library" as const, nameField: "name",
+    categories: [
+      { key: "gender", label: "Gender", options: ["male", "female", "neutral"] },
+      { key: "voice_style", label: "Voice", options: ["authoritative", "calm", "casual", "conversational", "elegant", "energetic", "inspiring", "motivational", "passionate", "professional", "trendy"] },
+    ]},
+  { value: "ad_reference_library", label: "Ad References", icon: Megaphone, table: "ad_reference_library" as const, nameField: "title",
+    categories: [
+      { key: "media_type", label: "Type", options: ["image", "video"] },
+    ]},
+  { value: "image_templates", label: "Image Templates", icon: Image, table: "image_templates" as const, nameField: "style_name",
+    categories: [
+      { key: "vertical", label: "Vertical", options: ["beauty", "ecommerce", "fashion", "fitness", "food", "general", "lifestyle", "luxury", "real_estate", "technology"] },
+      { key: "quality_tier", label: "Quality", options: ["standard", "premium"] },
+      { key: "platform", label: "Platform", options: ["facebook", "instagram"] },
+    ]},
+  { value: "hooks", label: "Hooks", icon: Zap, table: "hooks" as const, nameField: "hook_text",
+    categories: [
+      { key: "hook_type", label: "Type", options: ["bold_claim", "curiosity", "question", "statistic", "story"] },
+      { key: "family", label: "Family", options: ["F1_UGC", "F2_SPOKESPERSON", "F5_CINEMATIC"] },
+      { key: "platform", label: "Platform", options: ["facebook", "instagram_reels", "tiktok", "youtube_shorts"] },
+    ]},
+  { value: "ad_intelligence", label: "Ad Intel", icon: Radar, table: "foreplay" as const, nameField: "name", categories: [] },
 ] as const;
 
 type TabValue = (typeof TABS)[number]["value"];
@@ -38,13 +59,32 @@ const UserLibraries = () => {
   const [activeTab, setActiveTab] = useState<TabValue>("video_templates");
   const [search, setSearch] = useState("");
   const [previewItem, setPreviewItem] = useState<any>(null);
+  const [categoryFilters, setCategoryFilters] = useState<Record<string, string>>({});
 
   const currentTab = TABS.find((t) => t.value === activeTab)!;
+  const currentCategories = (currentTab.categories || []) as readonly { key: string; label: string; options: readonly string[] }[];
+
+  const toggleCategory = (key: string, value: string) => {
+    setCategoryFilters(prev => {
+      const next = { ...prev };
+      if (next[key] === value) delete next[key];
+      else next[key] = value;
+      return next;
+    });
+  };
+
+  const handleTabChange = (v: string) => {
+    setActiveTab(v as TabValue);
+    setCategoryFilters({});
+    setSearch("");
+  };
+
+  const activeFilterCount = Object.keys(categoryFilters).length + (search ? 1 : 0);
 
   return (
     <AppShell>
       <div className="px-4 sm:px-6 pt-4 pb-8">
-        <div className="mb-6">
+        <div className="mb-4">
           <h1 className="text-lg font-bold text-foreground">Content Library</h1>
           <p className="text-xs text-muted-foreground mt-1">
             Browse curated templates, characters, references, and competitor ad intelligence.
@@ -52,18 +92,51 @@ const UserLibraries = () => {
         </div>
 
         {activeTab !== "ad_intelligence" && (
-          <div className="relative mb-4">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search by name, mood, style, platform, format, tag..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 h-9 text-sm"
-            />
+          <div className="space-y-3 mb-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by name, mood, style, platform, format, tag..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-9 h-9 text-sm"
+              />
+            </div>
+
+            {/* Category Filter Chips */}
+            {currentCategories.length > 0 && (
+              <div className="space-y-2">
+                {currentCategories.map((cat) => (
+                  <div key={cat.key} className="flex items-center gap-2 flex-wrap">
+                    <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider w-14 shrink-0">{cat.label}</span>
+                    {cat.options.map((opt) => (
+                      <Badge
+                        key={opt}
+                        variant={categoryFilters[cat.key] === opt ? "default" : "outline"}
+                        className="text-[10px] px-2 py-0.5 cursor-pointer hover:bg-primary/10 transition-colors capitalize"
+                        onClick={() => toggleCategory(cat.key, opt)}
+                      >
+                        {opt.replace(/_/g, " ")}
+                      </Badge>
+                    ))}
+                  </div>
+                ))}
+                {activeFilterCount > 0 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-[10px] h-6 px-2 text-muted-foreground"
+                    onClick={() => { setCategoryFilters({}); setSearch(""); }}
+                  >
+                    Clear all ({activeFilterCount})
+                  </Button>
+                )}
+              </div>
+            )}
           </div>
         )}
 
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabValue)}>
+        <Tabs value={activeTab} onValueChange={handleTabChange}>
           <TabsList className="mb-5 w-full grid grid-cols-6 h-auto p-1">
             {TABS.map((tab) => (
               <TabsTrigger
@@ -88,6 +161,7 @@ const UserLibraries = () => {
                   nameField={tab.nameField}
                   icon={tab.icon}
                   search={search}
+                  categoryFilters={categoryFilters}
                   onPreview={setPreviewItem}
                 />
               )}
@@ -350,10 +424,11 @@ interface LibraryGalleryProps {
   nameField: string;
   icon: any;
   search: string;
+  categoryFilters: Record<string, string>;
   onPreview: (item: any) => void;
 }
 
-const LibraryGallery = ({ table, nameField, icon: Icon, search, onPreview }: LibraryGalleryProps) => {
+const LibraryGallery = ({ table, nameField, icon: Icon, search, categoryFilters, onPreview }: LibraryGalleryProps) => {
   const { data: items = [], isLoading } = useQuery({
     queryKey: ["user-library", table],
     queryFn: async () => {
@@ -368,6 +443,16 @@ const LibraryGallery = ({ table, nameField, icon: Icon, search, onPreview }: Lib
   });
 
   const filtered = items.filter((item: any) => {
+    // Category filters — exact match
+    for (const [key, value] of Object.entries(categoryFilters)) {
+      const itemVal = item[key];
+      if (Array.isArray(itemVal)) {
+        if (!itemVal.some((v: string) => v?.toLowerCase() === value.toLowerCase())) return false;
+      } else if ((itemVal || "").toLowerCase() !== value.toLowerCase()) {
+        return false;
+      }
+    }
+    // Text search
     if (!search) return true;
     const q = search.toLowerCase();
     const searchable = [
