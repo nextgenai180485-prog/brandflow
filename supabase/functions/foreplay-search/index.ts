@@ -25,6 +25,7 @@ Deno.serve(async (req) => {
       keyword,
       domain,
       niche,
+      niches,
       platform,
       display_format,
       live,
@@ -36,23 +37,40 @@ Deno.serve(async (req) => {
       offset = 0,
       cursor,
       order,
+      // Brand search params
+      name,
+      category,
     } = body;
 
-    // Build query params
     const params = new URLSearchParams();
-    if (keyword) params.set("keyword", keyword);
-    if (domain) params.set("domain", domain);
-    if (niche) params.set("niches", JSON.stringify([niche]));
-    if (platform) params.set("publisher_platform", platform);
-    if (display_format) params.set("display_format", display_format);
-    if (live !== undefined) params.set("live", String(live));
-    if (language) params.set("languages", language);
-    if (market_target) params.set("market_target", market_target);
-    if (running_duration_min_days) params.set("running_duration_min_days", String(running_duration_min_days));
-    if (running_duration_max_days) params.set("running_duration_max_days", String(running_duration_max_days));
+
+    const isBrandEndpoint = endpoint.includes("brands");
+
+    if (isBrandEndpoint) {
+      // Brand endpoints use 'name' for search
+      if (name) params.set("name", name);
+      if (keyword) params.set("name", keyword); // allow keyword as alias
+      if (category) params.set("category", category);
+      if (niches) params.set("niches", JSON.stringify(Array.isArray(niches) ? niches : [niches]));
+      if (niche) params.set("niches", JSON.stringify([niche]));
+    } else {
+      // Ad endpoints
+      if (keyword) params.set("keyword", keyword);
+      if (domain) params.set("domain", domain);
+      if (niches) params.set("niches", JSON.stringify(Array.isArray(niches) ? niches : [niches]));
+      else if (niche) params.set("niches", JSON.stringify([niche]));
+      if (platform) params.set("publisher_platform", platform);
+      if (display_format) params.set("display_format", display_format);
+      if (live !== undefined) params.set("live", String(live));
+      if (language) params.set("languages", language);
+      if (market_target) params.set("market_target", market_target);
+      if (running_duration_min_days) params.set("running_duration_min_days", String(running_duration_min_days));
+      if (running_duration_max_days) params.set("running_duration_max_days", String(running_duration_max_days));
+      if (order) params.set("order", order);
+    }
+
     if (cursor) params.set("cursor", cursor);
     if (offset) params.set("offset", String(offset));
-    if (order) params.set("order", order);
     params.set("limit", String(limit));
 
     const url = `${FOREPLAY_BASE}/api/${endpoint}?${params.toString()}`;
@@ -75,7 +93,7 @@ Deno.serve(async (req) => {
       if (status === 402) errorMsg = "Foreplay credits exhausted. Please top up at app.foreplay.co";
       if (status === 429) errorMsg = "Foreplay rate limit reached. Please wait a moment and try again.";
 
-      console.error("Foreplay error:", status, errorMsg);
+      console.error("Foreplay error:", status, errorMsg, JSON.stringify(data));
       return new Response(
         JSON.stringify({ success: false, error: errorMsg }),
         { status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
