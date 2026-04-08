@@ -232,7 +232,7 @@ const AdIntelligenceGallery = ({ onPreview }: { onPreview: (item: any) => void }
                 className="group cursor-pointer transition-all hover:shadow-md hover:border-primary/30 overflow-hidden"
                 onClick={() => onPreview(ad)}
               >
-                <div className="relative aspect-[4/3] bg-muted flex items-center justify-center overflow-hidden">
+                <div className="relative aspect-[4/5] bg-muted flex items-center justify-center overflow-hidden">
                   {thumb ? (
                     <img src={thumb} alt={name} className="w-full h-full object-cover" />
                   ) : ad.display_format === "video" ? (
@@ -411,7 +411,7 @@ const LibraryGallery = ({ table, nameField, icon: Icon, search, onPreview }: Lib
             className="group cursor-pointer transition-all hover:shadow-md hover:border-primary/30 overflow-hidden"
             onClick={() => onPreview(item)}
           >
-            <div className="relative aspect-[4/3] bg-muted flex items-center justify-center overflow-hidden">
+            <div className="relative aspect-[4/5] bg-muted flex items-center justify-center overflow-hidden">
               {thumb ? (
                 <img src={thumb} alt={name} className="w-full h-full object-cover" />
               ) : (
