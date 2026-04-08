@@ -41,7 +41,8 @@ const FORM_FIELDS: Record<TableName, { key: string; label: string; type: FieldTy
     { key: "duration_s", label: "Duration (seconds)", type: "number" },
     { key: "hook_type", label: "Hook Type", type: "select", options: ["question", "shock", "story", "statistic", "challenge", "visual"] },
     { key: "tags", label: "Tags (comma-separated)", type: "tags" },
-    { key: "example_url", label: "Example Media", type: "file", folder: "video-templates" },
+    { key: "example_url", label: "Example Video", type: "file", folder: "video-templates" },
+    { key: "thumbnail_url", label: "Thumbnail (auto-generated from video)", type: "file", folder: "video-templates/thumbnails" },
     { key: "sealcam_analysis", label: "SEALCaM Analysis (JSON)", type: "json" },
   ],
   character_library: [
@@ -196,6 +197,10 @@ const AdminLibraryForm = ({ tableName, editingItem, onClose, onSaved }: AdminLib
         if (uploadError) throw uploadError;
         const { data: { publicUrl } } = supabase.storage.from("library-assets").getPublicUrl(uploadData.path);
         analysisUrl = publicUrl;
+        // Auto-populate thumbnail_url field for video_templates
+        if (tableName === "video_templates") {
+          setValues((prev) => ({ ...prev, thumbnail_url: publicUrl }));
+        }
         toast.info("🔍 Analyzing extracted frame…", { id: "auto-analyze" });
       } else {
         toast.info("🔍 Auto-analyzing media…", { id: "auto-analyze" });

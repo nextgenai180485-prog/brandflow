@@ -914,6 +914,7 @@ export type Database = {
           sealcam_analysis: Json
           tags: string[] | null
           template_name: string
+          thumbnail_url: string | null
           updated_at: string
           usage_count: number
         }
@@ -930,6 +931,7 @@ export type Database = {
           sealcam_analysis?: Json
           tags?: string[] | null
           template_name: string
+          thumbnail_url?: string | null
           updated_at?: string
           usage_count?: number
         }
@@ -946,6 +948,7 @@ export type Database = {
           sealcam_analysis?: Json
           tags?: string[] | null
           template_name?: string
+          thumbnail_url?: string | null
           updated_at?: string
           usage_count?: number
         }

@@ -1,0 +1,1 @@
+ALTER TABLE public.video_templates ADD COLUMN IF NOT EXISTS thumbnail_url TEXT;
