@@ -48,7 +48,7 @@ const LIBRARY_TABS = [
 
 type LibTabValue = (typeof LIBRARY_TABS)[number]["value"];
 
-const AssetLibraryPicker = ({ selectedAssets, onChange }: AssetLibraryPickerProps) => {
+const AssetLibraryPicker = ({ selectedAssets, onChange, defaultTab, triggerLabel, triggerSubLabel }: AssetLibraryPickerProps) => {
   const [open, setOpen] = useState(false);
 
   const isSelected = (id: string) => selectedAssets.some((a) => a.id === id);
@@ -71,9 +71,9 @@ const AssetLibraryPicker = ({ selectedAssets, onChange }: AssetLibraryPickerProp
             </div>
             <div className="text-left">
               <p className="text-xs font-medium text-foreground">
-                {selectedAssets.length > 0 ? `Browse Templates (${selectedAssets.length} selected)` : "Templates"}
+                {triggerLabel || (selectedAssets.length > 0 ? `Browse Templates (${selectedAssets.length} selected)` : "Templates")}
               </p>
-              <p className="text-[10px] text-muted-foreground">Browse style references, characters, and templates</p>
+              <p className="text-[10px] text-muted-foreground">{triggerSubLabel || "Browse style references, characters, and templates"}</p>
             </div>
           </button>
         </DialogTrigger>
@@ -83,6 +83,7 @@ const AssetLibraryPicker = ({ selectedAssets, onChange }: AssetLibraryPickerProp
           isSelected={isSelected}
           toggleAsset={toggleAsset}
           onChange={onChange}
+          defaultTab={defaultTab}
         />
       </Dialog>
     </div>
