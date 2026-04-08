@@ -184,7 +184,7 @@ const LibraryTabGrid = ({ tab, search, isSelected, toggleAsset, onChange, select
     const { data } = await query;
     setItems(data || []);
     setLoading(false);
-  }, [tab.table, tab.value === "your_assets", user]);
+  }, [tab.table, tab.value, user]);
 
   useEffect(() => { loadItems(); }, [loadItems]);
 
