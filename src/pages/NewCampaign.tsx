@@ -17,6 +17,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import AssetPlatformSelector from "@/components/AssetPlatformSelector";
 import AssetLibraryPicker, { type LibraryAsset } from "@/components/AssetLibraryPicker";
 import CreativeDirectionStep, { type DirectorOutput } from "@/components/CreativeDirectionStep";
+import CreativeBriefBuilder, { type CreativeBrief as CreativeBriefType, type CampaignCopy } from "@/components/campaign/CreativeBriefBuilder";
 import CampaignSimulator from "@/components/campaign/CampaignSimulator";
 import SwapAssetStrip, { type SwapAsset } from "@/components/campaign/SwapAssetStrip";
 import type { SourceTemplate } from "@/components/campaign/SourceGallery";
@@ -51,6 +52,12 @@ const NewCampaign = () => {
       ? `Inspired by: ${showcaseState.templateRef?.title || "showcase template"}. Tags: ${[...(showcaseState.templateRef?.moodTags || []), ...(showcaseState.templateRef?.industryTags || [])].join(", ")}`
       : ""
   );
+  const [structuredBrief, setStructuredBrief] = useState<CreativeBriefType>({
+    objective: "", messageAngle: "", tone: [], ctaGoal: "", targetEmotion: [], freeformNotes: "",
+  });
+  const [campaignCopy, setCampaignCopy] = useState<CampaignCopy>({
+    headline: "", subheadline: "", ctaText: "", bodyCopy: "",
+  });
   const [selectedAssets, setSelectedAssets] = useState<LibraryAsset[]>([]);
   const [platforms, setPlatforms] = useState<SelectedFormat[]>([]);
   const [contentTypes, setContentTypes] = useState<ContentType[]>([]);
@@ -339,12 +346,18 @@ const NewCampaign = () => {
             <Label htmlFor="campaign-title" className="text-sm font-medium">Campaign Name</Label>
             <Input id="campaign-title" placeholder="e.g. Summer Product Launch" value={title} onChange={(e) => setTitle(e.target.value)} autoFocus className="h-11 text-sm" />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="campaign-instructions" className="text-sm font-medium">
-              Brief <span className="text-muted-foreground font-normal">(optional)</span>
-            </Label>
-            <Textarea id="campaign-instructions" placeholder="Describe the goal, tone, or specific requirements…" value={instructions} onChange={(e) => setInstructions(e.target.value)} rows={3} className="resize-none text-sm" />
-          </div>
+          <CreativeBriefBuilder
+            brief={structuredBrief}
+            onBriefChange={setStructuredBrief}
+            copy={campaignCopy}
+            onCopyChange={setCampaignCopy}
+            brandContext={{
+              businessName: businessName || undefined,
+              industry: industry || undefined,
+              voiceTone: brandProfile?.brand_voice_detected || undefined,
+              targetAudience: brandProfile?.target_audience_detected || undefined,
+            }}
+          />
 
           {/* Selected reference assets strip */}
           {selectedAssets.length > 0 && (

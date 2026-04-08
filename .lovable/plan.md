@@ -1,44 +1,54 @@
-## Product/Model Swap Assets — Enterprise Implementation
+## Creative Brief Builder + AI Copy Generator
 
-### Concept
-Two distinct asset layers in the workspace:
-- **Reference Assets** (already built) = style/mood direction ("make it look like THIS")
-- **Swap Assets** (new) = user's own content ("put MY product/model/logo INTO it")
+### 1. Structured Brief Section (replaces plain textarea)
 
-### UI: New "Your Assets" Section in Workspace Builder
+**Collapsible form fields:**
+- **Objective** — dropdown: Awareness / Consideration / Conversion / Engagement
+- **Message Angle** — short input: "What's the core message?" (e.g. "Our product saves 3 hours/week")
+- **Tone** — chip selector: Professional, Playful, Urgent, Luxurious, Edgy, Warm, Bold
+- **CTA Goal** — dropdown: Shop Now / Learn More / Sign Up / Book Demo / Download / Custom
+- **Target Emotion** — chip selector: Trust, Excitement, FOMO, Curiosity, Aspiration, Relief
 
-**Location**: Below the reference strip, above the "Add from Library" picker
+**Freeform override** — collapsible textarea: "Additional instructions for the AI" (power user escape hatch)
 
-**Layout**: Horizontal scrollable strip (same pattern as reference strip) with:
-- Each card shows thumbnail + role badge (product / model / logo / background)
-- Hover reveals ✕ remove button + role dropdown to re-tag
-- "+" button opens a picker modal (upload new or select from brand_assets library)
-- Role auto-detection: image filename containing "logo" → auto-tag as logo, etc.
+All structured fields get serialized into a `creativeBrief` object passed to the generation engine.
 
-### Upload Flow
-- Inline drag-and-drop zone OR file picker
-- Files upload to `campaign_assets` bucket under user's folder
-- Saved to `brand_assets` table (reusable across campaigns)
-- Role tag stored in component state (passed to generation engine)
+### 2. AI Copy Generator (new section below brief)
 
-### Data Model
-No DB migration needed — role tagging is per-campaign session state. The swap assets are `brand_assets` records; their role context is passed to the generation engine at creation time.
+**"Generate Copy" button** — calls the `cmo-chat` or a new `generate-copy` edge function with:
+- The structured brief fields
+- Brand profile (voice, tone, audience)
+- Selected reference context
 
-**State shape:**
+**Returns editable fields:**
+- **Headline** — large input
+- **Subheadline** — medium input  
+- **CTA Text** — small input
+- **Body Copy** — textarea (optional, for carousel/post captions)
+
+User can edit any field before proceeding. A "Regenerate" button re-runs the AI.
+
+### Files
+
+1. **New: `src/components/campaign/CreativeBriefBuilder.tsx`** — structured brief form + AI copy section
+2. **Edit: `src/pages/NewCampaign.tsx`** — replace plain textarea with `CreativeBriefBuilder`, wire state
+3. **Edit: `supabase/functions/generate-content/index.ts`** — accept structured brief + copy fields in payload
+
+### State Shape
 ```ts
-interface SwapAsset {
-  id: string;
-  file_name: string;
-  file_url: string;
-  asset_type: string;
-  role: 'product' | 'model' | 'logo' | 'background' | 'other';
+interface CreativeBrief {
+  objective: 'awareness' | 'consideration' | 'conversion' | 'engagement';
+  messageAngle: string;
+  tone: string[];
+  ctaGoal: string;
+  targetEmotion: string[];
+  freeformNotes: string;
+}
+
+interface CampaignCopy {
+  headline: string;
+  subheadline: string;
+  ctaText: string;
+  bodyCopy: string;
 }
 ```
-
-### Files to Create/Edit
-1. **New: `src/components/campaign/SwapAssetStrip.tsx`** — the tagged asset strip component
-2. **Edit: `src/pages/NewCampaign.tsx`** — integrate SwapAssetStrip into the builder zone
-3. **Edit: generation engine call** — pass swap assets with roles to the edge function
-
-### Generation Integration
-Swap assets get passed as `swapAssets` array in the generation payload, separate from `referenceImageUrl`. The edge function uses them for targeted product/model injection in prompts.
