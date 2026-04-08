@@ -424,10 +424,11 @@ interface LibraryGalleryProps {
   nameField: string;
   icon: any;
   search: string;
+  categoryFilters: Record<string, string>;
   onPreview: (item: any) => void;
 }
 
-const LibraryGallery = ({ table, nameField, icon: Icon, search, onPreview }: LibraryGalleryProps) => {
+const LibraryGallery = ({ table, nameField, icon: Icon, search, categoryFilters, onPreview }: LibraryGalleryProps) => {
   const { data: items = [], isLoading } = useQuery({
     queryKey: ["user-library", table],
     queryFn: async () => {
@@ -442,6 +443,16 @@ const LibraryGallery = ({ table, nameField, icon: Icon, search, onPreview }: Lib
   });
 
   const filtered = items.filter((item: any) => {
+    // Category filters — exact match
+    for (const [key, value] of Object.entries(categoryFilters)) {
+      const itemVal = item[key];
+      if (Array.isArray(itemVal)) {
+        if (!itemVal.some((v: string) => v?.toLowerCase() === value.toLowerCase())) return false;
+      } else if ((itemVal || "").toLowerCase() !== value.toLowerCase()) {
+        return false;
+      }
+    }
+    // Text search
     if (!search) return true;
     const q = search.toLowerCase();
     const searchable = [
