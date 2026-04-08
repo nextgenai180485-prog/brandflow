@@ -51,14 +51,21 @@ Deno.serve(async (req) => {
       if (name) params.set("query", name);
       if (keyword) params.set("query", keyword);
       if (category) params.set("category", category);
-      if (niches) params.set("niches", JSON.stringify(Array.isArray(niches) ? niches : [niches]));
-      if (niche) params.set("niches", JSON.stringify([niche]));
+      if (niches) {
+        const nicheArr = Array.isArray(niches) ? niches : [niches];
+        nicheArr.forEach(n => params.append("niches", n));
+      }
+      if (niche) params.append("niches", niche);
     } else {
       // Ad endpoints
       if (keyword) params.set("keyword", keyword);
       if (domain) params.set("domain", domain);
-      if (niches) params.set("niches", JSON.stringify(Array.isArray(niches) ? niches : [niches]));
-      else if (niche) params.set("niches", JSON.stringify([niche]));
+      if (niches) {
+        const nicheArr = Array.isArray(niches) ? niches : [niches];
+        nicheArr.forEach(n => params.append("niches", n));
+      } else if (niche) {
+        params.append("niches", niche);
+      }
       if (platform) params.set("publisher_platform", platform);
       if (display_format) params.set("display_format", display_format);
       if (live !== undefined) params.set("live", String(live));

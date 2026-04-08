@@ -189,25 +189,36 @@ const UserLibraries = () => {
   );
 };
 
-// ── Foreplay Niches (from API) ──
-const FOREPLAY_NICHES = [
-  "Fashion", "Beauty", "Health & Wellness", "Fitness", "Food & Beverage",
-  "E-Commerce", "SaaS", "Finance", "Real Estate", "Education",
-  "Travel", "Automotive", "Gaming", "Entertainment", "Home & Garden",
-  "Pets", "Sports", "Technology", "Luxury", "Parenting",
-  "B2B", "Agency", "Service Business", "Supplements", "Apparel",
-  "Jewelry", "Skincare", "Haircare", "Dental", "Insurance",
-];
+// ── Foreplay Niches — display label → API enum value ──
+const FOREPLAY_NICHE_MAP: Record<string, string> = {
+  "Fashion": "fashion",
+  "Beauty": "beauty",
+  "Health & Wellness": "health/wellness",
+  "Food & Beverage": "food/drink",
+  "Real Estate": "real estate",
+  "Education": "education",
+  "Entertainment": "entertainment",
+  "Home & Garden": "home/garden",
+  "Pets": "pets",
+  "Parenting": "parenting",
+  "Service Business": "service business",
+  "Jewelry": "jewelry/watches",
+  "Accessories": "accessories",
+  "App / Software": "app/software",
+  "Business": "business/professional",
+  "Medical": "medical",
+  "Charity / NFP": "charity/nfp",
+  "Kids / Baby": "kids/baby",
+};
+const FOREPLAY_NICHES = Object.keys(FOREPLAY_NICHE_MAP);
 
 const NICHE_ICONS: Record<string, string> = {
-  "Fashion": "👗", "Beauty": "💄", "Health & Wellness": "🏥", "Fitness": "💪",
-  "Food & Beverage": "🍕", "E-Commerce": "🛒", "SaaS": "💻", "Finance": "💰",
-  "Real Estate": "🏠", "Education": "📚", "Travel": "✈️", "Automotive": "🚗",
-  "Gaming": "🎮", "Entertainment": "🎬", "Home & Garden": "🏡", "Pets": "🐾",
-  "Sports": "⚽", "Technology": "📱", "Luxury": "💎", "Parenting": "👶",
-  "B2B": "🏢", "Agency": "📊", "Service Business": "🔧", "Supplements": "💊",
-  "Apparel": "👕", "Jewelry": "💍", "Skincare": "✨", "Haircare": "💇",
-  "Dental": "🦷", "Insurance": "🛡️",
+  "Fashion": "👗", "Beauty": "💄", "Health & Wellness": "🏥",
+  "Food & Beverage": "🍕", "Real Estate": "🏠", "Education": "📚",
+  "Entertainment": "🎬", "Home & Garden": "🏡", "Pets": "🐾",
+  "Parenting": "👶", "Service Business": "🔧", "Jewelry": "💍",
+  "Accessories": "👜", "App / Software": "💻", "Business": "🏢",
+  "Medical": "🏥", "Charity / NFP": "❤️", "Kids / Baby": "👶",
 };
 
 type SearchMode = "ads" | "brands";
@@ -241,7 +252,8 @@ const AdIntelligenceGallery = ({ onPreview }: { onPreview: (item: any) => void }
         body.keyword = searchQuery.trim();
       }
 
-      if (niche || selectedNiche) body.niche = niche || selectedNiche;
+      const nicheLabel = niche || selectedNiche;
+      if (nicheLabel) body.niche = FOREPLAY_NICHE_MAP[nicheLabel] || nicheLabel.toLowerCase();
       if (platform !== "all") body.platform = platform;
       if (format !== "all") body.display_format = format;
 
