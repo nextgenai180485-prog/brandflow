@@ -739,9 +739,11 @@ interface LibraryGalleryProps {
   search: string;
   categoryFilters: Record<string, string>;
   onPreview: (item: any) => void;
+  selectedIds: string[];
+  onToggleSelect: (item: any) => void;
 }
 
-const LibraryGallery = ({ table, nameField, icon: Icon, search, categoryFilters, onPreview }: LibraryGalleryProps) => {
+const LibraryGallery = ({ table, nameField, icon: Icon, search, categoryFilters, onPreview, selectedIds, onToggleSelect }: LibraryGalleryProps) => {
   const { data: items = [], isLoading } = useQuery({
     queryKey: ["user-library", table],
     queryFn: async () => {
@@ -756,7 +758,6 @@ const LibraryGallery = ({ table, nameField, icon: Icon, search, categoryFilters,
   });
 
   const filtered = items.filter((item: any) => {
-    // Category filters — exact match
     for (const [key, value] of Object.entries(categoryFilters)) {
       const itemVal = item[key];
       if (Array.isArray(itemVal)) {
@@ -765,7 +766,6 @@ const LibraryGallery = ({ table, nameField, icon: Icon, search, categoryFilters,
         return false;
       }
     }
-    // Text search
     if (!search) return true;
     const q = search.toLowerCase();
     const searchable = [
@@ -824,12 +824,13 @@ const LibraryGallery = ({ table, nameField, icon: Icon, search, categoryFilters,
           ...(item.mood_tags || []),
           ...(item.industry_tags || []),
         ].slice(0, 3);
+        const selected = selectedIds.includes(item.id);
 
         return (
           <Card
             key={item.id}
-            className="group cursor-pointer transition-all hover:shadow-md hover:border-primary/30 overflow-hidden"
-            onClick={() => onPreview(item)}
+            className={`group cursor-pointer transition-all overflow-hidden ${selected ? "ring-2 ring-primary border-primary shadow-md" : "hover:shadow-md hover:border-primary/30"}`}
+            onClick={() => onToggleSelect(item)}
           >
             <div className="relative aspect-[4/5] bg-muted flex items-center justify-center overflow-hidden">
               {thumb ? (
@@ -837,9 +838,19 @@ const LibraryGallery = ({ table, nameField, icon: Icon, search, categoryFilters,
               ) : (
                 <Icon className="h-8 w-8 text-muted-foreground/30" />
               )}
-              <div className="absolute inset-0 bg-foreground/0 group-hover:bg-foreground/5 transition-colors flex items-center justify-center">
-                <Eye className="h-5 w-5 text-foreground/0 group-hover:text-foreground/60 transition-colors" />
-              </div>
+              {/* Selection checkmark */}
+              {selected && (
+                <div className="absolute top-2 left-2 w-6 h-6 rounded-full bg-primary flex items-center justify-center shadow-sm">
+                  <Check className="h-3.5 w-3.5 text-primary-foreground" />
+                </div>
+              )}
+              {/* Preview eye button */}
+              <button
+                className="absolute top-2 right-2 w-7 h-7 rounded-full bg-background/80 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-background shadow-sm"
+                onClick={(e) => { e.stopPropagation(); onPreview(item); }}
+              >
+                <Eye className="h-3.5 w-3.5 text-foreground" />
+              </button>
             </div>
 
             <CardContent className="p-2.5">
