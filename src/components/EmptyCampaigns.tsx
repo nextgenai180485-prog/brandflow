@@ -138,14 +138,9 @@ const EmptyCampaigns = ({ onCreateClick }: EmptyCampaignsProps) => {
   return (
     <div className="space-y-8">
       {/* Hero section */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-xl font-semibold text-foreground">Launch your first campaign</h2>
-          <p className="text-sm text-muted-foreground mt-0.5">Choose a template or start from an inspiration reference</p>
-        </div>
-        <Button onClick={onCreateClick} className="gap-2 shrink-0">
-          <Plus className="w-4 h-4" /> Blank Campaign
-        </Button>
+      <div>
+        <h2 className="text-xl font-semibold text-foreground">Launch your first campaign</h2>
+        <p className="text-sm text-muted-foreground mt-0.5">Choose a template or start from an inspiration reference</p>
       </div>
 
       {/* Brand readiness + templates row */}
