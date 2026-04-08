@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
 import type { LibrarySelection } from "@/components/LibraryBrowser";
 import { useNavigate, useLocation } from "react-router-dom";
-import { ArrowLeft, ArrowRight, Loader2, ImageIcon, Sparkles, Film, Camera, Check, VideoIcon, Layout } from "lucide-react";
+import { ArrowLeft, ArrowRight, Loader2, ImageIcon, Sparkles, Film, Camera, Check, VideoIcon, Layout, Brain } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -10,6 +10,7 @@ import AppShell from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import FounderInterview from "@/components/FounderInterview";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import AssetPlatformSelector from "@/components/AssetPlatformSelector";
@@ -65,6 +66,12 @@ const NewCampaign = () => {
   const [isStarred, setIsStarred] = useState(false);
   const [showSaveModal, setShowSaveModal] = useState(false);
 
+  // Inline strategy gate
+  const [needsStrategy, setNeedsStrategy] = useState(false);
+  const [strategyChecked, setStrategyChecked] = useState(false);
+  const [businessName, setBusinessName] = useState("");
+  const [industry, setIndustry] = useState("");
+
   const hasVideoContent = contentTypes.some(ct => ct === "ugc_video" || ct === "pro_video");
 
   const STEPS = useMemo(() => {
@@ -99,9 +106,38 @@ const NewCampaign = () => {
     if (contentTypes.length === 0) setContentTypes(["image"]);
   }, []);
 
+  // Check for brand strategy + load brand profile
   useEffect(() => {
     if (!user) return;
     const load = async () => {
+      // Check strategy existence
+      const { data: stratRows } = await supabase
+        .from("brand_strategy")
+        .select("id, strategy_generated")
+        .eq("profile_id", user.id)
+        .limit(1);
+      
+      const hasStrategy = stratRows && stratRows.length > 0 && (stratRows[0] as any).strategy_generated;
+      
+      if (!hasStrategy) {
+        // Check if they have brand_memory or research (website users skip interview)
+        const { data: memCheck } = await supabase
+          .from("brand_memory").select("id").eq("profile_id", user.id)
+          .eq("memory_type", "brand_profile").limit(1);
+        
+        if (!memCheck || memCheck.length === 0) {
+          // Get profile info for the interview
+          const { data: profile } = await supabase
+            .from("profiles").select("business_name, industry")
+            .eq("id", user.id).single();
+          setBusinessName(profile?.business_name || "");
+          setIndustry(profile?.industry || "");
+          setNeedsStrategy(true);
+        }
+      }
+      setStrategyChecked(true);
+
+      // Load brand profile
       const { data } = await supabase
         .from("brand_memory").select("context").eq("profile_id", user.id)
         .eq("memory_type", "brand_profile").eq("pattern_category", "auto_research")
@@ -465,6 +501,53 @@ const NewCampaign = () => {
       )}
     </div>
   );
+
+  // ══════════════════════════════════════════════════════
+  // INLINE STRATEGY GATE — compact founder interview
+  // ══════════════════════════════════════════════════════
+  if (!strategyChecked) {
+    return (
+      <AppShell>
+        <div className="flex h-[calc(100vh-3.5rem)] items-center justify-center">
+          <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+        </div>
+      </AppShell>
+    );
+  }
+
+  if (needsStrategy) {
+    return (
+      <AppShell>
+        <div className="flex h-[calc(100vh-3.5rem)] overflow-hidden">
+          <div className="flex-1 flex items-center justify-center">
+            <div className="max-w-lg w-full px-6 py-8">
+              <div className="flex items-center gap-2 mb-6">
+                <Brain className="w-5 h-5 text-primary" />
+                <div>
+                  <h1 className="text-lg font-bold text-foreground">Quick Strategy Setup</h1>
+                  <p className="text-xs text-muted-foreground">3 questions to unlock personalized campaigns — takes 2 minutes</p>
+                </div>
+              </div>
+              <FounderInterview
+                businessName={businessName}
+                industry={industry}
+                onStrategyGenerated={() => {
+                  setNeedsStrategy(false);
+                  toast.success("Strategy locked — let's create!");
+                }}
+              />
+              <button
+                onClick={() => setNeedsStrategy(false)}
+                className="mt-4 text-[10px] text-muted-foreground hover:text-foreground transition-colors w-full text-center"
+              >
+                Skip for now — I'll set this up later
+              </button>
+            </div>
+          </div>
+        </div>
+      </AppShell>
+    );
+  }
 
   // ══════════════════════════════════════════════════════
   // MOBILE LAYOUT: Tab-switched (Builder / Preview / Source)
