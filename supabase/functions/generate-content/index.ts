@@ -900,19 +900,16 @@ async function processAssetsInBackground(
         actualCost = result.cost;
         generationTimeMs = result.timeMs;
       }
-      // Generate caption using decision context + campaign copy + visual prompt
-      const captionPromptExtra = campaignCopy?.bodyCopy 
-        ? `. User-provided copy to incorporate: "${campaignCopy.bodyCopy}". Headline: "${campaignCopy.headline || ""}". CTA: "${campaignCopy.ctaText || ""}"`
-        : "";
-      const caption = await generateCaption(platform, format, brandContext || {}, intelligenceBrief || {}, decisionWinner, generatedPrompt + captionPromptExtra);
+      // Generate caption using campaign brief + creative direction (no brand analysis)
+      const caption = await generateCaption(platform, format, brandContext || {}, intelligenceBrief || {}, assetDirection, generatedPrompt, campaignCopy, structuredBrief);
       if (!generationTimeMs) generationTimeMs = Date.now() - startTime;
 
       // Build structured rationale from decision engine
       const rationale = JSON.stringify({
-        direction: decisionWinner?.name || "default",
-        angle: decisionWinner?.angle_type || "general",
-        confidence: decisionWinner?.total_score || 0,
-        hook: decisionWinner?.hook_suggestion || "",
+        direction: assetDirection?.name || "default",
+        angle: assetDirection?.angle_type || "general",
+        confidence: assetDirection?.total_score || 0,
+        hook: assetDirection?.hook_suggestion || "",
         trace_id: decisionTraceId,
       });
 
