@@ -749,12 +749,95 @@ interface TextOverlayMeta {
   brandColors?: BrandColorTokens;
 }
 
+// ══════════════════════════════════════════════════════════════
+// CREATIVE MODE AUTO-ROUTER
+// Zero toggles — system detects the best rendering approach
+// from user assets, template selection, and brief context.
+// ══════════════════════════════════════════════════════════════
+type CreativeMode =
+  | "identity_swap"      // Model + template → preserve face/identity INTO template composition
+  | "product_hero"       // Product only → product as visual anchor, 60% negative space
+  | "lifestyle_blend"    // Model + product → natural interaction, editorial lifestyle
+  | "template_style"     // Template selected, no user assets → style-guided generation
+  | "editorial_free"     // No template, no user assets → pure creative direction
+  | "product_in_scene"   // Product + template → composite product into template scene
+  | "duo_editorial"      // Model + product + template → full editorial with identity + product swap
+  ;
+
+function detectCreativeMode(
+  userAssets: any[] | null,
+  hasTemplate: boolean,
+  templateRefs: string[] | null,
+): CreativeMode {
+  const hasModel = userAssets?.some((a: any) => a.role === "model");
+  const hasProduct = userAssets?.some((a: any) => a.role === "product");
+  const hasAnyTemplate = hasTemplate || (templateRefs?.length ?? 0) > 0;
+
+  if (hasModel && hasProduct && hasAnyTemplate) return "duo_editorial";
+  if (hasModel && hasAnyTemplate) return "identity_swap";
+  if (hasProduct && hasAnyTemplate) return "product_in_scene";
+  if (hasModel && hasProduct) return "lifestyle_blend";
+  if (hasProduct) return "product_hero";
+  if (hasAnyTemplate) return "template_style";
+  return "editorial_free";
+}
+
+// Mode-specific prompt directives — these replace the old if/else subject logic
+const MODE_DIRECTIVES: Record<CreativeMode, string> = {
+  identity_swap: [
+    "Recreate the template's exact composition, pose structure, and framing with the provided person as the subject.",
+    "CRITICAL: Preserve the person's EXACT identity — face shape, skin tone, facial features, hair texture, expression.",
+    "Match template lighting, color grade, and environment precisely.",
+    "The result should look like the person was photographed in the template's original setting.",
+  ].join(" "),
+
+  product_in_scene: [
+    "Recreate the template's composition with the provided product as the hero element.",
+    "Product must retain exact shape, color, branding, label details, material texture.",
+    "Maintain template's lighting direction, color palette, and spatial arrangement.",
+    "Product should feel physically present — real shadows, reflections, surface interaction.",
+  ].join(" "),
+
+  duo_editorial: [
+    "Feature the provided person holding/interacting with the provided product in the template's composition style.",
+    "CRITICAL: Preserve person's EXACT identity and product's EXACT appearance.",
+    "Match template's pose structure, lighting, and environment.",
+    "Natural hand-product interaction, authentic body language, editorial quality.",
+  ].join(" "),
+
+  lifestyle_blend: [
+    "Feature the provided person naturally interacting with the provided product.",
+    "Preserve exact identity, likeness, facial features, hair texture, skin pores.",
+    "Product must retain exact shape, color, branding details.",
+    "Lifestyle editorial feel — authentic moment captured, not posed.",
+  ].join(" "),
+
+  product_hero: [
+    "Feature the provided product as hero element with physical weight and material honesty.",
+    "60% clean negative space, product as visual anchor.",
+    "Exact product shape, color, branding, label, material texture preserved.",
+    "Studio-quality product photography feel.",
+  ].join(" "),
+
+  template_style: [
+    "Generate content matching the reference template's exact visual style.",
+    "Match composition, color grade, lighting direction, and mood precisely.",
+    "Professional campaign-quality output following template as blueprint.",
+  ].join(" "),
+
+  editorial_free: [
+    "Professional brand showcase with editorial quality.",
+    "Clean composition, intentional negative space, premium feel.",
+  ].join(" "),
+};
+
 // The result of the prompt builder — visual prompt for model + metadata for post-processing
 interface PromptBundle {
   visualPrompt: string;       // ≤80 words — sent to image model
   imageRefs: string[];         // actual image URLs — sent as image_urls to img2img
   textOverlay: TextOverlayMeta; // consumed by post-processing step only
   platformSeed: string;        // platform-native direction context
+  creativeMode: CreativeMode;  // auto-detected rendering approach
 }
 
 // Platform-specific aesthetic seeds (concise)
