@@ -1,5 +1,5 @@
 import { format } from "date-fns";
-import { Clock, ImageIcon, Video, Layers, FileText, LayoutGrid, CheckCircle2, Loader2, Trash2, Copy } from "lucide-react";
+import { Clock, ImageIcon, Video, Layers, FileText, LayoutGrid, CheckCircle2, Loader2, Trash2, Copy, Pencil } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import type { Campaign, GeneratedAsset, CampaignStatus } from "@/types/campaigns";
