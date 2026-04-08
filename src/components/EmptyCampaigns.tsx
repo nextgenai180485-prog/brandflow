@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Zap, Calendar, Megaphone, TrendingUp, ArrowRight, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
+import { Plus, Zap, Calendar, Megaphone, TrendingUp, ArrowRight, Loader2, CheckCircle2, AlertCircle, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
