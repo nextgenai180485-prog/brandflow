@@ -248,6 +248,10 @@ const UserLibraries = () => {
             </button>
           </div>
         )}
+
+        {/* Preview Dialog */}
+        <Dialog open={!!previewItem} onOpenChange={() => setPreviewItem(null)}>
+          <DialogContent className="max-w-lg">
             <DialogHeader>
               <DialogTitle className="text-sm">
                 {previewItem?.name || previewItem?.headline || previewItem?.[currentTab.nameField] || "Details"}
