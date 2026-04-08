@@ -708,6 +708,7 @@ const NewCampaign = () => {
           format={platforms[0]?.format || "reel"}
           librarySelections={librarySelections}
           onLibrarySelectionsChange={setLibrarySelections}
+          selectedTemplate={selectedTemplate}
         />
       )}
 
