@@ -717,7 +717,7 @@ const NewCampaign = () => {
           {/* RIGHT: Phone Simulator + Actions Panel */}
           <div className="flex-1 flex items-center justify-center bg-secondary/20 relative overflow-hidden py-2 px-4">
             <CampaignSimulator
-              imageUrl={selectedTemplate?.media_url || null}
+              imageUrl={simulatorPreviewUrl}
               brandName={title || "Brand"}
               caption={instructions || "Your campaign content preview"}
               isStarred={isStarred}
