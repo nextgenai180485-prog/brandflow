@@ -1,64 +1,58 @@
 
 
-# Consolidate Wizard Steps + Bulletproof Auto-Save
+# Add Preview Thumbnails to Image Templates + Generate Previews for All 10 Existing Templates
+
+## What This Does
+Adds a `preview_url` column to the `image_templates` table and a file upload field in the admin form, so every image template has a visual thumbnail users can browse. Then generates 10 realistic preview images (one per existing template) using the Gemini image engine, uploads them to the `library-assets` bucket, and updates each row.
 
 ## Current State
+- 10 image templates exist (Clean Product Hero, Lifestyle Product Integration, Dark Luxury Showcase, etc.)
+- Each has a `style_guide` JSON describing mood, lighting, composition, background — but no visual preview
+- The admin form for `image_templates` has no file upload field
+- The library browser shows templates as text-only rows
 
-The wizard has 5 steps: **Details → Platforms → Content Type → Creative Direction → Review**
+## Plan
 
-Auto-save triggers on every state change (title, platforms, contentTypes, swapAssets, etc.) — it does NOT require clicking "Next." However, there's a guard: it only saves when `title.trim() || platforms.length > 0 || contentTypes.length > 0`, meaning if a user only uploads assets without typing a title, nothing saves.
+### Step 1 — Database Migration
+Add `preview_url TEXT` column to `image_templates` table.
 
-Assets (AssetLibraryPicker, SwapAssetStrip, logo toggle) currently live under the **Details** step, making it overloaded while **Platforms** is very thin (just a grid selector).
+### Step 2 — Admin Form Update (`AdminLibraryForm.tsx`)
+Add a `{ key: "preview_url", label: "Preview Thumbnail", type: "file", folder: "image-templates" }` entry to the `image_templates` field config — right after `style_name`.
 
-## Enterprise UX Assessment
+### Step 3 — Admin Table Update (`AdminLibraryTable.tsx`)
+Show the preview thumbnail inline in the image_templates table rows — a small 32x32 rounded image next to the style name.
 
-The current 5-step wizard creates unnecessary friction:
-- **Details** is overloaded (name + brief + assets + swap assets + logo toggle)
-- **Platforms** is too thin (single selector)
-- Users must mentally separate "what I'm building" from "where I'm publishing" from "what assets to use" — but these are interrelated decisions
+### Step 4 — Library Picker Update (`AssetLibraryPicker.tsx`)
+When rendering image template items in the content library modal, display the `preview_url` thumbnail so users can visually browse styles.
 
-Enterprise tools (Canva, Adobe Express, Figma) consolidate related inputs into fewer, denser steps to reduce click-through fatigue.
+### Step 5 — Generate 10 Preview Images via Edge Function
+Create a one-time script in an edge function (`seededit` or a temporary invocation) that:
+1. For each of the 10 templates, uses their `style_guide` (mood, lighting, composition, background) to build a prompt
+2. Calls the Lovable AI Gateway (Gemini 2.5 Flash Image) to generate a realistic preview
+3. Uploads the resulting image to `library-assets/image-templates/`
+4. Updates the `preview_url` column for each template
 
-## Proposed Step Restructure
+Each prompt will incorporate the template's exact style_guide values (e.g., "soft studio three-point lighting, centered product hero composition, clean white background") combined with the photorealism anchors (Nikon Z8, organic textures, cinematic film grain) to produce world-class preview thumbnails.
 
-Collapse from 5 steps to **4 steps**:
+## Technical Details
 
-```text
-Step 1: Campaign Brief     — Name, Objective, Tone, CTA, Copy, Emotion
-Step 2: Assets & Platforms  — Your Assets (product/model/logo), Templates, Platform selector, Content type, Logo toggle
-Step 3: Creative Direction  — (video only, same as now)
-Step 4: Review & Launch     — Summary + generate
+**Migration SQL:**
+```sql
+ALTER TABLE image_templates ADD COLUMN preview_url TEXT;
 ```
 
-### Why This Works
+**Preview generation prompt pattern:**
+```
+Professional {vertical} photography preview. {style_guide.composition}, 
+{style_guide.lighting}, {style_guide.background}. {style_guide.color_treatment}. 
+Shot on Nikon Z8 45.7MP, 85mm f/1.8. Organic skin tones, subtle cinematic 
+film grain. No AI artifacts, no stylization. Format: {format}.
+```
 
-1. **Step 2 becomes the "production setup"** — everything about *what goes in* and *where it goes out* lives together. Users see their assets alongside their target platforms, which is how they naturally think: "I have this product photo, I want it on Instagram and TikTok."
-
-2. **Fewer clicks to save state** — since auto-save triggers on any state change, consolidating means more fields change per step, giving the system more save opportunities.
-
-3. **Labels**: "Select from Asset Library" → renamed to **"Templates"** (style references). SwapAssetStrip already labeled as product/model/logo → grouped under **"Your Assets"** header.
-
-## Auto-Save Hardening
-
-- Remove the guard that requires title OR platforms — save on ANY meaningful interaction (asset upload, template selection, swap asset added)
-- Add `beforeunload` event listener to flush pending saves when user closes tab
-- Add `useEffect` cleanup that forces an immediate save (no debounce) on component unmount / route change
-
-## Technical Changes
-
-### `src/pages/NewCampaign.tsx`
-- Change `ALL_STEPS` from `["Details", "Platforms", "Content Type", "Creative Direction", "Review"]` to `["Campaign Brief", "Assets & Delivery", "Creative Direction", "Review"]`
-- Move AssetLibraryPicker, SwapAssetStrip, logo toggle, platform selector, and content type selector into the "Assets & Delivery" step
-- Keep CreativeBriefBuilder + campaign name in "Campaign Brief"
-- Update step validation: step 0 requires title, step 1 requires platforms + content types
-- Rename AssetLibraryPicker trigger label from "Select from Asset Library" to "Templates"
-- Add "Your Assets" section header above SwapAssetStrip
-
-### `src/hooks/useAutoSaveDraft.ts`
-- Relax the save guard: trigger save when ANY of title, platforms, contentTypes, swapAssets, or selectedAssets has data
-- Add `beforeunload` listener to flush pending timer immediately
-- On unmount, if timer is pending, execute save synchronously (clear debounce, save immediately)
-
-### `src/components/AssetLibraryPicker.tsx`
-- Rename display label from "Select from Asset Library" to "Templates" with subtitle "Browse style references and templates"
+**Files Changed:**
+- `image_templates` table — add `preview_url` column
+- `src/components/admin/AdminLibraryForm.tsx` — add file upload field for preview
+- `src/components/admin/AdminLibraryTable.tsx` — show thumbnail in rows
+- `src/components/AssetLibraryPicker.tsx` — show thumbnail in library modal
+- `supabase/functions/generate-content/index.ts` — add a helper or use a one-time script to generate the 10 previews
 
