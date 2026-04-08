@@ -7,6 +7,26 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+// ── AI Provider Routing: OpenRouter (primary) → Lovable AI Gateway (fallback) ──
+function getAIConfig() {
+  const openRouterKey = Deno.env.get("OPENROUTER_API_KEY");
+  if (openRouterKey) {
+    return {
+      url: "https://openrouter.ai/api/v1/chat/completions",
+      headers: { Authorization: `Bearer ${openRouterKey}`, "Content-Type": "application/json" },
+    };
+  }
+  const lovableKey = Deno.env.get("LOVABLE_API_KEY");
+  if (lovableKey) {
+    return {
+      url: "https://ai.gateway.lovable.dev/v1/chat/completions",
+      headers: { Authorization: `Bearer ${lovableKey}`, "Content-Type": "application/json" },
+    };
+  }
+  return null;
+}
+
+
 function sseEvent(event: string, data: any): string {
   return `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
 }
@@ -233,9 +253,9 @@ serve(async (req) => {
 
       if (LOVABLE_API_KEY) {
         try {
-          const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          const aiResponse = await fetch(getAIConfig()!.url, {
             method: "POST",
-            headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+            headers: getAIConfig()!.headers,
             body: JSON.stringify({
               model: "google/gemini-3-flash-preview",
               messages: [

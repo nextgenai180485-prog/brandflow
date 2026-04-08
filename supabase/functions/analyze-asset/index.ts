@@ -6,6 +6,26 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+// ── AI Provider Routing: OpenRouter (primary) → Lovable AI Gateway (fallback) ──
+function getAIConfig() {
+  const openRouterKey = Deno.env.get("OPENROUTER_API_KEY");
+  if (openRouterKey) {
+    return {
+      url: "https://openrouter.ai/api/v1/chat/completions",
+      headers: { Authorization: `Bearer ${openRouterKey}`, "Content-Type": "application/json" },
+    };
+  }
+  const lovableKey = Deno.env.get("LOVABLE_API_KEY");
+  if (lovableKey) {
+    return {
+      url: "https://ai.gateway.lovable.dev/v1/chat/completions",
+      headers: { Authorization: `Bearer ${lovableKey}`, "Content-Type": "application/json" },
+    };
+  }
+  return null;
+}
+
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -20,8 +40,8 @@ serve(async (req) => {
     }
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      return new Response(JSON.stringify({ error: "AI not configured" }), {
+    if (!getAIConfig()) {
+      return new Response(JSON.stringify({ error: "No AI provider configured (set OPENROUTER_API_KEY or LOVABLE_API_KEY)" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -96,12 +116,9 @@ serve(async (req) => {
 
     const mode = modes[analysis_mode] || modes.sealcam;
 
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const aiResponse = await fetch(getAIConfig()!.url, {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
+      headers: getAIConfig()!.headers,
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
         messages: [
