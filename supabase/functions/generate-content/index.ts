@@ -836,16 +836,17 @@ function buildPromptBundle(
     if (!imageRefs.includes(referenceImageUrl)) imageRefs.push(referenceImageUrl);
   }
 
-  // ── 2. Build FOCUSED visual prompt (≤80 words) ──
+  // ══════════════════════════════════════════════════════════
+  // SKILL GUIDE: Enterprise Prompt Construction
+  // Ref: docs/engines/CREATIVE_DIRECTOR_SKILL.md
+  // ══════════════════════════════════════════════════════════
+
   const angle = decisionDirection?.description || "professional brand showcase";
   const hookVisual = decisionDirection?.hook_suggestion || "";
-
-  // Get style rules
-  const verticalStyle = VERTICAL_STYLES[industry] || VERTICAL_STYLES.general;
   const formatRule = FORMAT_RULES[format] || FORMAT_RULES.post;
 
-  // Template overrides vertical style
-  let styleDirective = verticalStyle;
+  // ── STEP 1: Template-first style (user's explicit choice overrides vertical defaults) ──
+  let styleDirective = VERTICAL_STYLES[industry] || VERTICAL_STYLES.general;
   if (imageTemplate) {
     const guide = imageTemplate.style_guide || {};
     const parts: string[] = [];
@@ -857,42 +858,65 @@ function buildPromptBundle(
     if (parts.length) styleDirective = parts.join(". ");
   }
 
-  // Subject directive based on user assets
+  // ── STEP 2: Adaptive subject rendering (Skill Guide §2A) ──
   let subjectDirective = "";
   const hasModel = userAssets?.some((a: any) => a.role === "model");
   const hasProduct = userAssets?.some((a: any) => a.role === "product");
   if (hasModel && hasProduct) {
-    subjectDirective = "Feature the provided person as the main subject with the product prominently visible. ";
+    subjectDirective = "Feature the provided person as main subject with product prominently visible. Natural interaction between person and product. Preserve exact identity, likeness, facial features, hair texture. ";
   } else if (hasModel) {
-    subjectDirective = "Feature the provided person as the main subject. Preserve their identity and likeness. ";
+    subjectDirective = "Feature the provided person as main subject. Preserve exact identity, likeness, facial features, hair texture, skin pores, natural imperfections. ";
   } else if (hasProduct) {
-    subjectDirective = "Feature the provided product as the hero element. ";
+    subjectDirective = "Feature the provided product as hero element with physical weight and material honesty. 60% clean negative space, product as visual anchor. ";
   }
 
-  // Campaign tone context (brief, not the full copy)
-  let toneDirective = "";
-  if (structuredBrief?.tone?.length) {
-    toneDirective = `Mood: ${structuredBrief.tone.join(", ")}. `;
+  // ── STEP 3: Adaptive realism by tone (Skill Guide §2B) ──
+  const tones = structuredBrief?.tone || [];
+  const toneSet = new Set(tones.map((t: string) => t.toLowerCase()));
+
+  // Select realism approach based on user's tone selection
+  let realismApproach = "Clean studio, controlled directional lighting, subtle film grain.";
+  if (toneSet.has("luxurious") || toneSet.has("bold")) {
+    realismApproach = "Rich contrast, dramatic directional light, cinematic film grain, deep shadows.";
+  } else if (toneSet.has("warm") || toneSet.has("playful")) {
+    realismApproach = "Golden hour warmth, natural window light, soft organic shadows.";
+  } else if (toneSet.has("edgy") || toneSet.has("urgent")) {
+    realismApproach = "Hard shadows, high contrast, desaturated with accent color pops.";
+  } else if (toneSet.has("educational") || toneSet.has("minimal")) {
+    realismApproach = "Even flat lighting, clean backgrounds, diagram-friendly composition.";
   }
 
-  // ── PHOTOREALISM ANCHOR — injected into every generation ──
-  // This block eliminates "AI look" and enforces cinema-grade realism.
+  // ── STEP 4: Emotion-to-lighting mapping (Skill Guide §5) ──
+  const emotions = structuredBrief?.targetEmotion || structuredBrief?.emotions || [];
+  let emotionLighting = "";
+  const emotionSet = new Set((Array.isArray(emotions) ? emotions : [emotions]).map((e: string) => e?.toLowerCase()));
+  if (emotionSet.has("trust") || emotionSet.has("authority")) {
+    emotionLighting = "Cool, even lighting. Trustworthy corporate palette. ";
+  } else if (emotionSet.has("excitement") || emotionSet.has("fomo") || emotionSet.has("joy")) {
+    emotionLighting = "Warm vibrant lighting. High color saturation. Energetic composition. ";
+  } else if (emotionSet.has("aspiration") || emotionSet.has("curiosity")) {
+    emotionLighting = "Atmospheric depth. Cinematic backlighting. Aspirational framing. ";
+  }
+
+  // ── STEP 5: Universal realism anchor (Skill Guide §2B universal) ──
   const REALISM_ANCHOR = [
-    "Maintain accurate, organic skin tones with realistic color balance.",
-    "Subtle cinematic film grain, professional movie-still look.",
-    "Shot on Nikon Z8 45.7MP mirrorless, natural lens character.",
-    "Background untouched — only slightly cleaner if noisy, no artificial blur.",
-    "Preserve all facial features, expressions, hair strands, and natural imperfections.",
-    "Photorealistic result, professional camera look, high-quality enhancement only — no stylization.",
+    "Organic skin tones, realistic color balance.",
+    "Visible skin pores, micro-texture, peach fuzz, natural imperfections.",
+    "Subsurface scattering for natural light on skin.",
+    "Subtle cinematic film grain, movie-still look.",
+    "Shot on Nikon Z8 45.7MP mirrorless, 85mm f/1.8, natural lens character.",
+    "Background untouched — no artificial blur added.",
+    "Photorealistic only — no stylization.",
   ].join(" ");
 
-  // Assemble visual prompt — STRICTLY visual, no text/copy instructions
+  // ── ASSEMBLE: Visual prompt ≤80 words, STRICTLY visual (Skill Guide §1) ──
   let visualPrompt = `${subjectDirective}${angle}. `;
-  if (hookVisual) visualPrompt += `Visual concept: ${hookVisual}. `;
-  visualPrompt += `${styleDirective}. ${formatRule}. ${toneDirective}`;
+  if (hookVisual) visualPrompt += `${hookVisual}. `;
+  visualPrompt += `${realismApproach} ${emotionLighting}`;
+  visualPrompt += `${styleDirective}. ${formatRule}. `;
   visualPrompt += `${REALISM_ANCHOR} `;
   visualPrompt += `No text, no watermarks, no logos, no borders, no UI elements. `;
-  visualPrompt += `Avoid: stock photo feel, clipart, illustration, 3D render, cartoon, AI-generated look.`;
+  visualPrompt += `Avoid: stock photo feel, clipart, illustration, 3D render, cartoon, airbrushed, beauty filter, porcelain skin.`;
 
   // ── 3. Extract text overlay metadata (for post-processing) ──
   // ── Compute OKLCH brand color tokens from seed hex ──
