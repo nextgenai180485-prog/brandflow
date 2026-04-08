@@ -24,12 +24,33 @@ import {
 } from "@/components/ui/dialog";
 
 const TABS = [
-  { value: "video_templates", label: "Video Templates", icon: Film, table: "video_templates" as const, nameField: "template_name" },
-  { value: "character_library", label: "Characters", icon: Users, table: "character_library" as const, nameField: "name" },
-  { value: "ad_reference_library", label: "Ad References", icon: Megaphone, table: "ad_reference_library" as const, nameField: "title" },
-  { value: "image_templates", label: "Image Templates", icon: Image, table: "image_templates" as const, nameField: "style_name" },
-  { value: "hooks", label: "Hooks", icon: Zap, table: "hooks" as const, nameField: "hook_text" },
-  { value: "ad_intelligence", label: "Ad Intel", icon: Radar, table: "foreplay" as const, nameField: "name" },
+  { value: "video_templates", label: "Video Templates", icon: Film, table: "video_templates" as const, nameField: "template_name",
+    categories: [
+      { key: "family", label: "Family", options: ["F1_UGC", "F2_SPOKESPERSON", "F5_CINEMATIC"] },
+      { key: "mood", label: "Mood", options: ["aspirational", "authentic", "cinematic", "dramatic", "educational", "energetic", "epic", "inspirational", "luxurious", "professional", "urgent", "warm"] },
+    ]},
+  { value: "character_library", label: "Characters", icon: Users, table: "character_library" as const, nameField: "name",
+    categories: [
+      { key: "gender", label: "Gender", options: ["male", "female", "neutral"] },
+      { key: "voice_style", label: "Voice", options: ["authoritative", "calm", "casual", "conversational", "elegant", "energetic", "inspiring", "motivational", "passionate", "professional", "trendy"] },
+    ]},
+  { value: "ad_reference_library", label: "Ad References", icon: Megaphone, table: "ad_reference_library" as const, nameField: "title",
+    categories: [
+      { key: "media_type", label: "Type", options: ["image", "video"] },
+    ]},
+  { value: "image_templates", label: "Image Templates", icon: Image, table: "image_templates" as const, nameField: "style_name",
+    categories: [
+      { key: "vertical", label: "Vertical", options: ["beauty", "ecommerce", "fashion", "fitness", "food", "general", "lifestyle", "luxury", "real_estate", "technology"] },
+      { key: "quality_tier", label: "Quality", options: ["standard", "premium"] },
+      { key: "platform", label: "Platform", options: ["facebook", "instagram"] },
+    ]},
+  { value: "hooks", label: "Hooks", icon: Zap, table: "hooks" as const, nameField: "hook_text",
+    categories: [
+      { key: "hook_type", label: "Type", options: ["bold_claim", "curiosity", "question", "statistic", "story"] },
+      { key: "family", label: "Family", options: ["F1_UGC", "F2_SPOKESPERSON", "F5_CINEMATIC"] },
+      { key: "platform", label: "Platform", options: ["facebook", "instagram_reels", "tiktok", "youtube_shorts"] },
+    ]},
+  { value: "ad_intelligence", label: "Ad Intel", icon: Radar, table: "foreplay" as const, nameField: "name", categories: [] },
 ] as const;
 
 type TabValue = (typeof TABS)[number]["value"];
