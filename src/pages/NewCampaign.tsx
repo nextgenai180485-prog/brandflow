@@ -399,8 +399,8 @@ const NewCampaign = () => {
   // ── Builder Panel Content ──
   const builderContent = (
     <div className="space-y-6">
-      {/* ═══ Details ═══ */}
-      {currentStepName === "Details" && (
+      {/* ═══ Campaign Brief ═══ */}
+      {currentStepName === "Campaign Brief" && (
         <>
           <div className="space-y-2">
             <Label htmlFor="campaign-title" className="text-sm font-medium">Campaign Name</Label>
@@ -418,166 +418,172 @@ const NewCampaign = () => {
               targetAudience: brandProfile?.target_audience_detected || undefined,
             }}
           />
-
-          {/* Selected reference assets strip */}
-          {selectedAssets.length > 0 && (
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label className="text-sm font-medium">Selected References ({selectedAssets.length})</Label>
-                <button
-                  onClick={() => { setSelectedAssets([]); setActivePreviewIndex(0); }}
-                  className="text-[10px] text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  Clear all
-                </button>
-              </div>
-              <div className="flex gap-2 overflow-x-auto pb-1">
-                {selectedAssets.map((asset, i) => {
-                  const isActive = i === Math.min(activePreviewIndex, selectedAssets.length - 1);
-                  return (
-                    <div
-                      key={asset.id}
-                      className={cn(
-                        "relative shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 cursor-pointer transition-all group",
-                        isActive ? "border-primary ring-1 ring-primary/30 shadow-sm" : "border-border hover:border-foreground/20"
-                      )}
-                      onClick={() => setActivePreviewIndex(i)}
-                    >
-                      {isImageUrl(asset.file_url) ? (
-                        <img src={asset.file_url} alt={asset.file_name} className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full bg-muted flex items-center justify-center">
-                          <VideoIcon className="w-4 h-4 text-muted-foreground" />
-                        </div>
-                      )}
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          const next = selectedAssets.filter((_, idx) => idx !== i);
-                          setSelectedAssets(next);
-                          if (activePreviewIndex >= next.length) setActivePreviewIndex(Math.max(0, next.length - 1));
-                        }}
-                        className="absolute top-0.5 right-0.5 w-4 h-4 rounded-full bg-foreground/70 text-background flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <X className="w-2.5 h-2.5" />
-                      </button>
-                      {isActive && (
-                        <div className="absolute bottom-0 left-0 right-0 bg-primary/80 py-0.5">
-                          <p className="text-[7px] text-primary-foreground text-center font-bold">Preview</p>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* Selected template from showcase (legacy) */}
-          {selectedTemplate && selectedAssets.length === 0 && (
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">Reference Asset</Label>
-              <div className="flex items-center gap-3 p-3 rounded-xl border border-primary/20 bg-primary/5">
-                <div className="w-12 h-12 rounded-lg overflow-hidden shrink-0 border border-border">
-                  <img src={selectedTemplate.thumbnail_url || selectedTemplate.media_url || ""} alt="" className="w-full h-full object-cover" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-semibold text-foreground truncate">{selectedTemplate.title}</p>
-                  <p className="text-[10px] text-muted-foreground">{selectedTemplate.mood_tags?.[0] || "Template"} · {selectedTemplate.industry_tags?.[0] || "General"}</p>
-                </div>
-                <button onClick={() => handleTemplateSelect(null)} className="text-[10px] text-muted-foreground hover:text-foreground px-2 py-1 rounded-md hover:bg-secondary transition-colors">
-                  Remove
-                </button>
-              </div>
-            </div>
-          )}
-
-          <AssetLibraryPicker selectedAssets={selectedAssets} onChange={setSelectedAssets} />
-
-          {/* Swap assets: product, model, logo */}
-          <SwapAssetStrip
-            assets={swapAssets}
-            onChange={setSwapAssets}
-            activeIndex={activeSwapIndex}
-            onActiveChange={setActiveSwapIndex}
-          />
-
-          {/* Logo inclusion toggle */}
-          <div className="flex items-center justify-between p-3 rounded-xl border border-border bg-card">
-            <div className="space-y-0.5">
-              <Label className="text-sm font-medium">Include brand logo</Label>
-              <p className="text-[10px] text-muted-foreground">Add your logo as a watermark/overlay in generated creatives</p>
-            </div>
-            <button
-              onClick={() => setIncludeLogo(!includeLogo)}
-              className={cn(
-                "relative w-10 h-5 rounded-full transition-colors",
-                includeLogo ? "bg-primary" : "bg-muted"
-              )}
-            >
-              <span className={cn(
-                "absolute top-0.5 w-4 h-4 rounded-full bg-background shadow transition-transform",
-                includeLogo ? "left-5" : "left-0.5"
-              )} />
-            </button>
-          </div>
         </>
       )}
 
-      {/* ═══ Platforms ═══ */}
-      {currentStepName === "Platforms" && (
-        <div className="space-y-4">
-          <div>
-            <h2 className="text-base font-semibold text-foreground">Target Platforms</h2>
-            <p className="text-xs text-muted-foreground mt-1">Select where this content will be published.</p>
+      {/* ═══ Assets & Delivery ═══ */}
+      {currentStepName === "Assets & Delivery" && (
+        <>
+          {/* Your Assets section */}
+          <div className="space-y-3">
+            <div>
+              <h2 className="text-base font-semibold text-foreground">Your Assets</h2>
+              <p className="text-xs text-muted-foreground mt-0.5">Upload your product, model, or logo images</p>
+            </div>
+            <SwapAssetStrip
+              assets={swapAssets}
+              onChange={setSwapAssets}
+              activeIndex={activeSwapIndex}
+              onActiveChange={setActiveSwapIndex}
+            />
+            {/* Logo inclusion toggle */}
+            <div className="flex items-center justify-between p-3 rounded-xl border border-border bg-card">
+              <div className="space-y-0.5">
+                <Label className="text-sm font-medium">Include brand logo</Label>
+                <p className="text-[10px] text-muted-foreground">Add your logo as a watermark/overlay in generated creatives</p>
+              </div>
+              <button
+                onClick={() => setIncludeLogo(!includeLogo)}
+                className={cn(
+                  "relative w-10 h-5 rounded-full transition-colors",
+                  includeLogo ? "bg-primary" : "bg-muted"
+                )}
+              >
+                <span className={cn(
+                  "absolute top-0.5 w-4 h-4 rounded-full bg-background shadow transition-transform",
+                  includeLogo ? "left-5" : "left-0.5"
+                )} />
+              </button>
+            </div>
           </div>
-          <div className="rounded-xl border border-border bg-card p-4">
-            <AssetPlatformSelector selected={platforms} onChange={setPlatforms} assetType="image" />
-          </div>
-          {platforms.length > 0 && (
-            <p className="text-[10px] text-muted-foreground">{platforms.length} format{platforms.length !== 1 ? "s" : ""} selected</p>
-          )}
-        </div>
-      )}
 
-      {/* ═══ Content Type ═══ */}
-      {currentStepName === "Content Type" && (
-        <div className="space-y-4">
-          <div>
-            <h2 className="text-base font-semibold text-foreground">Content Types</h2>
-            <p className="text-xs text-muted-foreground mt-1">What should the engine produce?</p>
+          {/* Templates section */}
+          <div className="space-y-3">
+            <div>
+              <h2 className="text-base font-semibold text-foreground">Templates</h2>
+              <p className="text-xs text-muted-foreground mt-0.5">Style references to guide the creative engine</p>
+            </div>
+            <AssetLibraryPicker selectedAssets={selectedAssets} onChange={setSelectedAssets} />
+
+            {/* Selected reference assets strip */}
+            {selectedAssets.length > 0 && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-medium">Selected References ({selectedAssets.length})</Label>
+                  <button
+                    onClick={() => { setSelectedAssets([]); setActivePreviewIndex(0); }}
+                    className="text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    Clear all
+                  </button>
+                </div>
+                <div className="flex gap-2 overflow-x-auto pb-1">
+                  {selectedAssets.map((asset, i) => {
+                    const isActive = i === Math.min(activePreviewIndex, selectedAssets.length - 1);
+                    return (
+                      <div
+                        key={asset.id}
+                        className={cn(
+                          "relative shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 cursor-pointer transition-all group",
+                          isActive ? "border-primary ring-1 ring-primary/30 shadow-sm" : "border-border hover:border-foreground/20"
+                        )}
+                        onClick={() => setActivePreviewIndex(i)}
+                      >
+                        {isImageUrl(asset.file_url) ? (
+                          <img src={asset.file_url} alt={asset.file_name} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full bg-muted flex items-center justify-center">
+                            <VideoIcon className="w-4 h-4 text-muted-foreground" />
+                          </div>
+                        )}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const next = selectedAssets.filter((_, idx) => idx !== i);
+                            setSelectedAssets(next);
+                            if (activePreviewIndex >= next.length) setActivePreviewIndex(Math.max(0, next.length - 1));
+                          }}
+                          className="absolute top-0.5 right-0.5 w-4 h-4 rounded-full bg-foreground/70 text-background flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X className="w-2.5 h-2.5" />
+                        </button>
+                        {isActive && (
+                          <div className="absolute bottom-0 left-0 right-0 bg-primary/80 py-0.5">
+                            <p className="text-[7px] text-primary-foreground text-center font-bold">Preview</p>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Selected template from showcase (legacy) */}
+            {selectedTemplate && selectedAssets.length === 0 && (
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Reference Asset</Label>
+                <div className="flex items-center gap-3 p-3 rounded-xl border border-primary/20 bg-primary/5">
+                  <div className="w-12 h-12 rounded-lg overflow-hidden shrink-0 border border-border">
+                    <img src={selectedTemplate.thumbnail_url || selectedTemplate.media_url || ""} alt="" className="w-full h-full object-cover" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold text-foreground truncate">{selectedTemplate.title}</p>
+                    <p className="text-[10px] text-muted-foreground">{selectedTemplate.mood_tags?.[0] || "Template"} · {selectedTemplate.industry_tags?.[0] || "General"}</p>
+                  </div>
+                  <button onClick={() => handleTemplateSelect(null)} className="text-[10px] text-muted-foreground hover:text-foreground px-2 py-1 rounded-md hover:bg-secondary transition-colors">
+                    Remove
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
-          <div className="grid grid-cols-1 gap-2.5">
-            {(Object.keys(CONTENT_TYPE_LABELS) as ContentType[]).map((ct) => {
-              const info = CONTENT_TYPE_LABELS[ct];
-              const selected = contentTypes.includes(ct);
-              return (
-                <button
-                  key={ct}
-                  type="button"
-                  onClick={() => toggleContentType(ct)}
-                  className={`relative flex items-center gap-3 rounded-xl border-2 p-4 transition-all ${
-                    selected ? "border-primary bg-primary/5 shadow-sm" : "border-border bg-card hover:border-foreground/20 hover:bg-secondary/50"
-                  }`}
-                >
-                  {selected && (
-                    <div className="absolute top-2.5 right-2.5 w-5 h-5 rounded-full bg-primary flex items-center justify-center">
-                      <Check className="w-3 h-3 text-primary-foreground" />
+
+          {/* Delivery: Platforms + Content Types */}
+          <div className="space-y-4">
+            <div>
+              <h2 className="text-base font-semibold text-foreground">Delivery</h2>
+              <p className="text-xs text-muted-foreground mt-0.5">Where and what type of content to produce</p>
+            </div>
+            <div className="rounded-xl border border-border bg-card p-4">
+              <AssetPlatformSelector selected={platforms} onChange={setPlatforms} assetType="image" />
+            </div>
+            {platforms.length > 0 && (
+              <p className="text-[10px] text-muted-foreground">{platforms.length} format{platforms.length !== 1 ? "s" : ""} selected</p>
+            )}
+
+            <div className="grid grid-cols-1 gap-2.5">
+              {(Object.keys(CONTENT_TYPE_LABELS) as ContentType[]).map((ct) => {
+                const info = CONTENT_TYPE_LABELS[ct];
+                const selected = contentTypes.includes(ct);
+                return (
+                  <button
+                    key={ct}
+                    type="button"
+                    onClick={() => toggleContentType(ct)}
+                    className={`relative flex items-center gap-3 rounded-xl border-2 p-4 transition-all ${
+                      selected ? "border-primary bg-primary/5 shadow-sm" : "border-border bg-card hover:border-foreground/20 hover:bg-secondary/50"
+                    }`}
+                  >
+                    {selected && (
+                      <div className="absolute top-2.5 right-2.5 w-5 h-5 rounded-full bg-primary flex items-center justify-center">
+                        <Check className="w-3 h-3 text-primary-foreground" />
+                      </div>
+                    )}
+                    <div className={`p-2.5 rounded-xl ${selected ? "bg-primary/10 text-primary" : "bg-secondary text-muted-foreground"}`}>
+                      {CONTENT_TYPE_ICONS[ct]}
                     </div>
-                  )}
-                  <div className={`p-2.5 rounded-xl ${selected ? "bg-primary/10 text-primary" : "bg-secondary text-muted-foreground"}`}>
-                    {CONTENT_TYPE_ICONS[ct]}
-                  </div>
-                  <div className="text-left">
-                    <p className="text-sm font-semibold text-foreground">{info.label}</p>
-                    <p className="text-[10px] text-muted-foreground mt-0.5">{info.description}</p>
-                  </div>
-                </button>
-              );
-            })}
+                    <div className="text-left">
+                      <p className="text-sm font-semibold text-foreground">{info.label}</p>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">{info.description}</p>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        </div>
-      )}
+        </>
+      )
 
       {/* ═══ Creative Direction ═══ */}
       {currentStepName === "Creative Direction" && (
