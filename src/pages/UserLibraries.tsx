@@ -369,10 +369,32 @@ const LibraryGallery = ({ table, nameField, icon: Icon, search, onPreview }: Lib
 
   const filtered = items.filter((item: any) => {
     if (!search) return true;
-    const name = (item[nameField] || "").toLowerCase();
-    const tags = [...(item.tags || []), ...(item.mood_tags || []), ...(item.industry_tags || [])].join(" ").toLowerCase();
     const q = search.toLowerCase();
-    return name.includes(q) || tags.includes(q);
+    const searchable = [
+      item[nameField],
+      item.description,
+      item.mood,
+      item.family,
+      item.vertical,
+      item.hook_type,
+      item.platform,
+      item.media_type,
+      item.voice_style,
+      item.age_range,
+      item.gender,
+      item.quality_tier,
+      item.format,
+      item.aspect_ratio,
+      item.performance_notes,
+      ...(item.tags || []),
+      ...(item.mood_tags || []),
+      ...(item.industry_tags || []),
+      ...(item.platform_tags || []),
+      ...(item.ethnicity_tags || []),
+      ...(item.compatible_families || []),
+      ...(item.prompt_modifiers || []),
+    ].filter(Boolean).join(" ").toLowerCase();
+    return searchable.includes(q);
   });
 
   if (isLoading) {
