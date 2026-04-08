@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { X, Save, Loader2 } from "lucide-react";
+import { X, Save, Loader2, Sparkles } from "lucide-react";
 import FileUploadZone from "./FileUploadZone";
 
 type FieldType = "text" | "textarea" | "tags" | "select" | "number" | "json" | "file";
@@ -19,6 +19,18 @@ interface AdminLibraryFormProps {
   onClose: () => void;
   onSaved: () => void;
 }
+
+// Maps: which file field triggers which JSON field, and which analysis mode
+const AUTO_ANALYSIS_MAP: Record<TableName, { fileField: string; jsonField: string; mode: string }[]> = {
+  video_templates: [{ fileField: "example_url", jsonField: "sealcam_analysis", mode: "sealcam" }],
+  character_library: [{ fileField: "avatar_url", jsonField: "persona_traits", mode: "persona" }],
+  ad_reference_library: [
+    { fileField: "media_url", jsonField: "sealcam_analysis", mode: "sealcam" },
+    { fileField: "thumbnail_url", jsonField: "sealcam_analysis", mode: "sealcam" },
+  ],
+  image_templates: [{ fileField: "preview_url", jsonField: "style_guide", mode: "style_guide" }],
+  hooks: [],
+};
 
 const FORM_FIELDS: Record<TableName, { key: string; label: string; type: FieldType; options?: string[]; folder?: string }[]> = {
   video_templates: [
@@ -81,6 +93,7 @@ const FORM_FIELDS: Record<TableName, { key: string; label: string; type: FieldTy
 const AdminLibraryForm = ({ tableName, editingItem, onClose, onSaved }: AdminLibraryFormProps) => {
   const fields = FORM_FIELDS[tableName];
   const [saving, setSaving] = useState(false);
+  const [analyzing, setAnalyzing] = useState<string | null>(null);
 
   const getInitialValues = () => {
     const values: Record<string, string> = {};
@@ -102,6 +115,44 @@ const AdminLibraryForm = ({ tableName, editingItem, onClose, onSaved }: AdminLib
   };
 
   const [values, setValues] = useState<Record<string, string>>(getInitialValues);
+
+  // Auto-analyze uploaded image via vision AI
+  const triggerAutoAnalysis = useCallback(async (fileFieldKey: string, imageUrl: string) => {
+    const mappings = AUTO_ANALYSIS_MAP[tableName] || [];
+    const mapping = mappings.find((m) => m.fileField === fileFieldKey);
+    if (!mapping || !imageUrl) return;
+
+    // Only analyze image URLs
+    if (!/\.(jpg|jpeg|png|gif|webp|svg)(\?|$)/i.test(imageUrl)) return;
+
+    setAnalyzing(mapping.jsonField);
+    toast.info("🔍 Auto-analyzing image…", { id: "auto-analyze" });
+
+    try {
+      const { data, error } = await supabase.functions.invoke("analyze-asset", {
+        body: { image_url: imageUrl, analysis_mode: mapping.mode },
+      });
+
+      if (error) throw error;
+      if (data?.analysis) {
+        const formatted = JSON.stringify(data.analysis, null, 2);
+        setValues((prev) => ({ ...prev, [mapping.jsonField]: formatted }));
+        toast.success("✨ Analysis complete — JSON auto-populated", { id: "auto-analyze" });
+      }
+    } catch (e: any) {
+      console.error("Auto-analysis failed:", e);
+      toast.error("Analysis failed — you can fill JSON manually", { id: "auto-analyze" });
+    } finally {
+      setAnalyzing(null);
+    }
+  }, [tableName]);
+
+  const handleFileChange = useCallback((fieldKey: string, url: string) => {
+    setValues((prev) => ({ ...prev, [fieldKey]: url }));
+    if (url) {
+      triggerAutoAnalysis(fieldKey, url);
+    }
+  }, [triggerAutoAnalysis]);
 
   const handleSave = async () => {
     setSaving(true);
@@ -139,6 +190,9 @@ const AdminLibraryForm = ({ tableName, editingItem, onClose, onSaved }: AdminLib
     }
   };
 
+  // Check if a JSON field is being auto-analyzed
+  const isFieldAnalyzing = (fieldKey: string) => analyzing === fieldKey;
+
   return (
     <Card className="border-primary/20">
       <CardHeader className="pb-3 flex flex-row items-center justify-between">
@@ -149,11 +203,19 @@ const AdminLibraryForm = ({ tableName, editingItem, onClose, onSaved }: AdminLib
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {fields.map((field) => (
             <div key={field.key} className={field.type === "textarea" || field.type === "json" || field.type === "file" ? "col-span-full" : ""}>
-              <Label className="text-[10px] font-medium text-muted-foreground mb-1 block">{field.label}</Label>
+              <Label className="text-[10px] font-medium text-muted-foreground mb-1 flex items-center gap-1.5">
+                {field.label}
+                {isFieldAnalyzing(field.key) && (
+                  <span className="inline-flex items-center gap-1 text-primary">
+                    <Sparkles className="h-3 w-3 animate-pulse" />
+                    <span className="text-[9px]">Auto-extracting…</span>
+                  </span>
+                )}
+              </Label>
               {field.type === "file" ? (
                 <FileUploadZone
                   value={values[field.key] || ""}
-                  onChange={(url) => setValues((prev) => ({ ...prev, [field.key]: url }))}
+                  onChange={(url) => handleFileChange(field.key, url)}
                   folder={field.folder || "uploads"}
                 />
               ) : field.type === "select" ? (
@@ -166,12 +228,16 @@ const AdminLibraryForm = ({ tableName, editingItem, onClose, onSaved }: AdminLib
                   </SelectContent>
                 </Select>
               ) : field.type === "textarea" || field.type === "json" ? (
-                <Textarea
-                  value={values[field.key] || ""}
-                  onChange={(e) => setValues((prev) => ({ ...prev, [field.key]: e.target.value }))}
-                  className="text-xs min-h-[60px] resize-none font-mono"
-                  rows={field.type === "json" ? 4 : 2}
-                />
+                <div className="relative">
+                  <Textarea
+                    value={values[field.key] || ""}
+                    onChange={(e) => setValues((prev) => ({ ...prev, [field.key]: e.target.value }))}
+                    className={`text-xs min-h-[60px] resize-none font-mono transition-colors ${
+                      isFieldAnalyzing(field.key) ? "border-primary/50 bg-primary/5" : ""
+                    }`}
+                    rows={field.type === "json" ? 4 : 2}
+                  />
+                </div>
               ) : (
                 <Input
                   type={field.type === "number" ? "number" : "text"}
@@ -185,7 +251,7 @@ const AdminLibraryForm = ({ tableName, editingItem, onClose, onSaved }: AdminLib
         </div>
         <div className="flex justify-end gap-2 pt-2">
           <Button variant="outline" size="sm" onClick={onClose} className="text-xs">Cancel</Button>
-          <Button size="sm" onClick={handleSave} disabled={saving} className="text-xs gap-1">
+          <Button size="sm" onClick={handleSave} disabled={saving || !!analyzing} className="text-xs gap-1">
             {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
             {editingItem ? "Update" : "Create"}
           </Button>
