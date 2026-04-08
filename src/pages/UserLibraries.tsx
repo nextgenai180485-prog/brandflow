@@ -783,7 +783,7 @@ const LibraryGallery = ({ table, nameField, icon: Icon, search, categoryFilters,
 };
 
 const ItemDetail = ({ item, tab }: { item: any; tab: (typeof TABS)[number] }) => {
-  const thumb = item.preview_url || item.example_url || item.avatar_url || item.thumbnail_url || item.media_url;
+  const thumb = item.thumbnail_url || item.preview_url || item.avatar_url || item.media_url || item.example_url;
   const allTags = [
     ...(item.tags || []),
     ...(item.mood_tags || []),
