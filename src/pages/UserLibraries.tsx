@@ -215,18 +215,29 @@ const UserLibraries = () => {
 
         {/* Floating Selection Bar */}
         {selectedItems.length > 0 && (
-          <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-primary text-primary-foreground rounded-full shadow-lg px-5 py-3 flex items-center gap-4 animate-in slide-in-from-bottom-4 fade-in duration-200">
+          <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-primary text-primary-foreground rounded-2xl shadow-lg px-5 py-3 flex items-center gap-4 animate-in slide-in-from-bottom-4 fade-in duration-200">
             <div className="flex items-center gap-2">
-              <div className="flex -space-x-2">
-                {selectedItems.slice(0, 4).map((s) => (
-                  <div key={s.id} className="w-8 h-8 rounded-full border-2 border-primary bg-primary-foreground/10 flex items-center justify-center overflow-hidden">
+              <div className="flex -space-x-1">
+                {selectedItems.slice(0, 5).map((s) => (
+                  <div key={s.id} className="relative group/chip w-8 h-8 rounded-full border-2 border-primary bg-primary-foreground/10 flex items-center justify-center overflow-hidden">
                     {s.thumbnail ? (
                       <img src={s.thumbnail} alt={s.name} className="w-full h-full object-cover" />
                     ) : (
                       <Check className="w-3 h-3" />
                     )}
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setSelectedItems(prev => prev.filter(i => i.id !== s.id)); }}
+                      className="absolute inset-0 bg-destructive/80 flex items-center justify-center opacity-0 group-hover/chip:opacity-100 transition-opacity rounded-full"
+                    >
+                      <X className="w-3 h-3 text-destructive-foreground" />
+                    </button>
                   </div>
                 ))}
+                {selectedItems.length > 5 && (
+                  <div className="w-8 h-8 rounded-full border-2 border-primary bg-primary-foreground/20 flex items-center justify-center text-[10px] font-bold">
+                    +{selectedItems.length - 5}
+                  </div>
+                )}
               </div>
               <span className="text-sm font-medium">{selectedItems.length} selected</span>
             </div>
