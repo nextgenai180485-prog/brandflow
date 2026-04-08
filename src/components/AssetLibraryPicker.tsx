@@ -307,7 +307,7 @@ const AdIntelligenceGrid = ({ isSelected, toggleAsset }: AdIntelligenceGridProps
             const name = ad.name || ad.headline || "Ad";
             const brandName = ad.brand_name || ad.brand?.name;
             const isLive = ad.live;
-            const runDays = ad.running_duration;
+            const runDays = ad.running_duration?.days;
 
             return (
               <button
