@@ -52,6 +52,12 @@ const NewCampaign = () => {
       ? `Inspired by: ${showcaseState.templateRef?.title || "showcase template"}. Tags: ${[...(showcaseState.templateRef?.moodTags || []), ...(showcaseState.templateRef?.industryTags || [])].join(", ")}`
       : ""
   );
+  const [structuredBrief, setStructuredBrief] = useState<CreativeBriefType>({
+    objective: "", messageAngle: "", tone: [], ctaGoal: "", targetEmotion: [], freeformNotes: "",
+  });
+  const [campaignCopy, setCampaignCopy] = useState<CampaignCopy>({
+    headline: "", subheadline: "", ctaText: "", bodyCopy: "",
+  });
   const [selectedAssets, setSelectedAssets] = useState<LibraryAsset[]>([]);
   const [platforms, setPlatforms] = useState<SelectedFormat[]>([]);
   const [contentTypes, setContentTypes] = useState<ContentType[]>([]);
