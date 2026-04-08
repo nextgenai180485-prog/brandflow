@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo } from "react";
+import { getFamilyLabel } from "@/lib/familyLabels";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import AppShell from "@/components/AppShell";
@@ -116,7 +117,7 @@ const UserLibraries = () => {
                         className="text-[10px] px-2 py-0.5 cursor-pointer hover:bg-primary/10 transition-colors capitalize"
                         onClick={() => toggleCategory(cat.key, opt)}
                       >
-                        {opt.replace(/_/g, " ")}
+                        {cat.key === "family" ? getFamilyLabel(opt) : opt.replace(/_/g, " ")}
                       </Badge>
                     ))}
                   </div>

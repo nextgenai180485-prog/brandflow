@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { X, Save, Loader2, Sparkles } from "lucide-react";
 import FileUploadZone from "./FileUploadZone";
+import { getFamilyLabel } from "@/lib/familyLabels";
 
 type FieldType = "text" | "textarea" | "tags" | "select" | "number" | "json" | "file";
 type TableName = "video_templates" | "character_library" | "ad_reference_library" | "image_templates" | "hooks";
@@ -366,7 +367,7 @@ const AdminLibraryForm = ({ tableName, editingItem, onClose, onSaved }: AdminLib
                   <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select..." /></SelectTrigger>
                   <SelectContent>
                     {field.options?.map((opt) => (
-                      <SelectItem key={opt} value={opt} className="text-xs">{opt}</SelectItem>
+                      <SelectItem key={opt} value={opt} className="text-xs">{field.key === "family" ? getFamilyLabel(opt) : opt}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
