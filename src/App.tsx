@@ -20,6 +20,7 @@ import VisualDirector from "./pages/VisualDirector";
 import AdminLibraries from "./pages/AdminLibraries";
 import AdminDashboard from "./pages/AdminDashboard";
 import UserLibraries from "./pages/UserLibraries";
+import Generations from "./pages/Generations";
 import SocialSettings from "./pages/SocialSettings";
 import NotFound from "./pages/NotFound";
 import GlobalCMOChat from "./components/GlobalCMOChat";
@@ -87,6 +88,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <CalendarView />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/generations"
+              element={
+                <ProtectedRoute>
+                  <Generations />
                 </ProtectedRoute>
               }
             />
