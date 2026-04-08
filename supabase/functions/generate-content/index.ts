@@ -653,13 +653,11 @@ const VERTICAL_PHOTOGRAPHY: Record<string, string> = {
   general: "Professional commercial photography. Three-point lighting setup. Clean, intentional composition following rule of thirds. Neutral-warm color temperature. Shot on 50mm f/1.8 — natural perspective with beautiful bokeh.",
 };
 
-// ── Prompt Builders (now powered by Decision Engine + Image Templates) ──
+// ── Prompt Builders (campaign-brief-first — no brand analysis in prompts) ──
 function buildImagePrompt(platform: string, format: string, brandContext: any, intelligenceBrief: any, decisionWinner: any, imageTemplate?: any, referenceImageUrl?: string | null): string {
   const industry = (brandContext.industry || "general").toLowerCase();
-  const baseStyle = intelligenceBrief?.visual_direction || "modern, clean, professional photography style";
-  const angle = decisionWinner?.description || "showcase the brand experience";
+  const angle = decisionWinner?.description || "showcase the product or service";
   const hookText = decisionWinner?.hook_suggestion || "";
-  const avoid = intelligenceBrief?.avoid || [];
 
   // Get vertical-specific photography rules
   const verticalRules = VERTICAL_PHOTOGRAPHY[industry] || VERTICAL_PHOTOGRAPHY.general;
@@ -667,7 +665,6 @@ function buildImagePrompt(platform: string, format: string, brandContext: any, i
   const platformRules = PLATFORM_AESTHETICS[platform.toLowerCase()] || PLATFORM_AESTHETICS.instagram;
 
   let prompt = `Ultra-high-quality professional ${industry} marketing photograph. `;
-  prompt += `Brand: "${brandContext.businessName || "luxury brand"}". `;
   prompt += `Creative direction: ${angle}. `;
   if (hookText) prompt += `Visual concept: ${hookText}. `;
 
@@ -695,12 +692,10 @@ function buildImagePrompt(platform: string, format: string, brandContext: any, i
 
   prompt += `${formatRules} `;
   prompt += `${platformRules} `;
-  prompt += `Visual style reference: ${baseStyle}. `;
   prompt += `Photorealistic, shot on high-end mirrorless camera, professional post-processing. Natural color grading — not over-saturated. `;
   prompt += `No text, no watermarks, no logos, no borders, no UI elements. `;
 
-  // Negative prompt elements baked in
-  const avoidList = [...avoid.slice(0, 3), "stock photo feel", "clipart", "illustration", "3D render", "cartoon", "amateur lighting"];
+  const avoidList = ["stock photo feel", "clipart", "illustration", "3D render", "cartoon", "amateur lighting"];
   prompt += `Strictly avoid: ${avoidList.join(", ")}. `;
 
   return prompt;
