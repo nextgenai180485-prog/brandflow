@@ -293,7 +293,21 @@ const Dashboard = () => {
             ))}
           </div>
         ) : campaigns.length === 0 ? (
-          <EmptyCampaigns onCreateClick={() => navigate("/dashboard/campaigns/new")} />
+          <EmptyCampaigns onCreateClick={(selectedRefs) => {
+            if (selectedRefs && selectedRefs.length > 0) {
+              navigate("/dashboard/campaigns/new", {
+                state: {
+                  bulkRefs: selectedRefs.map(r => ({
+                    id: r.id, title: r.title,
+                    mediaUrl: r.media_url || r.thumbnail_url,
+                    industryTags: r.industry_tags, moodTags: r.mood_tags, platformTags: r.platform_tags,
+                  })),
+                },
+              });
+            } else {
+              navigate("/dashboard/campaigns/new");
+            }
+          }} />
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {campaigns.map(campaign => (
