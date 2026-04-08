@@ -348,10 +348,15 @@ const NewCampaign = () => {
 
     const referenceImageUrl = selectedTemplate?.media_url || showcaseState?.templateRef?.mediaUrl || undefined;
 
-    // Collect all workspace template reference URLs from library selections
-    const templateRefs = librarySelections
-      .map((s: LibrarySelection) => s.data?.media_url || s.data?.thumbnail_url || s.data?.example_url || s.data?.avatar_url)
-      .filter(Boolean);
+    // Collect all template reference URLs from library selections AND selected assets
+    const templateRefs = [
+      ...librarySelections
+        .map((s: LibrarySelection) => s.data?.media_url || s.data?.thumbnail_url || s.data?.example_url || s.data?.avatar_url || s.data?.preview_url)
+        .filter(Boolean),
+      ...selectedAssets
+        .filter(a => a.source_tab && a.source_tab !== "your_assets" && a.file_url)
+        .map(a => a.file_url),
+    ];
 
     // Collect user-uploaded swap assets (product images, models, etc.)
     const userAssets = swapAssets

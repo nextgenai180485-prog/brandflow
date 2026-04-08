@@ -148,7 +148,7 @@ const LibraryGallery = ({ table, nameField, icon: Icon, search, onPreview }: Lib
     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
       {filtered.map((item: any) => {
         const name = item[nameField] || "Untitled";
-        const thumb = item.preview_url || item.avatar_url || item.thumbnail_url || item.media_url;
+        const thumb = item.preview_url || item.example_url || item.avatar_url || item.thumbnail_url || item.media_url;
         const tags = [
           ...(item.tags || []),
           ...(item.mood_tags || []),
@@ -194,7 +194,7 @@ const LibraryGallery = ({ table, nameField, icon: Icon, search, onPreview }: Lib
 };
 
 const ItemDetail = ({ item, tab }: { item: any; tab: (typeof TABS)[number] }) => {
-  const thumb = item.preview_url || item.avatar_url || item.thumbnail_url || item.media_url;
+  const thumb = item.preview_url || item.example_url || item.avatar_url || item.thumbnail_url || item.media_url;
   const allTags = [
     ...(item.tags || []),
     ...(item.mood_tags || []),
