@@ -1,8 +1,9 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
 import type { LibrarySelection } from "@/components/LibraryBrowser";
 import { useNavigate, useLocation } from "react-router-dom";
-import { ArrowLeft, ArrowRight, Loader2, ImageIcon, Sparkles, Film, Camera, Check, VideoIcon, Layout, Brain } from "lucide-react";
+import { ArrowLeft, ArrowRight, Loader2, ImageIcon, Sparkles, Film, Camera, Check, VideoIcon, Layout, Brain, X } from "lucide-react";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -65,6 +66,7 @@ const NewCampaign = () => {
   const [mobileTab, setMobileTab] = useState<"builder" | "preview">("builder");
   const [isStarred, setIsStarred] = useState(false);
   const [showSaveModal, setShowSaveModal] = useState(false);
+  const [activePreviewIndex, setActivePreviewIndex] = useState(0);
 
   // Inline strategy gate
   const [needsStrategy, setNeedsStrategy] = useState(false);
@@ -294,6 +296,11 @@ const NewCampaign = () => {
 
   const isImageUrl = (url: string) => /\.(jpg|jpeg|png|gif|webp|svg)(\?|$)/i.test(url);
 
+  // Derive simulator preview URL: active selected asset > selectedTemplate > null
+  const simulatorPreviewUrl = selectedAssets.length > 0
+    ? selectedAssets[Math.min(activePreviewIndex, selectedAssets.length - 1)]?.file_url || null
+    : selectedTemplate?.media_url || null;
+
   // ── Builder Panel Content ──
   const builderContent = (
     <div className="space-y-6">
@@ -311,8 +318,62 @@ const NewCampaign = () => {
             <Textarea id="campaign-instructions" placeholder="Describe the goal, tone, or specific requirements…" value={instructions} onChange={(e) => setInstructions(e.target.value)} rows={3} className="resize-none text-sm" />
           </div>
 
-          {/* Selected reference thumbnail */}
-          {selectedTemplate && (
+          {/* Selected reference assets strip */}
+          {selectedAssets.length > 0 && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-medium">Selected References ({selectedAssets.length})</Label>
+                <button
+                  onClick={() => { setSelectedAssets([]); setActivePreviewIndex(0); }}
+                  className="text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Clear all
+                </button>
+              </div>
+              <div className="flex gap-2 overflow-x-auto pb-1">
+                {selectedAssets.map((asset, i) => {
+                  const isActive = i === Math.min(activePreviewIndex, selectedAssets.length - 1);
+                  return (
+                    <div
+                      key={asset.id}
+                      className={cn(
+                        "relative shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 cursor-pointer transition-all group",
+                        isActive ? "border-primary ring-1 ring-primary/30 shadow-sm" : "border-border hover:border-foreground/20"
+                      )}
+                      onClick={() => setActivePreviewIndex(i)}
+                    >
+                      {isImageUrl(asset.file_url) ? (
+                        <img src={asset.file_url} alt={asset.file_name} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full bg-muted flex items-center justify-center">
+                          <VideoIcon className="w-4 h-4 text-muted-foreground" />
+                        </div>
+                      )}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const next = selectedAssets.filter((_, idx) => idx !== i);
+                          setSelectedAssets(next);
+                          if (activePreviewIndex >= next.length) setActivePreviewIndex(Math.max(0, next.length - 1));
+                        }}
+                        className="absolute top-0.5 right-0.5 w-4 h-4 rounded-full bg-foreground/70 text-background flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <X className="w-2.5 h-2.5" />
+                      </button>
+                      {isActive && (
+                        <div className="absolute bottom-0 left-0 right-0 bg-primary/80 py-0.5">
+                          <p className="text-[7px] text-primary-foreground text-center font-bold">Preview</p>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Selected template from showcase (legacy) */}
+          {selectedTemplate && selectedAssets.length === 0 && (
             <div className="space-y-2">
               <Label className="text-sm font-medium">Reference Asset</Label>
               <div className="flex items-center gap-3 p-3 rounded-xl border border-primary/20 bg-primary/5">
@@ -599,7 +660,7 @@ const NewCampaign = () => {
             {mobileTab === "preview" && (
               <div className="flex items-center justify-center py-6 px-4">
                 <CampaignSimulator
-                  imageUrl={selectedTemplate?.media_url || null}
+                  imageUrl={simulatorPreviewUrl}
                   brandName={title || "Brand"}
                   caption={instructions || "Your campaign content preview"}
                 />
@@ -656,7 +717,7 @@ const NewCampaign = () => {
           {/* RIGHT: Phone Simulator + Actions Panel */}
           <div className="flex-1 flex items-center justify-center bg-secondary/20 relative overflow-hidden py-2 px-4">
             <CampaignSimulator
-              imageUrl={selectedTemplate?.media_url || null}
+              imageUrl={simulatorPreviewUrl}
               brandName={title || "Brand"}
               caption={instructions || "Your campaign content preview"}
               isStarred={isStarred}
