@@ -39,7 +39,19 @@ serve(async (req) => {
       });
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    // Check for unsupported formats (video files)
+    const urlLower = image_url.split("?")[0].toLowerCase();
+    const videoExts = [".mp4", ".mov", ".avi", ".webm", ".mkv", ".flv", ".wmv"];
+    if (videoExts.some(ext => urlLower.endsWith(ext))) {
+      return new Response(JSON.stringify({ 
+        error: "Video files cannot be analyzed with vision AI. Please provide a thumbnail image (PNG, JPEG, WebP, or GIF) instead.",
+        unsupported_format: true 
+      }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     if (!getAIConfig()) {
       return new Response(JSON.stringify({ error: "No AI provider configured (set OPENROUTER_API_KEY or LOVABLE_API_KEY)" }), {
         status: 500,
