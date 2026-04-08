@@ -71,6 +71,11 @@ export default function CampaignCard({ campaign, assets, isDraft, onClick, onDel
                 <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
                 <span className="text-[10px] text-muted-foreground font-medium">Generating…</span>
               </div>
+            ) : isDraft ? (
+              <div className="flex flex-col items-center gap-2">
+                <Pencil className="w-6 h-6 text-muted-foreground/50" />
+                <span className="text-[10px] text-muted-foreground font-medium">Continue Editing</span>
+              </div>
             ) : (
               <LayoutGrid className="w-8 h-8 text-muted-foreground/30" />
             )}
