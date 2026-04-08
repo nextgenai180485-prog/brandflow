@@ -243,7 +243,7 @@ serve(async (req) => {
 
     const fullSystemPrompt = SYSTEM_PROMPT + contextBlock;
 
-    // Stream from AI gateway
+    // Call AI gateway
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
@@ -253,7 +253,7 @@ serve(async (req) => {
           { role: "system", content: fullSystemPrompt },
           ...messages,
         ],
-        stream: true,
+        stream: shouldStream,
       }),
     });
 
@@ -272,6 +272,14 @@ serve(async (req) => {
       }
       return new Response(JSON.stringify({ error: "CMO chat failed" }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (!shouldStream) {
+      const result = await aiResponse.json();
+      const reply = result?.choices?.[0]?.message?.content || "";
+      return new Response(JSON.stringify({ reply }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
