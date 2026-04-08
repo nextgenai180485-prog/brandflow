@@ -7,6 +7,128 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+// ══════════════════════════════════════════════════════════════
+// OKLCH COLOR ENGINE — Server-side port from src/lib/colorEngine.ts
+// Converts brand seed hex → perceptually uniform semantic color tokens
+// ══════════════════════════════════════════════════════════════
+
+function hexToRgb(hex: string): [number, number, number] {
+  const h = hex.replace("#", "");
+  const full = h.length === 3 ? h.split("").map((c) => c + c).join("") : h;
+  const n = parseInt(full, 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+
+function rgbToHex(r: number, g: number, b: number): string {
+  const clamp = (v: number) => Math.max(0, Math.min(255, Math.round(v)));
+  return "#" + [clamp(r), clamp(g), clamp(b)].map((v) => v.toString(16).padStart(2, "0")).join("");
+}
+
+function srgbToLinear(c: number): number {
+  const s = c / 255;
+  return s <= 0.04045 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+}
+
+function linearToSrgb(c: number): number {
+  const s = c <= 0.0031308 ? c * 12.92 : 1.055 * Math.pow(c, 1 / 2.4) - 0.055;
+  return Math.max(0, Math.min(255, s * 255));
+}
+
+function linearRgbToOklab(r: number, g: number, b: number): [number, number, number] {
+  const l_ = 0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b;
+  const m_ = 0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b;
+  const s_ = 0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b;
+  const l = Math.cbrt(l_); const m = Math.cbrt(m_); const s = Math.cbrt(s_);
+  return [
+    0.2104542553 * l + 0.793617785 * m - 0.0040720468 * s,
+    1.9779984951 * l - 2.428592205 * m + 0.4505937099 * s,
+    0.0259040371 * l + 0.7827717662 * m - 0.808675766 * s,
+  ];
+}
+
+function oklabToLinearRgb(L: number, a: number, b: number): [number, number, number] {
+  const l_ = L + 0.3963377774 * a + 0.2158037573 * b;
+  const m_ = L - 0.1055613458 * a - 0.0638541728 * b;
+  const s_ = L - 0.0894841775 * a - 1.291485548 * b;
+  const l = l_ * l_ * l_; const m = m_ * m_ * m_; const s = s_ * s_ * s_;
+  return [
+    +4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s,
+    -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s,
+    -0.0041960863 * l - 0.7034186147 * m + 1.707614701 * s,
+  ];
+}
+
+function oklabToOklch(L: number, a: number, b: number): [number, number, number] {
+  const C = Math.sqrt(a * a + b * b);
+  let H = (Math.atan2(b, a) * 180) / Math.PI;
+  if (H < 0) H += 360;
+  return [L, C, H];
+}
+
+function oklchToOklab(L: number, C: number, H: number): [number, number, number] {
+  const hRad = (H * Math.PI) / 180;
+  return [L, C * Math.cos(hRad), C * Math.sin(hRad)];
+}
+
+function clampToGamut(L: number, C: number, H: number): [number, number, number] {
+  let lo = 0, hi = C, bestC = 0;
+  for (let i = 0; i < 30; i++) {
+    const mid = (lo + hi) / 2;
+    const [labL, labA, labB] = oklchToOklab(L, mid, H);
+    const [r, g, b] = oklabToLinearRgb(labL, labA, labB);
+    if (r >= -0.001 && r <= 1.001 && g >= -0.001 && g <= 1.001 && b >= -0.001 && b <= 1.001) {
+      bestC = mid; lo = mid;
+    } else { hi = mid; }
+  }
+  return [L, bestC, H];
+}
+
+function oklchToHex(L: number, C: number, H: number): string {
+  const [cL, cC, cH] = clampToGamut(L, C, H);
+  const [labL, labA, labB] = oklchToOklab(cL, cC, cH);
+  const [lr, lg, lb] = oklabToLinearRgb(labL, labA, labB);
+  return rgbToHex(linearToSrgb(lr), linearToSrgb(lg), linearToSrgb(lb));
+}
+
+interface BrandColorTokens {
+  vibrant: string;   // Step 400 — headlines
+  active: string;    // Step 600 — CTA backgrounds
+  soft: string;      // Step 200 — subtitle fills
+  text: string;      // Step 900 — dark readable text
+  deep: string;      // Step 800 — shadows/backing
+  subtle: string;    // Step 100 — near-white tints
+}
+
+const STEP_LIGHTNESS: Record<number, number> = {
+  100: 0.97, 200: 0.90, 300: 0.80, 400: 0.70, 500: 0.60,
+  600: 0.50, 700: 0.40, 800: 0.30, 900: 0.22, 1000: 0.15,
+};
+const CHROMA_BOOST: Record<number, number> = {
+  100: 0.3, 200: 0.5, 300: 1.4, 400: 1.5, 500: 1.3,
+  600: 1.0, 700: 0.9, 800: 0.7, 900: 0.5, 1000: 0.3,
+};
+
+function generateBrandColorTokens(seedHex: string): BrandColorTokens {
+  const [r, g, b] = hexToRgb(seedHex);
+  const [lr, lg, lb] = [srgbToLinear(r), srgbToLinear(g), srgbToLinear(b)];
+  const [labL, labA, labB] = linearRgbToOklab(lr, lg, lb);
+  const [, seedC, seedH] = oklabToOklch(labL, labA, labB);
+  const baseChroma = Math.max(seedC, 0.08);
+
+  const step = (n: number) => oklchToHex(STEP_LIGHTNESS[n], baseChroma * CHROMA_BOOST[n], seedH);
+
+  return {
+    vibrant: step(400),
+    active: step(600),
+    soft: step(200),
+    text: step(900),
+    deep: step(800),
+    subtle: step(100),
+  };
+}
+
+// ══════════════════════════════════════════════════════════════
+
 const KIE_BASE = "https://api.kie.ai/api/v1/jobs";
 
 // ── Kie AI Unified Task Helper ───────────────────────────────
@@ -624,7 +746,7 @@ interface TextOverlayMeta {
   brandName?: string;
   includeLogo: boolean;
   logoUrl?: string;
-  brandColors?: any;
+  brandColors?: BrandColorTokens;
 }
 
 // The result of the prompt builder — visual prompt for model + metadata for post-processing
@@ -773,6 +895,20 @@ function buildPromptBundle(
   visualPrompt += `Avoid: stock photo feel, clipart, illustration, 3D render, cartoon, AI-generated look.`;
 
   // ── 3. Extract text overlay metadata (for post-processing) ──
+  // ── Compute OKLCH brand color tokens from seed hex ──
+  let computedBrandColors: BrandColorTokens | undefined;
+  const seedHex = brandContext?.brandColors?.primary
+    || brandContext?.brandPalette?.primary
+    || (typeof brandContext?.brandColors === "string" ? brandContext.brandColors : null);
+  if (seedHex && typeof seedHex === "string" && /^#?[0-9a-fA-F]{3,6}$/.test(seedHex.replace("#", ""))) {
+    try {
+      computedBrandColors = generateBrandColorTokens(seedHex.startsWith("#") ? seedHex : `#${seedHex}`);
+      console.log(`[OKLCH] Brand tokens computed from seed ${seedHex}: vibrant=${computedBrandColors.vibrant}, active=${computedBrandColors.active}`);
+    } catch (e) {
+      console.warn("[OKLCH] Failed to compute brand tokens:", e);
+    }
+  }
+
   const textOverlay: TextOverlayMeta = {
     headline: campaignCopy?.headline || undefined,
     subheadline: campaignCopy?.subheadline || undefined,
@@ -780,7 +916,7 @@ function buildPromptBundle(
     brandName: brandContext?.businessName || undefined,
     includeLogo,
     logoUrl: includeLogo ? userAssets?.find((a: any) => a.role === "logo")?.url : undefined,
-    brandColors: brandContext?.brandColors || undefined,
+    brandColors: computedBrandColors,
   };
 
   const platformSeed = PLATFORM_SEEDS[platform.toLowerCase()] || PLATFORM_SEEDS.instagram;
@@ -830,18 +966,40 @@ async function applyTextOverlay(
     };
     const layout = layoutByFormat[format] || layoutByFormat.post;
 
+    // Build color directive from OKLCH tokens or fallback
+    let colorDirective: string;
+    if (overlay.brandColors) {
+      const bc = overlay.brandColors;
+      colorDirective = `Typography color palette (use these EXACT hex codes for brand consistency):
+- Headline color: ${bc.vibrant} — or #FFFFFF if the background behind headline is dark. Pick whichever gives higher contrast.
+- Subheadline color: ${bc.soft} — or #FFFFFF for dark backgrounds.
+- CTA button/badge: background ${bc.active}, text #FFFFFF, rounded pill shape with 24px padding.
+- Brand name: ${bc.text}
+- If text needs a shadow for legibility: ${bc.deep} at 40% opacity, 2px Gaussian blur.
+- WCAG AA minimum contrast ratio required on ALL text elements.`;
+    } else {
+      colorDirective = `Use #FFFFFF (white) for all text with rgba(0,0,0,0.5) drop shadow for contrast.`;
+    }
+
     const editInstruction = `Add professional text overlay to this marketing image. ${layout}
 
 Text elements to add:
 ${textElements.join("\n")}
 
-Typography rules:
-- Use clean, modern sans-serif typeface
-- High contrast — text must be readable against the background
-- Add subtle text shadow or semi-transparent backing if needed for legibility
-- ${overlay.brandColors ? `Use brand color accents where appropriate` : "Use white or light text with dark shadow"}
-- Do NOT change the underlying image — only add text overlay
-- Make it look like a professionally designed social media ad`;
+TYPOGRAPHY SYSTEM (Apple-grade premium):
+- Font: SF Pro Display or Inter — clean geometric sans-serif ONLY. No decorative fonts, no serifs, no outlines, no gradients on text.
+- Headline: Semibold (600 weight), letter-spacing -0.02em, line-height 1.1. Large and commanding.
+- Subheadline: Regular (400 weight), letter-spacing -0.01em, line-height 1.3. Supportive, smaller than headline.
+- CTA: Medium (500 weight), ALL CAPS, letter-spacing 0.08em. Rendered as a pill-shaped button.
+- Brand name: Light (300 weight), letter-spacing 0.04em. Small and refined, positioned in corner.
+
+${colorDirective}
+
+CRITICAL RULES:
+- Do NOT change the underlying photograph — only add text overlay elements.
+- Text must feel like it was designed by Apple's marketing team: minimal, precise, premium.
+- Generous whitespace around text. Never crowd the image.
+- Result must look like a professionally designed social media ad from a Fortune 500 brand.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
