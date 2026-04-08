@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -45,6 +45,8 @@ interface CreativeDirectionStepProps {
   format: string;
   librarySelections?: LibrarySelection[];
   onLibrarySelectionsChange?: (selections: LibrarySelection[]) => void;
+  /** Template selected in Step 2 — used to auto-populate the brief */
+  selectedTemplate?: { title: string; sealcam_analysis?: Record<string, any>; mood_tags?: string[] | null; performance_notes?: string | null; description?: string | null } | null;
 }
 
 const FAMILY_CONFIG: Record<string, { icon: typeof Video; color: string; bg: string }> = {
@@ -74,9 +76,42 @@ const CreativeDirectionStep = ({
   direction, onDirectionChange,
   platform, format,
   librarySelections = [], onLibrarySelectionsChange,
+  selectedTemplate,
 }: CreativeDirectionStepProps) => {
   const [loading, setLoading] = useState(false);
   const [expandedScene, setExpandedScene] = useState<number | null>(0);
+  const [autoPopulated, setAutoPopulated] = useState(false);
+
+  // Auto-populate brief from selected template's SEALCaM/metadata
+  useEffect(() => {
+    if (autoPopulated || brief.trim() || !selectedTemplate) return;
+    const parts: string[] = [];
+
+    if (selectedTemplate.description) {
+      parts.push(selectedTemplate.description);
+    }
+
+    if (selectedTemplate.sealcam_analysis && Object.keys(selectedTemplate.sealcam_analysis).length > 0) {
+      const sealcam = selectedTemplate.sealcam_analysis;
+      const sealParts = Object.entries(sealcam)
+        .filter(([_, v]) => v && typeof v === "string")
+        .map(([k, v]) => `${k.charAt(0).toUpperCase() + k.slice(1)}: ${v}`);
+      if (sealParts.length) parts.push(sealParts.join(". "));
+    }
+
+    if (selectedTemplate.mood_tags?.length) {
+      parts.push(`Mood: ${selectedTemplate.mood_tags.join(", ")}`);
+    }
+
+    if (selectedTemplate.performance_notes) {
+      parts.push(selectedTemplate.performance_notes);
+    }
+
+    if (parts.length > 0) {
+      onBriefChange(parts.join("\n\n"));
+      setAutoPopulated(true);
+    }
+  }, [selectedTemplate, brief, autoPopulated, onBriefChange]);
 
   const handleStructure = async () => {
     if (brief.trim().length < 10) {
@@ -120,7 +155,10 @@ const CreativeDirectionStep = ({
           Creative Direction
         </h2>
         <p className="text-sm text-muted-foreground mt-1">
-          Describe your video vision — the engine will structure it into production-ready scenes.
+          {selectedTemplate
+            ? `Auto-populated from "${selectedTemplate.title}" — edit or refine below.`
+            : "Describe your video vision — the engine will structure it into production-ready scenes."
+          }
         </p>
       </div>
 
@@ -134,8 +172,8 @@ const CreativeDirectionStep = ({
             className="min-h-[120px] resize-none text-sm"
           />
 
-          {/* Example briefs */}
-          {!brief && (
+          {/* Example briefs — only show if no template and no text */}
+          {!brief && !selectedTemplate && (
             <div className="space-y-1.5">
               <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Try an example</p>
               {EXAMPLE_BRIEFS.map((ex, i) => (
@@ -150,17 +188,6 @@ const CreativeDirectionStep = ({
             </div>
           )}
 
-          {/* Reference assets */}
-          <AssetLibraryPicker selectedAssets={referenceAssets} onChange={onReferenceAssetsChange} />
-
-          {/* Library templates/characters/references */}
-          {onLibrarySelectionsChange && (
-            <LibraryBrowser
-              selections={librarySelections}
-              onSelectionsChange={onLibrarySelectionsChange}
-              allowedTypes={["video_template", "character", "ad_reference"]}
-            />
-          )}
           <Button
             onClick={handleStructure}
             disabled={loading || brief.trim().length < 10}
