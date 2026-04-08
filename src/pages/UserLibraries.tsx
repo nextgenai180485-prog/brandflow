@@ -55,7 +55,7 @@ const UserLibraries = () => {
           <div className="relative mb-4">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search by name, tag, or mood..."
+              placeholder="Search by name, mood, style, platform, format, tag..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-9 h-9 text-sm"
@@ -369,10 +369,32 @@ const LibraryGallery = ({ table, nameField, icon: Icon, search, onPreview }: Lib
 
   const filtered = items.filter((item: any) => {
     if (!search) return true;
-    const name = (item[nameField] || "").toLowerCase();
-    const tags = [...(item.tags || []), ...(item.mood_tags || []), ...(item.industry_tags || [])].join(" ").toLowerCase();
     const q = search.toLowerCase();
-    return name.includes(q) || tags.includes(q);
+    const searchable = [
+      item[nameField],
+      item.description,
+      item.mood,
+      item.family,
+      item.vertical,
+      item.hook_type,
+      item.platform,
+      item.media_type,
+      item.voice_style,
+      item.age_range,
+      item.gender,
+      item.quality_tier,
+      item.format,
+      item.aspect_ratio,
+      item.performance_notes,
+      ...(item.tags || []),
+      ...(item.mood_tags || []),
+      ...(item.industry_tags || []),
+      ...(item.platform_tags || []),
+      ...(item.ethnicity_tags || []),
+      ...(item.compatible_families || []),
+      ...(item.prompt_modifiers || []),
+    ].filter(Boolean).join(" ").toLowerCase();
+    return searchable.includes(q);
   });
 
   if (isLoading) {
