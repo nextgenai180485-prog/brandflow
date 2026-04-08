@@ -47,9 +47,9 @@ Deno.serve(async (req) => {
     const isBrandEndpoint = endpoint.includes("brands");
 
     if (isBrandEndpoint) {
-      // Brand endpoints use 'name' for search
-      if (name) params.set("name", name);
-      if (keyword) params.set("name", keyword); // allow keyword as alias
+      // Brand endpoints use 'query' for search
+      if (name) params.set("query", name);
+      if (keyword) params.set("query", keyword);
       if (category) params.set("category", category);
       if (niches) params.set("niches", JSON.stringify(Array.isArray(niches) ? niches : [niches]));
       if (niche) params.set("niches", JSON.stringify([niche]));
