@@ -1,68 +1,81 @@
-## Command Center: Enterprise-Grade Dashboard Redesign
 
-### What We're Building
-Replace the current Dashboard (campaign card grid) and Campaign Review page with a **single Command Center** — a living workspace where everything comes to the user.
 
-### Architecture
+## UX Flow Validation: Friction Points Found
 
-#### Zone 1: Activity Feed Header
-- **Real-time stats bar**: Total assets generating, pending review, approved today, published this week
-- **Quick actions**: New Campaign button + smart suggestions from CMO
-- **Strategy widget** stays (collapsible) but becomes more compact
+### Current Flow
+1. **`/dashboard`** — Command Center (stats, campaign grid, inspector sheet)
+2. **`/dashboard/campaigns/new`** — 5-step wizard with bottom Source Gallery + simulator
+3. After generation → blind redirect to `/dashboard`
 
-#### Zone 2: Campaign Grid (Enhanced)
-- Keep the existing card grid but enhance cards with:
-  - **Live pulse indicator** on generating campaigns (animated ring)
-  - **Progress bar** showing assets completed vs total
-  - **Quick-action hover strip**: Star, Approve All, Open buttons appear on hover
-  - **Inline asset count breakdown** by platform (IG: 3, TT: 2, LI: 1)
+### Friction Points Identified
 
-#### Zone 3: Asset Inspector Sheet (NEW — The Core Innovation)
-- **Slide-in from right** when clicking any campaign card or asset
-- Uses `Sheet` component (shadcn) with 480px width
-- Contains:
-  1. **Campaign header** (title, status, date)
-  2. **Asset carousel** — horizontal strip of all campaign assets, scrollable
-  3. **iPhone 16 Pro Simulator** showing selected asset with platform context
-  4. **Actions panel**: Star, Edit (SeedEdit), Download, Save to Library, Approve, Reject
-  5. **Caption editor** inline
-  6. **AI Rationale** collapsible (why the AI chose this creative direction)
+**1. Bottom Source Gallery steals 30% of vertical space**
+The `h-[220px]` / `h-[260px]` bottom zone compresses the builder and simulator into ~70% of viewport. Users scroll inside a no-scroll workspace. This is the biggest friction — it forces cramped interactions in both panels.
 
-#### Zone 4: Keyboard Review Mode
-- When Sheet is open, arrow keys (← →) cycle through assets
-- `A` key = Approve, `R` = Reject, `D` = Download
-- `Escape` = close sheet
-- Visual indicator: "2 of 8 — Press A to approve"
+**2. Post-generation dead drop**
+Line 277: `navigate("/dashboard")` — after clicking "Generate Campaign," the user is dumped to the dashboard with no feedback loop. No progress indicator, no auto-open of the campaign they just created. They have to find their campaign card and click it.
 
-#### Zone 5: Batch Operations Bar
-- Appears at bottom when 2+ assets are selected (checkbox mode)
-- Actions: Approve Selected, Reject Selected, Download All, Schedule Selected
-- Count indicator: "4 assets selected"
+**3. Mobile still has a dead "Source" tab**
+Lines 578-579: Three-tab mobile layout includes "Source" which will be empty once the gallery is removed. Should be 2 tabs (Builder / Preview).
 
-### Files to Create/Modify
+**4. Simulator is static during most steps**
+The simulator only shows `selectedTemplate?.media_url`. During Platforms, Content Type, and Review steps, it displays a generic placeholder — wasted real estate. It should react to selections (aspect ratio changes, content type labels).
 
-| File | Action |
-|------|--------|
-| `src/pages/Dashboard.tsx` | **Major rewrite** — Command Center with stats bar, enhanced grid, Sheet integration |
-| `src/components/campaign/AssetInspectorSheet.tsx` | **NEW** — Slide-in sheet with simulator, carousel, actions, keyboard nav |
-| `src/components/campaign/AssetCarousel.tsx` | **NEW** — Horizontal scrollable strip of asset thumbnails |
-| `src/components/campaign/BatchActionBar.tsx` | **NEW** — Bottom floating bar for bulk operations |
-| `src/components/campaign/CampaignCard.tsx` | **NEW** — Enhanced campaign card with live indicators |
-| `src/pages/CampaignReview.tsx` | **Redirect** — Route redirects to Dashboard with sheet auto-open |
-| `src/App.tsx` | Update route for `/dashboard/campaign/:id` to redirect to dashboard |
+**5. No campaign duplication**
+Enterprise users expect "Duplicate" on existing campaigns. Currently only delete exists.
 
-### What Gets Eliminated
-- `CampaignReview.tsx` as a standalone page (becomes a redirect)
-- Full-page navigation for asset review
-- Context loss when reviewing assets
+**6. Review step math ignores reference assets**
+Line 473: Shows `platforms × contentTypes` but doesn't factor in `selectedAssets.length` for the multiplier.
 
-### Mobile Behavior
-- Sheet becomes **full-screen bottom sheet** (like iOS share sheet)
-- Swipe left/right on simulator to cycle assets
-- Floating "Review Mode" pill for keyboard-less approval
+### Plan: 6 Targeted Fixes
 
-### Technical Notes
-- Reuse existing `CampaignSimulator` inside the Sheet
-- All Supabase queries stay the same (campaigns + generated_assets)
-- No database changes needed
-- Sheet auto-opens when navigating from `/dashboard/campaign/:id` (backward compat)
+#### Fix 1: Remove Bottom Source Gallery
+- Delete lines 697-705 in `NewCampaign.tsx` (the `h-[220px]` bottom zone)
+- Remove `SourceGallery` import and `selectedTemplate` state
+- Builder + Simulator fill 100% viewport height
+- `AssetLibraryPicker` (already in Details step, line 333) becomes the sole asset entry point
+
+**Files:** `src/pages/NewCampaign.tsx`
+
+#### Fix 2: Remove Mobile "Source" Tab
+- Delete the third `TabsTrigger` (line 578-579) and its content block (lines 612-619)
+- Mobile becomes 2-tab: Builder / Preview
+
+**Files:** `src/pages/NewCampaign.tsx`
+
+#### Fix 3: Wire Simulator to Live Context
+- Pass `aspectRatio` prop based on first selected platform format
+- Pass `contentTypeLabel` during Content Type step
+- During Review, cycle through `selectedAssets` thumbnails
+- Replace `selectedTemplate?.media_url` with a derived `simulatorPreviewUrl`
+
+**Files:** `src/pages/NewCampaign.tsx`, `src/components/campaign/CampaignSimulator.tsx`
+
+#### Fix 4: Post-Generation Stay + Auto-Open
+- After `handleCreate` succeeds, instead of `navigate("/dashboard")`:
+  - Navigate to `/dashboard?open={campaign.id}`
+  - The dashboard already has auto-open logic (lines 42-48) that reads `?open=` param
+  - This ensures the inspector sheet opens immediately showing the new campaign with generation progress
+
+**Files:** `src/pages/NewCampaign.tsx` (1 line change)
+
+#### Fix 5: Campaign Duplication
+- Add "Duplicate" action to `CampaignCard` hover strip
+- Creates a copy with same title + " (copy)", same platforms/content types, status "draft"
+- Routes to `/dashboard/campaigns/new` pre-filled
+
+**Files:** `src/components/campaign/CampaignCard.tsx`, `src/pages/Dashboard.tsx`
+
+#### Fix 6: Asset Multiplier in Review
+- Update review math: `max(1, selectedAssets.length) × platforms.length × contentTypes.length`
+- Label: "5 references × 2 platforms × 1 type = 10 assets"
+
+**Files:** `src/pages/NewCampaign.tsx`
+
+### Impact Summary
+- **Fixes 1-2**: Reclaim ~30% viewport, eliminate dead UI
+- **Fix 3**: Simulator becomes useful across all steps instead of just Details
+- **Fix 4**: Zero post-creation friction (1-line change, high impact)
+- **Fix 5**: Enterprise expectation for campaign reuse
+- **Fix 6**: Clarity on what the generation will produce
+
