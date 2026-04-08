@@ -1149,7 +1149,7 @@ serve(async (req) => {
 
     // Fire background processing
     EdgeRuntime.waitUntil(
-      processAssetsInBackground(userId, campaignId, assets, researchId || null, intelligenceBrief || {}, brandContext || {}, placeholderIds, decisionTraceId, decisionWinner, creativeDirection || null, referenceImageUrl || null)
+      processAssetsInBackground(userId, campaignId, assets, researchId || null, intelligenceBrief || {}, brandContext || {}, placeholderIds, decisionTraceId, decisionWinner, creativeDirection || null, referenceImageUrl || null, templateRefs || null, userAssets || null, structuredBrief || null, campaignCopy || null)
         .catch((e) => console.error("[BG] Fatal error:", e))
     );
 
