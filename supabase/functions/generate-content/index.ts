@@ -1066,6 +1066,7 @@ serve(async (req) => {
     console.log(`[Brand Memory] Loaded ${brandMemory?.length || 0} memory entries`);
 
     // ── LAYER 2: Run Decision Engine (with structured brief context) ──
+    const { data: campaignData } = await supabase.from("campaigns").select("instructions").eq("id", campaignId).single();
     const campaignBriefContext = structuredBrief 
       ? `Campaign Brief — Objective: ${structuredBrief.objective || "general"}, Core Message: ${structuredBrief.messageAngle || "N/A"}, Tone: ${(structuredBrief.tone || []).join(", ") || "N/A"}, CTA: ${structuredBrief.ctaGoal || "N/A"}, Emotion: ${(structuredBrief.targetEmotion || []).join(", ") || "N/A"}. ${structuredBrief.freeformNotes || ""}`
       : null;
