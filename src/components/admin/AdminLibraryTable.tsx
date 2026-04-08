@@ -10,6 +10,7 @@ import { Plus, Trash2, Edit2, Upload, Search, RefreshCw } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useIsMobile } from "@/hooks/use-mobile";
 import AdminLibraryForm from "./AdminLibraryForm";
+import { getFamilyLabel } from "@/lib/familyLabels";
 import BulkImportModal from "./BulkImportModal";
 
 type TableName = "video_templates" | "character_library" | "ad_reference_library" | "image_templates" | "hooks";
@@ -241,7 +242,7 @@ const AdminLibraryTable = ({ tableName }: AdminLibraryTableProps) => {
                     {col.key === config.nameField && tableName === "image_templates" && item.preview_url && (
                       <img src={item.preview_url} alt="" className="w-8 h-8 rounded object-cover shrink-0" />
                     )}
-                    <span className="truncate">{String(item[col.key] ?? "—")}</span>
+                    <span className="truncate">{col.key === "family" ? getFamilyLabel(String(item[col.key] ?? "")) : String(item[col.key] ?? "—")}</span>
                   </div>
                 </td>
               ))}
