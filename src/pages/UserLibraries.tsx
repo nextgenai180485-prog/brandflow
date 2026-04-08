@@ -255,8 +255,8 @@ const AdIntelligenceGallery = ({ onPreview }: { onPreview: (item: any) => void }
                   {brandName && <p className="text-[10px] text-muted-foreground mt-0.5 truncate">{brandName}</p>}
                   <div className="flex flex-wrap gap-0.5 mt-1.5">
                     {ad.display_format && <Badge variant="secondary" className="text-[7px] px-1 py-0">{ad.display_format}</Badge>}
-                    {ad.running_duration && <Badge variant="outline" className="text-[7px] px-1 py-0">{ad.running_duration}d active</Badge>}
-                    {ad.publisher_platform && <Badge variant="outline" className="text-[7px] px-1 py-0">{ad.publisher_platform}</Badge>}
+                    {ad.running_duration?.days > 0 && <Badge variant="outline" className="text-[7px] px-1 py-0">{ad.running_duration.days}d active</Badge>}
+                    {Array.isArray(ad.publisher_platform) && ad.publisher_platform[0] && <Badge variant="outline" className="text-[7px] px-1 py-0">{ad.publisher_platform[0]}</Badge>}
                   </div>
                 </CardContent>
               </Card>
