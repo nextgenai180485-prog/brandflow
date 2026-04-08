@@ -59,11 +59,15 @@ export function useAutoSaveDraft(opts?: UseAutoSaveDraftOptions) {
     return data.id;
   }, [user, draftId]);
 
+  // Reference to latest state for flush-on-unmount
+  const latestStateRef = useRef<DraftState | null>(null);
+
   // Persist state (debounced)
   const saveDraft = useCallback((state: DraftState) => {
     const json = JSON.stringify(state);
     if (json === lastJsonRef.current) return; // no change
     lastJsonRef.current = json;
+    latestStateRef.current = state;
 
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(async () => {
@@ -86,19 +90,45 @@ export function useAutoSaveDraft(opts?: UseAutoSaveDraftOptions) {
 
       setSaveStatus(error ? "idle" : "saved");
       if (!error) {
-        // Reset indicator after 2s
         setTimeout(() => setSaveStatus("idle"), 2000);
       }
-    }, 1500); // 1.5s debounce
+    }, 1500);
   }, [draftId, ensureDraft]);
 
-  // Cleanup
-  useEffect(() => {
-    return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
-    };
-  }, []);
+  // Flush pending save immediately (for unmount / beforeunload)
+  const flushNow = useCallback(() => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+    const state = latestStateRef.current;
+    if (!state || !draftId) return;
+    // Fire-and-forget — navigator.sendBeacon not available for Supabase SDK,
+    // but the promise will usually complete before teardown
+    supabase
+      .from("campaigns")
+      .update({
+        title: state.title.trim() || "Untitled Campaign",
+        instructions: state.instructions.trim() || null,
+        publish_platforms: [
+          ...state.platforms.map((p: any) => `${p.platform}|${p.format}`),
+          ...state.contentTypes.map((ct: string) => `ct:${ct}`),
+        ],
+        draft_state: state as any,
+      })
+      .eq("id", draftId)
+      .then(() => {});
+  }, [draftId]);
 
+  // Cleanup + beforeunload
+  useEffect(() => {
+    const handleBeforeUnload = () => flushNow();
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      flushNow(); // flush on component unmount / route change
+    };
+  }, [flushNow]);
   // Load existing draft state
   const loadDraft = useCallback(async (campaignId: string): Promise<DraftState | null> => {
     const { data } = await supabase

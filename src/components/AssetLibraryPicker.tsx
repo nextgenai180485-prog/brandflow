@@ -124,9 +124,9 @@ const AssetLibraryPicker = ({ selectedAssets, onChange }: AssetLibraryPickerProp
             </div>
             <div className="text-left">
               <p className="text-xs font-medium text-foreground">
-                {selectedAssets.length > 0 ? `Add more from Library (${selectedAssets.length} selected)` : "Select from Asset Library"}
+                {selectedAssets.length > 0 ? `Add more Templates (${selectedAssets.length} selected)` : "Templates"}
               </p>
-              <p className="text-[10px] text-muted-foreground">Choose existing assets or upload new ones</p>
+              <p className="text-[10px] text-muted-foreground">Browse style references and templates</p>
             </div>
           </button>
         </DialogTrigger>
