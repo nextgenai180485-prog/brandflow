@@ -480,8 +480,8 @@ async function runDecisionEngine(
   brandMemory: any[],
   campaignInstructions: string | null
 ): Promise<any> {
-  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-  if (!LOVABLE_API_KEY) {
+  const aiConfig = getAIConfig();
+  if (!aiConfig) {
     return createFallbackDecision(brandContext, intelligenceBrief);
   }
 
@@ -678,8 +678,8 @@ async function storeDecisionTrace(
 
 // ── Caption Generation via Lovable AI (campaign-brief-first) ─
 async function generateCaption(platform: string, format: string, brandContext: any, intelligenceBrief: any, decisionWinner: any, imagePrompt: string, campaignCopy?: any, structuredBrief?: any): Promise<string> {
-  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-  if (!LOVABLE_API_KEY) return `Content for ${platform} ${format}`;
+  const aiConfig = getAIConfig();
+  if (!aiConfig) return `Content for ${platform} ${format}`;
 
   const hookSuggestion = decisionWinner?.hook_suggestion || "";
   const angle = decisionWinner?.angle_type || "";
@@ -1059,9 +1059,9 @@ async function applyTextOverlay(
     return baseImageUrl;
   }
 
-  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-  if (!LOVABLE_API_KEY) {
-    console.warn("[PostProcess] No LOVABLE_API_KEY, skipping text overlay");
+  const aiConfig = getAIConfig();
+  if (!aiConfig) {
+    console.warn("[PostProcess] No AI provider configured, skipping text overlay");
     return baseImageUrl;
   }
 
