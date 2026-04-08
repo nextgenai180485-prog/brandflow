@@ -16,7 +16,7 @@ import CampaignReview from "./pages/CampaignReview";
 import CalendarView from "./pages/CalendarView";
 import Onboarding from "./pages/Onboarding";
 import StrategyCommandCenter from "./pages/StrategyCommandCenter";
-import VisualDirector from "./pages/VisualDirector";
+
 import AdminLibraries from "./pages/AdminLibraries";
 import AdminDashboard from "./pages/AdminDashboard";
 import UserLibraries from "./pages/UserLibraries";
@@ -72,14 +72,6 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <StrategyCommandCenter />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/dashboard/visual-director"
-              element={
-                <ProtectedRoute>
-                  <VisualDirector />
                 </ProtectedRoute>
               }
             />
