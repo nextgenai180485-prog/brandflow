@@ -116,21 +116,22 @@ const AdminLibraryForm = ({ tableName, editingItem, onClose, onSaved }: AdminLib
 
   const [values, setValues] = useState<Record<string, string>>(getInitialValues);
 
-  // Auto-analyze uploaded image via vision AI
-  const triggerAutoAnalysis = useCallback(async (fileFieldKey: string, imageUrl: string) => {
+  // Auto-analyze uploaded media via vision AI
+  const triggerAutoAnalysis = useCallback(async (fileFieldKey: string, mediaUrl: string) => {
     const mappings = AUTO_ANALYSIS_MAP[tableName] || [];
     const mapping = mappings.find((m) => m.fileField === fileFieldKey);
-    if (!mapping || !imageUrl) return;
+    if (!mapping || !mediaUrl) return;
 
-    // Only analyze image URLs
-    if (!/\.(jpg|jpeg|png|gif|webp|svg)(\?|$)/i.test(imageUrl)) return;
+    // Accept images and videos — vision models can handle video thumbnails/frames
+    const isMedia = /\.(jpg|jpeg|png|gif|webp|svg|mp4|mov|webm|avi)(\?|$)/i.test(mediaUrl);
+    if (!isMedia) return;
 
     setAnalyzing(mapping.jsonField);
-    toast.info("🔍 Auto-analyzing image…", { id: "auto-analyze" });
+    toast.info("🔍 Auto-analyzing media…", { id: "auto-analyze" });
 
     try {
       const { data, error } = await supabase.functions.invoke("analyze-asset", {
-        body: { image_url: imageUrl, analysis_mode: mapping.mode },
+        body: { image_url: mediaUrl, analysis_mode: mapping.mode },
       });
 
       if (error) throw error;
@@ -146,6 +147,25 @@ const AdminLibraryForm = ({ tableName, editingItem, onClose, onSaved }: AdminLib
       setAnalyzing(null);
     }
   }, [tableName]);
+
+  // Manual analyze: find the source file field for a given JSON field and re-run analysis
+  const triggerManualAnalysis = useCallback((jsonFieldKey: string) => {
+    const mappings = AUTO_ANALYSIS_MAP[tableName] || [];
+    const mapping = mappings.find((m) => m.jsonField === jsonFieldKey);
+    if (!mapping) return;
+    const sourceUrl = values[mapping.fileField];
+    if (!sourceUrl) {
+      toast.error("Upload a media file first before analyzing");
+      return;
+    }
+    triggerAutoAnalysis(mapping.fileField, sourceUrl);
+  }, [tableName, values, triggerAutoAnalysis]);
+
+  // Check if a JSON field has an analysis mapping (to show the analyze button)
+  const hasAnalysisMapping = (jsonFieldKey: string) => {
+    const mappings = AUTO_ANALYSIS_MAP[tableName] || [];
+    return mappings.some((m) => m.jsonField === jsonFieldKey);
+  };
 
   const handleFileChange = useCallback((fieldKey: string, url: string) => {
     setValues((prev) => ({ ...prev, [fieldKey]: url }));
