@@ -316,21 +316,19 @@ async function generateVideo(prompt: string, width: number, height: number, star
     const KIE_AI_API_KEY = Deno.env.get("KIE_AI_API_KEY");
     if (KIE_AI_API_KEY) {
       try {
-        console.log(`[Kling I2V] Generating video from starting frame via Kie AI`);
+        console.log(`[Kling I2V] Generating video from starting frame via Kie AI Kling 2.6`);
         const startTime = Date.now();
-        const taskId = await kieCreateTask(KIE_AI_API_KEY, "kling/kling-2.5", {
+        const taskId = await kieCreateTask(KIE_AI_API_KEY, "kling-2.6/image-to-video", {
           prompt,
-          image_url: startingFrameUrl,
+          image_urls: [startingFrameUrl],
           aspect_ratio: aspectRatio,
-          resolution: "720p",
-          duration: 5,
-          generate_audio: false,
-          web_search: false,
+          duration: "5",
+          sound: false,
         });
         const result = await kiePollTask(KIE_AI_API_KEY, taskId, 120, 3000);
         if (result.urls?.length) {
           console.log(`[Kling I2V] ✅ Image-to-video success`);
-          return { url: result.urls[0], provider: "kie_ai_kling_2.5_i2v", cost: 0.40, timeMs: result.costTime || (Date.now() - startTime) };
+          return { url: result.urls[0], provider: "kie_ai_kling_2.6_i2v", cost: 0.40, timeMs: result.costTime || (Date.now() - startTime) };
         }
       } catch (e) {
         console.error("[Kling I2V] Kie AI failed:", e);
