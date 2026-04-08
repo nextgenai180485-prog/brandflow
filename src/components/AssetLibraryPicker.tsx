@@ -171,7 +171,7 @@ const LibraryTabGrid = ({ tab, search, isSelected, toggleAsset, onChange, select
 
     if (tab.value === "your_assets" && user) {
       query = query.eq("profile_id", user.id);
-    } else if (!tab.value === "your_assets") {
+    } else if (tab.value !== "your_assets") {
       query = query.eq("is_active", true);
     }
 
@@ -184,7 +184,7 @@ const LibraryTabGrid = ({ tab, search, isSelected, toggleAsset, onChange, select
     const { data } = await query;
     setItems(data || []);
     setLoading(false);
-  }, [tab.table, tab.value === "your_assets", user]);
+  }, [tab.table, tab.value, user]);
 
   useEffect(() => { loadItems(); }, [loadItems]);
 
