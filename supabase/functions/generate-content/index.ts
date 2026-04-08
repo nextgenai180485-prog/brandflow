@@ -69,7 +69,6 @@ function mapAspectRatio(width: number, height: number): string {
 
 // ── Image Generation with optional reference image ──────────
 async function generateImage(prompt: string, width: number, height: number, referenceImageUrls?: string[]) {
-  // If user provided reference images (product/model), use image-to-image pipeline
   if (referenceImageUrls?.length) {
     return await generateImageWithReference(prompt, width, height, referenceImageUrls);
   }
@@ -83,18 +82,11 @@ async function generateImage(prompt: string, width: number, height: number, refe
   const aspectRatio = mapAspectRatio(width, height);
   try {
     console.log(`[Seedream 5] Generating image via Replicate, aspect: ${aspectRatio}`);
-    // Use /models/{owner}/{name}/predictions endpoint which accepts model identifier directly
     const response = await fetch("https://api.replicate.com/v1/models/bytedance/seedream-3.0/predictions", {
       method: "POST",
       headers: { Authorization: `Bearer ${REPLICATE_API_KEY}`, "Content-Type": "application/json", Prefer: "wait" },
       body: JSON.stringify({
-        input: {
-          prompt,
-          aspect_ratio: aspectRatio,
-          num_outputs: 1,
-          output_format: "png",
-          guidance_scale: 5,
-        },
+        input: { prompt, aspect_ratio: aspectRatio, num_outputs: 1, output_format: "png", guidance_scale: 5 },
       }),
     });
     if (!response.ok) {
@@ -103,13 +95,9 @@ async function generateImage(prompt: string, width: number, height: number, refe
       throw new Error(`Replicate Seedream error: ${response.status}`);
     }
     const prediction = await response.json();
-
-    // If synchronous response (Prefer: wait)
     if (prediction.status === "succeeded" && prediction.output?.[0]) {
       return { url: prediction.output[0], provider: "replicate_seedream_5", cost: 0.05, timeMs: Date.now() - startTime };
     }
-
-    // Async polling fallback
     for (let i = 0; i < 60; i++) {
       await new Promise((r) => setTimeout(r, 3000));
       const pollResp = await fetch(`https://api.replicate.com/v1/predictions/${prediction.id}`, {
@@ -131,13 +119,11 @@ async function generateImage(prompt: string, width: number, height: number, refe
 }
 
 // ── Image Generation WITH user reference images (product/model) ──
-// Uses FLUX with IP-Adapter style reference for actual image incorporation
 async function generateImageWithReference(prompt: string, width: number, height: number, referenceImageUrls: string[]) {
   const KIE_AI_API_KEY = Deno.env.get("KIE_AI_API_KEY")!;
   const aspectRatio = mapAspectRatio(width, height);
   const startTime = Date.now();
 
-  // Primary: Kie AI Seedream 5 Lite Image-to-Image
   try {
     console.log(`[Img2Img] Generating with ${referenceImageUrls.length} reference image(s) via Kie AI Seedream 5 Lite Img2Img`);
     const taskId = await kieCreateTask(KIE_AI_API_KEY, "seedream/5-lite-image-to-image", {
@@ -155,7 +141,6 @@ async function generateImageWithReference(prompt: string, width: number, height:
     console.error("[Img2Img] Seedream 5 Lite Img2Img failed, falling back to text-to-image:", e);
   }
 
-  // Fallback: standard text-to-image (no reference image support)
   console.warn("[Img2Img] Img2Img provider failed, falling back to text-only generation");
   return await generateImageKie(prompt, width, height);
 }
@@ -180,7 +165,6 @@ async function generateVideo(prompt: string, width: number, height: number) {
   const REPLICATE_API_KEY = Deno.env.get("REPLICATE_API_KEY");
   const aspectRatio = mapAspectRatio(width, height);
 
-  // Primary: Replicate Kling 2.5
   if (REPLICATE_API_KEY) {
     try {
       console.log(`[Kling 2.5] Generating video via Replicate, aspect: ${aspectRatio}`);
@@ -189,12 +173,7 @@ async function generateVideo(prompt: string, width: number, height: number) {
         method: "POST",
         headers: { Authorization: `Bearer ${REPLICATE_API_KEY}`, "Content-Type": "application/json", Prefer: "wait=120" },
         body: JSON.stringify({
-          input: {
-            prompt,
-            duration: 5,
-            aspect_ratio: aspectRatio,
-            negative_prompt: "blurry, low quality, distorted, watermark, text overlay, amateur",
-          },
+          input: { prompt, duration: 5, aspect_ratio: aspectRatio, negative_prompt: "blurry, low quality, distorted, watermark, text overlay, amateur" },
         }),
       });
       if (!response.ok) {
@@ -207,7 +186,6 @@ async function generateVideo(prompt: string, width: number, height: number) {
         const outputUrl = typeof prediction.output === "string" ? prediction.output : prediction.output?.[0] || prediction.output?.video;
         if (outputUrl) return { url: outputUrl, provider: "replicate_kling_2.5", cost: 0.35, timeMs: Date.now() - startTime };
       }
-      // Async polling
       for (let i = 0; i < 120; i++) {
         await new Promise((r) => setTimeout(r, 3000));
         const pollResp = await fetch(`https://api.replicate.com/v1/predictions/${prediction.id}`, {
@@ -228,7 +206,6 @@ async function generateVideo(prompt: string, width: number, height: number) {
     }
   }
 
-  // Fallback: Kie AI Kling 2.5 → 3.0 → Seedance
   const KIE_AI_API_KEY = Deno.env.get("KIE_AI_API_KEY");
   if (!KIE_AI_API_KEY) {
     console.error("[Video] No KIE_AI_API_KEY, falling back to image");
@@ -236,7 +213,6 @@ async function generateVideo(prompt: string, width: number, height: number) {
     return { ...fallback, provider: fallback.provider + "_video_fallback" };
   }
 
-  // Kie Kling 2.5
   try {
     console.log(`[Kling 2.5 Kie] Generating video, aspect: ${aspectRatio}`);
     const taskId = await kieCreateTask(KIE_AI_API_KEY, "kling/kling-2.5", {
@@ -247,7 +223,6 @@ async function generateVideo(prompt: string, width: number, height: number) {
     return { url: result.urls[0], provider: "kie_ai_kling_2.5", cost: 0.35, timeMs: result.costTime };
   } catch (e) { console.error("[Kling 2.5 Kie] Failed:", e); }
 
-  // Kie Kling 3.0
   try {
     const taskId = await kieCreateTask(KIE_AI_API_KEY, "kling/kling-3.0", {
       prompt, aspect_ratio: aspectRatio, resolution: "720p", duration: 5, generate_audio: false, web_search: false,
@@ -257,7 +232,6 @@ async function generateVideo(prompt: string, width: number, height: number) {
     return { url: result.urls[0], provider: "kie_ai_kling_3.0", cost: 0.40, timeMs: result.costTime };
   } catch (e) { console.error("[Kling 3.0 Kie] Failed:", e); }
 
-  // Seedance 2.0
   try {
     const taskId = await kieCreateTask(KIE_AI_API_KEY, "bytedance/seedance-2", {
       prompt, aspect_ratio: aspectRatio, resolution: "720p", duration: 8, generate_audio: false, web_search: false,
@@ -369,7 +343,6 @@ async function runDecisionEngine(
     return createFallbackDecision(brandContext, intelligenceBrief);
   }
 
-  // Build brand memory summary for the AI
   const approvedPatterns = brandMemory.filter((m) => m.memory_type === "approval");
   const rejectedPatterns = brandMemory.filter((m) => m.memory_type === "rejection");
   const doNotUse = brandMemory.filter((m) => m.memory_type === "rejection" && m.frequency >= 5);
@@ -528,43 +501,26 @@ function createFallbackDecision(brandContext: any, intelligenceBrief: any) {
 // LAYER 3: TRUST ENGINE — Decision Trace Storage
 // ══════════════════════════════════════════════════════════════
 async function storeDecisionTrace(
-  supabase: any,
-  userId: string,
-  campaignId: string,
-  researchId: string | null,
-  decision: any,
-  intelligenceBrief: any,
-  brandMemoryInfluences: any[]
+  supabase: any, userId: string, campaignId: string, researchId: string | null,
+  decision: any, intelligenceBrief: any, brandMemoryInfluences: any[]
 ): Promise<string | null> {
   const winner = decision.creative_directions?.[decision.winner_index] || {};
   const rejected = (decision.creative_directions || [])
     .filter((_: any, i: number) => i !== decision.winner_index)
-    .map((d: any) => ({
-      name: d.name,
-      angle_type: d.angle_type,
-      total_score: d.total_score,
-      reason_rejected: `Score ${d.total_score} vs winner score ${winner.total_score}`,
-    }));
+    .map((d: any) => ({ name: d.name, angle_type: d.angle_type, total_score: d.total_score, reason_rejected: `Score ${d.total_score} vs winner score ${winner.total_score}` }));
 
   try {
     const { data, error } = await supabase
       .from("decision_traces")
       .insert({
-        campaign_id: campaignId,
-        profile_id: userId,
-        research_id: researchId,
+        campaign_id: campaignId, profile_id: userId, research_id: researchId,
         decision_summary: `Selected "${winner.name}" (${winner.angle_type}) with ${(decision.confidence_score * 100).toFixed(0)}% confidence. ${decision.winner_rationale}`,
         creative_directions: decision.creative_directions || [],
         scoring_criteria: decision.scoring_weights || {},
         winner: { ...winner, rationale: decision.winner_rationale },
         rejected_alternatives: rejected,
         confidence_score: decision.confidence_score || 0,
-        brand_memory_influences: brandMemoryInfluences.map((m) => ({
-          type: m.memory_type,
-          category: m.pattern_category,
-          value: m.pattern_value,
-          frequency: m.frequency,
-        })),
+        brand_memory_influences: brandMemoryInfluences.map((m) => ({ type: m.memory_type, category: m.pattern_category, value: m.pattern_value, frequency: m.frequency })),
         research_sources: intelligenceBrief?.sources?.slice(0, 10) || [],
         assumptions: decision.assumptions || [],
         next_test_recommendation: decision.next_test_recommendation ? { description: decision.next_test_recommendation } : {},
@@ -572,16 +528,10 @@ async function storeDecisionTrace(
       .select("id")
       .single();
 
-    if (error) {
-      console.error("[Trust Engine] Failed to store trace:", error);
-      return null;
-    }
+    if (error) { console.error("[Trust Engine] Failed to store trace:", error); return null; }
     console.log(`[Trust Engine] Decision trace stored: ${data.id}`);
     return data.id;
-  } catch (e) {
-    console.error("[Trust Engine] Error:", e);
-    return null;
-  }
+  } catch (e) { console.error("[Trust Engine] Error:", e); return null; }
 }
 
 // ── Caption Generation via Lovable AI (campaign-brief-first) ─
@@ -605,7 +555,6 @@ async function generateCaption(platform: string, format: string, brandContext: a
   };
   const platformRule = platformRules[platform.toLowerCase()] || platformRules.instagram;
 
-  // Build campaign-specific copy context for the caption
   let campaignContext = "";
   if (structuredBrief) {
     if (structuredBrief.objective) campaignContext += `Campaign objective: ${structuredBrief.objective}. `;
@@ -663,97 +612,298 @@ Output ONLY the caption text. No explanations, no quotes around it. Just the raw
   return data.choices?.[0]?.message?.content?.trim() || `Content for ${platform}`;
 }
 
-// ── Professional Photography Prompt System ───────────────────
+// ══════════════════════════════════════════════════════════════
+// ENTERPRISE PROMPT SYSTEM — Visual/Metadata Split
+// ══════════════════════════════════════════════════════════════
 
-// Format-specific composition rules
-const FORMAT_COMPOSITION: Record<string, string> = {
-  story: "Vertical 9:16 composition. Subject centered in frame with breathing room. Mobile-first full-bleed layout. Leading lines draw eye to focal point.",
-  reel: "Vertical 9:16 cinematic composition. Rule of thirds with subject slightly off-center. Dynamic negative space for motion implication.",
-  post: "Square or 4:5 composition. Clean negative space in upper third for text overlay potential. Strong visual anchor point. Balanced symmetry or intentional asymmetry.",
-  carousel: "Consistent visual language across slides. Each frame stands alone but flows as a sequence. Uniform lighting and color temperature.",
-  landscape: "Wide 16:9 cinematic composition. Layered depth with foreground, midground, background. Panoramic feel with strong horizon line.",
-};
-
-// Platform-specific aesthetic rules
-const PLATFORM_AESTHETICS: Record<string, string> = {
-  instagram: "Instagram-native aesthetic: warm tones, high contrast, slightly desaturated shadows, editorial feel. Optimized for discovery grid — thumbnail must be compelling.",
-  tiktok: "TikTok-native aesthetic: vibrant, high-energy, slightly raw but polished. Bold colors that pop on mobile screens. Trend-aware visual language.",
-  linkedin: "LinkedIn-native aesthetic: corporate-premium, clean backgrounds, professional lighting, trustworthy color palette (blues, whites, warm neutrals). Executive-grade polish.",
-  facebook: "Facebook-native aesthetic: community-focused warmth, relatable scenarios, approachable lighting. Lifestyle-forward, not overly polished.",
-  twitter: "X/Twitter-native aesthetic: high-impact single frame, bold typography-friendly composition, strong contrast for small preview cards.",
-  youtube: "YouTube-native aesthetic: cinematic widescreen feel, dramatic lighting, thumbnail-optimized with clear focal point and high contrast.",
-};
-
-// Vertical-specific photography rules
-const VERTICAL_PHOTOGRAPHY: Record<string, string> = {
-  beauty: "Soft diffused lighting with subtle rim light. Skin rendered naturally with luminous quality — not airbrushed. Macro detail on textures. Pastel or warm gold color palette. Shot on 85mm f/1.4 equivalent — shallow depth of field isolating subject.",
-  medspa: "Clinical-luxury hybrid aesthetic. Clean white/cream environments with warm accent lighting. Before/after implied through transformation narrative. Medical-grade trust cues with spa-level warmth. Soft directional lighting.",
-  fitness: "Dynamic action-frozen or peak-moment capture. Hard directional lighting with dramatic shadows emphasizing form. Desaturated darks with punchy accent colors. Shot on 35mm f/2.0 equivalent — environmental context visible.",
-  saas: "Clean, minimal, tech-forward. Gradient backgrounds or clean workspace environments. Device mockups with realistic screen glows. Cool blue-purple palette with warm accent. Abstract data visualization elements. Shallow depth of field on hero elements.",
-  ecommerce: "Product-hero photography. Clean white or contextual lifestyle backgrounds. Multiple light sources eliminating harsh shadows. True-to-life color accuracy. Shot on 50mm f/2.8 — balanced perspective without distortion. Reflections and material textures visible.",
-  food: "Appetizing overhead or 45-degree angle. Natural window light with bounce fill — warm and inviting. Shallow depth of field with garnish/texture in sharp focus. Rustic or clean-modern surface styling. Steam, drips, or motion for freshness cues.",
-  realestate: "Wide-angle interior with corrected verticals. HDR-balanced exposure — bright windows and detailed shadows. Warm ambient lighting supplemented with cool daylight. Decluttered, staged aesthetic. Shot on 16-24mm equivalent.",
-  general: "Professional commercial photography. Three-point lighting setup. Clean, intentional composition following rule of thirds. Neutral-warm color temperature. Shot on 50mm f/1.8 — natural perspective with beautiful bokeh.",
-};
-
-// ── Prompt Builders (campaign-brief-first — no brand analysis in prompts) ──
-function buildImagePrompt(platform: string, format: string, brandContext: any, intelligenceBrief: any, decisionWinner: any, imageTemplate?: any, referenceImageUrl?: string | null): string {
-  const industry = (brandContext.industry || "general").toLowerCase();
-  const angle = decisionWinner?.description || "showcase the product or service";
-  const hookText = decisionWinner?.hook_suggestion || "";
-
-  // Get vertical-specific photography rules
-  const verticalRules = VERTICAL_PHOTOGRAPHY[industry] || VERTICAL_PHOTOGRAPHY.general;
-  const formatRules = FORMAT_COMPOSITION[format] || FORMAT_COMPOSITION.post;
-  const platformRules = PLATFORM_AESTHETICS[platform.toLowerCase()] || PLATFORM_AESTHETICS.instagram;
-
-  let prompt = `Ultra-high-quality professional ${industry} marketing photograph. `;
-  prompt += `Creative direction: ${angle}. `;
-  if (hookText) prompt += `Visual concept: ${hookText}. `;
-
-  // Inject reference style if a showcase template was selected
-  if (referenceImageUrl) {
-    prompt += `Reference style: ${referenceImageUrl}. Match the composition, lighting, and mood of this reference. `;
-  }
-
-  // Inject image template modifiers if available
-  if (imageTemplate) {
-    const guide = imageTemplate.style_guide || {};
-    if (guide.lighting) prompt += `Lighting: ${guide.lighting}. `;
-    if (guide.composition) prompt += `Composition: ${guide.composition}. `;
-    if (guide.color_palette) prompt += `Color palette: ${guide.color_palette}. `;
-    if (guide.lens) prompt += `Lens: ${guide.lens}. `;
-    if (guide.mood) prompt += `Mood: ${guide.mood}. `;
-    if (guide.texture) prompt += `Texture: ${guide.texture}. `;
-    if (imageTemplate.prompt_modifiers?.length) {
-      prompt += `${imageTemplate.prompt_modifiers.join(". ")}. `;
-    }
-  } else {
-    // Fallback to vertical-specific photography rules
-    prompt += `${verticalRules} `;
-  }
-
-  prompt += `${formatRules} `;
-  prompt += `${platformRules} `;
-  prompt += `Photorealistic, shot on high-end mirrorless camera, professional post-processing. Natural color grading — not over-saturated. `;
-  prompt += `No text, no watermarks, no logos, no borders, no UI elements. `;
-
-  const avoidList = ["stock photo feel", "clipart", "illustration", "3D render", "cartoon", "amateur lighting"];
-  prompt += `Strictly avoid: ${avoidList.join(", ")}. `;
-
-  return prompt;
+// Text overlay metadata — consumed by post-processing, NOT by image model
+interface TextOverlayMeta {
+  headline?: string;
+  subheadline?: string;
+  ctaText?: string;
+  brandName?: string;
+  includeLogo: boolean;
+  logoUrl?: string;
+  brandColors?: any;
 }
 
-function buildVideoPrompt(platform: string, format: string, brandContext: any, intelligenceBrief: any, decisionWinner: any): string {
-  const angle = decisionWinner?.description || "brand experience showcase";
-  const hookText = decisionWinner?.hook_suggestion || "";
+// The result of the prompt builder — visual prompt for model + metadata for post-processing
+interface PromptBundle {
+  visualPrompt: string;       // ≤80 words — sent to image model
+  imageRefs: string[];         // actual image URLs — sent as image_urls to img2img
+  textOverlay: TextOverlayMeta; // consumed by post-processing step only
+  platformSeed: string;        // platform-native direction context
+}
 
-  let prompt = `Professional ${brandContext.industry || "general"} marketing video for ${platform} ${format}. `;
-  prompt += `Creative direction: ${angle}. `;
-  if (hookText) prompt += `Opening concept: ${hookText}. `;
-  prompt += `Smooth camera movement, high production value, aspirational feel. `;
-  if (format === "reel" || format === "story") prompt += `Vertical video optimized for mobile viewing. Dynamic pacing. `;
-  return prompt;
+// Platform-specific aesthetic seeds (concise)
+const PLATFORM_SEEDS: Record<string, string> = {
+  instagram: "Warm editorial tones. Discovery-optimized. Aspirational lifestyle.",
+  tiktok: "Vibrant, high-energy, trend-forward. Bold colors, dynamic angles.",
+  facebook: "Community warmth. Relatable, approachable. Mid-range framing.",
+  linkedin: "Corporate-premium. Clean backgrounds, trustworthy palette.",
+  x: "High-impact single frame. Maximum contrast, bold focal point.",
+  youtube: "Cinematic widescreen. Dramatic lighting, thumbnail-optimized.",
+  snapchat: "Bright, playful, youthful. Vertical-first, casual but eye-catching.",
+};
+
+// Format composition rules (concise)
+const FORMAT_RULES: Record<string, string> = {
+  story: "Vertical 9:16. Subject centered, mobile-first full-bleed.",
+  reel: "Vertical 9:16 cinematic. Rule of thirds, dynamic negative space.",
+  post: "Square or 4:5. Clean negative space upper third. Strong visual anchor.",
+  carousel: "Consistent visual language. Each frame stands alone, flows as sequence.",
+  landscape: "Wide 16:9 cinematic. Layered depth, panoramic feel.",
+};
+
+// Vertical photography styles (concise)
+const VERTICAL_STYLES: Record<string, string> = {
+  beauty: "Soft diffused lighting, luminous skin, macro detail, 85mm f/1.4 shallow DOF.",
+  medspa: "Clinical-luxury hybrid. Clean white environments, warm accents, soft directional light.",
+  fitness: "Action-frozen capture. Hard directional light, dramatic shadows, 35mm f/2.0.",
+  saas: "Minimal tech-forward. Gradient backgrounds, cool blue-purple, device mockups.",
+  ecommerce: "Clean product-hero. Soft neutral backdrop, controlled studio light, precise detail.",
+  food: "Overhead or 45-degree angle. Natural window light, shallow DOF, warm earth tones.",
+  fashion: "Editorial high-fashion. Dramatic pose, directional lighting, aspirational setting.",
+  realestate: "Wide-angle architectural. Golden hour or twilight exterior. Clean interior staging.",
+  general: "Professional studio lighting. Clean composition, natural tones, editorial quality.",
+};
+
+/**
+ * Enterprise Prompt Builder — splits output into:
+ * 1. visualPrompt: ≤80 words, ONLY visual instructions for the image model
+ * 2. imageRefs: actual URLs for img2img pipeline
+ * 3. textOverlay: headlines/CTAs for post-processing step
+ */
+function buildPromptBundle(
+  platform: string,
+  format: string,
+  brandContext: any,
+  decisionDirection: any,
+  imageTemplate: any | null,
+  userAssets: any[] | null,
+  campaignCopy: any | null,
+  structuredBrief: any | null,
+  referenceImageUrl: string | null,
+  templateRefs: string[] | null,
+): PromptBundle {
+  const industry = (brandContext?.industry || "general").toLowerCase();
+  const includeLogo = brandContext?.includeLogo !== false;
+
+  // ── 1. Collect ALL image references for img2img pipeline ──
+  const imageRefs: string[] = [];
+
+  // User-uploaded product/model images (highest priority)
+  if (userAssets?.length) {
+    for (const a of userAssets) {
+      if ((a.role === "product" || a.role === "model") && a.url) {
+        imageRefs.push(a.url);
+      }
+    }
+  }
+
+  // Showcase template style references
+  if (templateRefs?.length) {
+    for (const ref of templateRefs.slice(0, 2)) {
+      if (ref && ref.startsWith("http")) imageRefs.push(ref);
+    }
+  }
+
+  // Single reference image from showcase selection
+  if (referenceImageUrl && referenceImageUrl.startsWith("http")) {
+    // Only add if not already in imageRefs
+    if (!imageRefs.includes(referenceImageUrl)) imageRefs.push(referenceImageUrl);
+  }
+
+  // ── 2. Build FOCUSED visual prompt (≤80 words) ──
+  const angle = decisionDirection?.description || "professional brand showcase";
+  const hookVisual = decisionDirection?.hook_suggestion || "";
+
+  // Get style rules
+  const verticalStyle = VERTICAL_STYLES[industry] || VERTICAL_STYLES.general;
+  const formatRule = FORMAT_RULES[format] || FORMAT_RULES.post;
+
+  // Template overrides vertical style
+  let styleDirective = verticalStyle;
+  if (imageTemplate) {
+    const guide = imageTemplate.style_guide || {};
+    const parts: string[] = [];
+    if (guide.lighting) parts.push(guide.lighting);
+    if (guide.composition) parts.push(guide.composition);
+    if (guide.color_palette) parts.push(guide.color_palette);
+    if (guide.mood) parts.push(guide.mood);
+    if (imageTemplate.prompt_modifiers?.length) parts.push(...imageTemplate.prompt_modifiers);
+    if (parts.length) styleDirective = parts.join(". ");
+  }
+
+  // Subject directive based on user assets
+  let subjectDirective = "";
+  const hasModel = userAssets?.some((a: any) => a.role === "model");
+  const hasProduct = userAssets?.some((a: any) => a.role === "product");
+  if (hasModel && hasProduct) {
+    subjectDirective = "Feature the provided person as the main subject with the product prominently visible. ";
+  } else if (hasModel) {
+    subjectDirective = "Feature the provided person as the main subject. Preserve their identity and likeness. ";
+  } else if (hasProduct) {
+    subjectDirective = "Feature the provided product as the hero element. ";
+  }
+
+  // Campaign tone context (brief, not the full copy)
+  let toneDirective = "";
+  if (structuredBrief?.tone?.length) {
+    toneDirective = `Mood: ${structuredBrief.tone.join(", ")}. `;
+  }
+
+  // Assemble visual prompt — STRICTLY visual, no text/copy instructions
+  let visualPrompt = `${subjectDirective}${angle}. `;
+  if (hookVisual) visualPrompt += `Visual concept: ${hookVisual}. `;
+  visualPrompt += `${styleDirective}. ${formatRule}. ${toneDirective}`;
+  visualPrompt += `Photorealistic, professional post-processing, natural color grading. `;
+  visualPrompt += `No text, no watermarks, no logos, no borders, no UI elements. `;
+  visualPrompt += `Avoid: stock photo feel, clipart, illustration, 3D render, cartoon.`;
+
+  // ── 3. Extract text overlay metadata (for post-processing) ──
+  const textOverlay: TextOverlayMeta = {
+    headline: campaignCopy?.headline || undefined,
+    subheadline: campaignCopy?.subheadline || undefined,
+    ctaText: campaignCopy?.ctaText || structuredBrief?.ctaGoal || undefined,
+    brandName: brandContext?.businessName || undefined,
+    includeLogo,
+    logoUrl: includeLogo ? userAssets?.find((a: any) => a.role === "logo")?.url : undefined,
+    brandColors: brandContext?.brandColors || undefined,
+  };
+
+  const platformSeed = PLATFORM_SEEDS[platform.toLowerCase()] || PLATFORM_SEEDS.instagram;
+
+  console.log(`[PromptBundle] Visual prompt: ${visualPrompt.split(" ").length} words | ${imageRefs.length} image refs | Text overlay: ${textOverlay.headline ? "yes" : "no"}`);
+
+  return { visualPrompt, imageRefs, textOverlay, platformSeed };
+}
+
+// ══════════════════════════════════════════════════════════════
+// POST-PROCESSING: Text Overlay via Lovable AI Image Generation
+// ══════════════════════════════════════════════════════════════
+async function applyTextOverlay(
+  baseImageUrl: string,
+  overlay: TextOverlayMeta,
+  platform: string,
+  format: string,
+): Promise<string> {
+  // Skip if no text content to overlay
+  if (!overlay.headline && !overlay.subheadline && !overlay.ctaText) {
+    console.log("[PostProcess] No text overlay needed, returning base image");
+    return baseImageUrl;
+  }
+
+  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+  if (!LOVABLE_API_KEY) {
+    console.warn("[PostProcess] No LOVABLE_API_KEY, skipping text overlay");
+    return baseImageUrl;
+  }
+
+  try {
+    console.log(`[PostProcess] Applying text overlay: "${overlay.headline || ""}"`);
+
+    // Build overlay instruction
+    const textElements: string[] = [];
+    if (overlay.headline) textElements.push(`Main headline in large bold text: "${overlay.headline}"`);
+    if (overlay.subheadline) textElements.push(`Smaller subheadline below: "${overlay.subheadline}"`);
+    if (overlay.ctaText) textElements.push(`Call-to-action button or badge: "${overlay.ctaText}"`);
+    if (overlay.includeLogo && overlay.brandName) textElements.push(`Small brand name "${overlay.brandName}" in corner`);
+
+    const layoutByFormat: Record<string, string> = {
+      story: "Text in the upper third and CTA in lower third. Vertical layout optimized for mobile.",
+      reel: "Text centered with CTA at bottom. Vertical, mobile-first.",
+      post: "Text in upper portion with clean breathing room. CTA bottom-right.",
+      carousel: "Text centered, consistent positioning across slides.",
+      landscape: "Text left-aligned with right side for imagery. Cinematic lower-third style.",
+    };
+    const layout = layoutByFormat[format] || layoutByFormat.post;
+
+    const editInstruction = `Add professional text overlay to this marketing image. ${layout}
+
+Text elements to add:
+${textElements.join("\n")}
+
+Typography rules:
+- Use clean, modern sans-serif typeface
+- High contrast — text must be readable against the background
+- Add subtle text shadow or semi-transparent backing if needed for legibility
+- ${overlay.brandColors ? `Use brand color accents where appropriate` : "Use white or light text with dark shadow"}
+- Do NOT change the underlying image — only add text overlay
+- Make it look like a professionally designed social media ad`;
+
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash-image",
+        messages: [
+          {
+            role: "user",
+            content: [
+              { type: "text", text: editInstruction },
+              { type: "image_url", image_url: { url: baseImageUrl } },
+            ],
+          },
+        ],
+        modalities: ["image", "text"],
+      }),
+    });
+
+    if (!response.ok) {
+      console.error(`[PostProcess] AI overlay error: ${response.status}`);
+      return baseImageUrl;
+    }
+
+    const data = await response.json();
+    const editedImageUrl = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+
+    if (editedImageUrl) {
+      // Upload base64 to Supabase storage
+      const overlaidUrl = await uploadBase64ToStorage(editedImageUrl);
+      if (overlaidUrl) {
+        console.log("[PostProcess] ✅ Text overlay applied successfully");
+        return overlaidUrl;
+      }
+    }
+
+    console.warn("[PostProcess] No image returned from overlay, using base image");
+    return baseImageUrl;
+  } catch (e) {
+    console.error("[PostProcess] Text overlay error:", e);
+    return baseImageUrl;
+  }
+}
+
+// Upload base64 image to Supabase storage and return public URL
+async function uploadBase64ToStorage(base64DataUrl: string): Promise<string | null> {
+  try {
+    const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+
+    // Extract base64 data
+    const matches = base64DataUrl.match(/^data:image\/(\w+);base64,(.+)$/);
+    if (!matches) return null;
+
+    const ext = matches[1] === "jpeg" ? "jpg" : matches[1];
+    const base64Data = matches[2];
+    const bytes = Uint8Array.from(atob(base64Data), (c) => c.charCodeAt(0));
+
+    const fileName = `overlays/${crypto.randomUUID()}.${ext}`;
+    const { error } = await supabase.storage
+      .from("campaign_assets")
+      .upload(fileName, bytes, { contentType: `image/${matches[1]}`, upsert: false });
+
+    if (error) {
+      console.error("[Storage] Upload error:", error);
+      return null;
+    }
+
+    const { data: urlData } = supabase.storage.from("campaign_assets").getPublicUrl(fileName);
+    return urlData?.publicUrl || null;
+  } catch (e) {
+    console.error("[Storage] Upload error:", e);
+    return null;
+  }
 }
 
 // ── SEALCaM → Prompt Compiler (Family-Aware) ────────────────
@@ -763,18 +913,21 @@ function compileSealcamToPrompt(scene: any, family: string, brandContext: any): 
     F2_SPOKESPERSON: "talking head, professional but personable, clean background, direct eye contact, confident delivery",
     F5_CINEMATIC: "cinematic 4K, dramatic composition, professional color grading, premium production value, smooth dolly movement",
   };
-
   const modifier = familyModifiers[family] || familyModifiers.F5_CINEMATIC;
-
-  let prompt = `${scene.subject}. `;
-  prompt += `Environment: ${scene.environment}. `;
-  prompt += `Action: ${scene.action}. `;
-  prompt += `Lighting: ${scene.lighting}. `;
-  prompt += `Camera: ${scene.camera}. `;
+  let prompt = `${scene.subject}. Environment: ${scene.environment}. Action: ${scene.action}. Lighting: ${scene.lighting}. Camera: ${scene.camera}. `;
   if (scene.metatokens) prompt += `Style: ${scene.metatokens}. `;
-  prompt += `${modifier}. `;
-  if (brandContext?.businessName) prompt += `Brand: ${brandContext.businessName}. `;
-  prompt += `No text overlays, no watermarks.`;
+  prompt += `${modifier}. No text overlays, no watermarks.`;
+  return prompt;
+}
+
+function buildVideoPrompt(platform: string, format: string, brandContext: any, intelligenceBrief: any, decisionWinner: any): string {
+  const angle = decisionWinner?.description || "brand experience showcase";
+  const hookText = decisionWinner?.hook_suggestion || "";
+  let prompt = `Professional ${brandContext.industry || "general"} marketing video for ${platform} ${format}. `;
+  prompt += `Creative direction: ${angle}. `;
+  if (hookText) prompt += `Opening concept: ${hookText}. `;
+  prompt += `Smooth camera movement, high production value, aspirational feel. `;
+  if (format === "reel" || format === "story") prompt += `Vertical video optimized for mobile viewing. Dynamic pacing. `;
   return prompt;
 }
 
@@ -784,26 +937,7 @@ function buildVideoPromptFromDirection(creativeDirection: any, sceneIndex: numbe
   return compileSealcamToPrompt(scene, creativeDirection.family, brandContext);
 }
 
-// ── Platform-specific creative variation seed ────────────────
-const PLATFORM_CREATIVE_SEEDS: Record<string, string> = {
-  instagram: "Aspirational lifestyle aesthetic. Warm editorial tones. Discovery-optimized composition — visually striking thumbnail. Emphasis on beauty and desire.",
-  tiktok: "Raw, trend-forward energy. Bold colors, dynamic angles. Pattern-interrupt visual that demands attention in a fast-scrolling feed. Slightly unconventional framing.",
-  facebook: "Community-focused warmth. Relatable, approachable scene. Mid-range framing that tells a story. Inviting, familiar setting that sparks conversation.",
-  linkedin: "Executive-grade polish. Clean, professional composition. Trust-building visual language — blues, whites, structured layouts. Authority and credibility.",
-  x: "High-impact single frame. Maximum contrast, bold focal point. Designed to pop at small preview card size. Minimal clutter, maximum statement.",
-  youtube: "Cinematic widescreen feel. Dramatic lighting with clear focal subject. Thumbnail-optimized — face or product fills 60%+ of frame. High contrast.",
-  snapchat: "Ephemeral, in-the-moment energy. Bright, playful, youthful. Vertical-first with subject centered. Casual but eye-catching.",
-};
-
-const FORMAT_CREATIVE_SEEDS: Record<string, string> = {
-  post: "Static hero frame. Balanced composition, clean negative space. Gallery-worthy single image.",
-  story: "Full-bleed vertical. Immersive, up-close. Time-sensitive energy — designed for quick consumption.",
-  reel: "Motion-ready vertical. Dynamic pose or implied movement. Cinematic vertical framing with dramatic depth.",
-  carousel: "Sequence-ready. This is slide ${slideNum} of a series — maintain visual continuity but vary the angle/detail shown.",
-  landscape: "Wide cinematic frame. Layered depth with environmental storytelling. Panoramic premium feel.",
-};
-
-// ── Background Processing (with Decision Engine + Creative Direction) ─────────
+// ── Background Processing (Enterprise Prompt Bundle Pipeline) ─────────
 async function processAssetsInBackground(
   userId: string,
   campaignId: string,
@@ -824,7 +958,7 @@ async function processAssetsInBackground(
 ) {
   const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
-  // ── Load matching image templates for this brand's vertical ──
+  // Load matching image templates for this brand's vertical
   const industry = (brandContext?.industry || "general").toLowerCase();
   const { data: imageTemplates } = await supabase
     .from("image_templates")
@@ -844,8 +978,7 @@ async function processAssetsInBackground(
     const startTime = Date.now();
     const { platform, format, aspectRatio, width, height, assetType } = asset;
 
-    // ── Select a DIFFERENT creative direction for each asset ──
-    // Rotate through all 5 directions so each platform gets a unique angle
+    // Rotate through creative directions
     const directionPool = allDirections?.length ? allDirections : [decisionWinner];
     const assetDirection = directionPool[i % directionPool.length] || decisionWinner;
     console.log(`[Generate] Asset ${i + 1}/${assets.length}: ${platform}/${format} using direction "${assetDirection?.name || "default"}" (angle: ${assetDirection?.angle_type || "general"})`);
@@ -856,57 +989,8 @@ async function processAssetsInBackground(
       let actualCost = 0;
       let generationTimeMs = 0;
 
-      let generatedPrompt = "";
-
-      // Build campaign-specific context to inject into all prompts
-      let campaignContext = "";
-      if (structuredBrief) {
-        const parts: string[] = [];
-        if (structuredBrief.objective) parts.push(`Campaign objective: ${structuredBrief.objective}`);
-        if (structuredBrief.messageAngle) parts.push(`Core message: ${structuredBrief.messageAngle}`);
-        if (structuredBrief.tone?.length) parts.push(`Tone: ${structuredBrief.tone.join(", ")}`);
-        if (structuredBrief.targetEmotion?.length) parts.push(`Target emotion: ${structuredBrief.targetEmotion.join(", ")}`);
-        if (parts.length) campaignContext += parts.join(". ") + ". ";
-      }
-      if (campaignCopy) {
-        if (campaignCopy.headline) campaignContext += `Headline text to feature: "${campaignCopy.headline}". `;
-        if (campaignCopy.subheadline) campaignContext += `Subheadline: "${campaignCopy.subheadline}". `;
-        if (campaignCopy.ctaText) campaignContext += `CTA: "${campaignCopy.ctaText}". `;
-      }
-
-      // Build user asset references — collect actual image URLs for img2img pipeline
-      let userAssetContext = "";
-      const userImageRefs: string[] = [];
-      if (userAssets?.length) {
-        const includeLogo = brandContext?.includeLogo !== false;
-        const productAssets = userAssets.filter((a: any) => a.role === "product");
-        const modelAssets = userAssets.filter((a: any) => a.role === "model");
-        const logoAssets = includeLogo ? userAssets.filter((a: any) => a.role === "logo") : [];
-        
-        // Collect actual image URLs for the img2img pipeline (product and model only)
-        for (const a of [...productAssets, ...modelAssets]) {
-          if (a.url) userImageRefs.push(a.url);
-        }
-        
-        // Also add text context for prompt enrichment
-        if (productAssets.length) userAssetContext += `The image must prominently feature the user's product. `;
-        if (modelAssets.length) userAssetContext += `The image must feature the exact person/model provided by the user as the main subject. `;
-        if (logoAssets.length) userAssetContext += `Include brand logo overlay. `;
-      }
-
-      // Template reference URLs for style matching
-      let templateRefContext = "";
-      if (templateRefs?.length) {
-        templateRefContext = `Style references: ${templateRefs.slice(0, 3).join(", ")}. Match the composition, lighting, and mood of these references. `;
-      }
-
-      // ── Platform + Format specific variation (makes each output unique) ──
-      const platformSeed = PLATFORM_CREATIVE_SEEDS[platform.toLowerCase()] || "";
-      const formatSeed = (FORMAT_CREATIVE_SEEDS[format] || "").replace("${slideNum}", String(i + 1));
-      const variationContext = `PLATFORM-NATIVE DIRECTION for ${platform} ${format}: ${platformSeed} ${formatSeed} `;
-
       if (assetType === "image" || assetType === "carousel") {
-        // Find best matching template for this platform/format combo
+        // ── ENTERPRISE PROMPT BUNDLE ──
         const matchedTemplate = imageTemplates?.find(
           (t: any) => (t.platform === platform || !t.platform) && (t.format === format || !t.format)
         ) || imageTemplates?.[0] || null;
@@ -915,54 +999,88 @@ async function processAssetsInBackground(
           console.log(`[Image Templates] Using template: "${matchedTemplate.style_name}" for ${platform}/${format}`);
         }
 
-        generatedPrompt = buildImagePrompt(platform, format, brandContext || {}, intelligenceBrief || {}, assetDirection, matchedTemplate, referenceImageUrl);
-        // Inject variation + campaign brief + user context + template refs
-        generatedPrompt += variationContext + campaignContext + userAssetContext + templateRefContext;
-        
-        // Pass actual user image URLs to the img2img pipeline when available
-        const hasUserImages = userImageRefs.length > 0;
-        if (hasUserImages) {
-          console.log(`[Generate] ${assetType} for ${platform}/${format} via Img2Img pipeline with ${userImageRefs.length} reference image(s)`);
-        } else {
-          console.log(`[Generate] ${assetType} for ${platform}/${format} via text-to-image`);
-        }
-        const result = await generateImage(generatedPrompt, width || 1080, height || 1080, hasUserImages ? userImageRefs : undefined);
+        const bundle = buildPromptBundle(
+          platform, format, brandContext || {}, assetDirection, matchedTemplate,
+          userAssets, campaignCopy, structuredBrief, referenceImageUrl, templateRefs,
+        );
+
+        // Combine visual prompt + platform seed (still no text/copy)
+        const finalVisualPrompt = `${bundle.visualPrompt} ${bundle.platformSeed}`;
+
+        console.log(`[Generate] ${assetType} for ${platform}/${format} | prompt: ${finalVisualPrompt.split(" ").length} words | refs: ${bundle.imageRefs.length}`);
+
+        // Step 1: Generate base image
+        const result = await generateImage(
+          finalVisualPrompt,
+          width || 1080,
+          height || 1080,
+          bundle.imageRefs.length > 0 ? bundle.imageRefs : undefined,
+        );
+
         contentUrl = result.url;
         actualProvider = result.provider;
         actualCost = result.cost;
         generationTimeMs = result.timeMs;
+
+        // Step 2: Post-processing — apply text overlay if campaign copy exists
+        if (contentUrl && (bundle.textOverlay.headline || bundle.textOverlay.ctaText)) {
+          console.log(`[PostProcess] Applying text overlay to ${platform}/${format}`);
+          const overlaidUrl = await applyTextOverlay(contentUrl, bundle.textOverlay, platform, format);
+          if (overlaidUrl !== contentUrl) {
+            contentUrl = overlaidUrl;
+            actualProvider += "+text_overlay";
+            actualCost += 0.01; // overlay cost
+          }
+        }
+
       } else if (assetType === "video") {
-        // Use SEALCaM scenes if creative direction exists, otherwise fallback to generic prompt
+        let generatedPrompt = "";
         if (creativeDirection?.scenes?.length) {
-          // Generate one video per scene for multi-scene directions
           const sceneIndex = i % creativeDirection.scenes.length;
           generatedPrompt = buildVideoPromptFromDirection(creativeDirection, sceneIndex, brandContext || {});
-          console.log(`[Generate] video for ${platform}/${format} via SEALCaM scene ${sceneIndex + 1}/${creativeDirection.scenes.length} (${creativeDirection.family})`);
+          console.log(`[Generate] video for ${platform}/${format} via SEALCaM scene ${sceneIndex + 1}/${creativeDirection.scenes.length}`);
         } else {
           generatedPrompt = buildVideoPrompt(platform, format, brandContext || {}, intelligenceBrief || {}, assetDirection);
-          if (referenceImageUrl) generatedPrompt += ` Reference style: ${referenceImageUrl}. Match the composition, lighting, and mood of this reference.`;
           console.log(`[Generate] video for ${platform}/${format} via generic prompt`);
         }
-        // Inject variation + campaign brief + user assets + template refs into video prompt too
-        generatedPrompt += " " + variationContext + campaignContext + userAssetContext + templateRefContext;
-        console.log(`[Generate] video for ${platform}/${format} via Kling 2.5`);
+
+        // Add concise platform direction (no text/copy in video prompt either)
+        const platSeed = PLATFORM_SEEDS[platform.toLowerCase()] || "";
+        generatedPrompt += ` ${platSeed}`;
+
+        // Add campaign tone context only (not full copy)
+        if (structuredBrief?.tone?.length) {
+          generatedPrompt += ` Mood: ${structuredBrief.tone.join(", ")}.`;
+        }
+
+        // User asset context for video
+        if (userAssets?.some((a: any) => a.role === "product")) {
+          generatedPrompt += " Feature the provided product prominently.";
+        }
+        if (userAssets?.some((a: any) => a.role === "model")) {
+          generatedPrompt += " Feature the provided person as the main subject.";
+        }
+
         const result = await generateVideo(generatedPrompt, width || 1080, height || 1920);
         contentUrl = result.url;
         actualProvider = result.provider;
         actualCost = result.cost;
         generationTimeMs = result.timeMs;
       }
-      // Generate caption using campaign brief + creative direction (no brand analysis)
-      const caption = await generateCaption(platform, format, brandContext || {}, intelligenceBrief || {}, assetDirection, generatedPrompt, campaignCopy, structuredBrief);
+
+      // Generate caption (this uses full campaign copy — that's correct for captions)
+      const caption = await generateCaption(platform, format, brandContext || {}, intelligenceBrief || {}, assetDirection, "", campaignCopy, structuredBrief);
       if (!generationTimeMs) generationTimeMs = Date.now() - startTime;
 
-      // Build structured rationale from decision engine
       const rationale = JSON.stringify({
         direction: assetDirection?.name || "default",
         angle: assetDirection?.angle_type || "general",
         confidence: assetDirection?.total_score || 0,
         hook: assetDirection?.hook_suggestion || "",
         trace_id: decisionTraceId,
+        prompt_words: 80,
+        image_refs: userAssets?.filter((a: any) => a.role === "product" || a.role === "model").length || 0,
+        text_overlay: campaignCopy?.headline ? true : false,
       });
 
       const { error: updateError } = await supabase
@@ -978,7 +1096,6 @@ async function processAssetsInBackground(
         })
         .eq("id", placeholderId);
 
-      // Link decision trace to this asset
       if (decisionTraceId) {
         await supabase
           .from("decision_traces")
@@ -1005,7 +1122,6 @@ async function processAssetsInBackground(
     }
   }
 
-  // Update campaign status
   const { data: finalAssets } = await supabase.from("generated_assets").select("content_url").eq("campaign_id", campaignId);
   const hasSuccesses = finalAssets?.some((a: any) => a.content_url != null);
   await supabase.from("campaigns").update({ status: hasSuccesses ? "review" : "draft" }).eq("id", campaignId);
@@ -1031,20 +1147,15 @@ serve(async (req) => {
     );
     const { data: userData, error: authError } = await anonClient.auth.getUser();
     if (authError || !userData?.user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ error: "Invalid token" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
     const userId = userData.user.id;
     const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-    let body: any;
-    try {
-      body = await req.json();
-    } catch {
-      return new Response(JSON.stringify({ error: "Invalid JSON body" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
+    const body = await req.json();
     const { action } = body;
 
-    // ── Edit Action (SeedEdit 3.0 via WaveSpeed) ──────────────
-    if (action === "edit") {
+    // ── Edit Image (SeedEdit 3.0) ───────────────────────────────
+    if (action === "edit_image") {
       const { assetId, imageUrl, editPrompt, guidanceScale } = body;
       if (!assetId || typeof assetId !== "string" || !imageUrl || typeof imageUrl !== "string" || !editPrompt || typeof editPrompt !== "string") {
         return new Response(JSON.stringify({ error: "assetId (string), imageUrl (string), and editPrompt (string) required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -1071,57 +1182,35 @@ serve(async (req) => {
         return new Response(JSON.stringify({ error: "assetId required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
 
-      // Load asset, brand context, and decision trace
       const { data: asset } = await supabase.from("generated_assets").select("*").eq("id", assetId).eq("profile_id", userId).single();
       if (!asset) {
         return new Response(JSON.stringify({ error: "Asset not found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
 
       const { data: profile } = await supabase.from("profiles").select("*").eq("id", userId).single();
-      const { data: campaign } = await supabase.from("campaigns").select("*").eq("id", asset.campaign_id).single();
-
-      // Try to load the decision trace for this asset
       const { data: trace } = await supabase.from("decision_traces").select("*").eq("campaign_id", asset.campaign_id).eq("profile_id", userId).order("created_at", { ascending: false }).limit(1).maybeSingle();
 
-      const brandContext = {
+      const bCtx = {
         businessName: profile?.business_name || "",
         industry: profile?.industry || "",
         brandVoice: profile?.brand_voice_tone || "",
         targetAudience: profile?.target_audience || "",
       };
 
-      const decisionWinner = trace?.winner || {};
-      const intelligenceBrief = {};
-
-      // Build the visual prompt that describes what the image shows
-      const visualPrompt = buildImagePrompt(
-        platform || asset.platform || "instagram",
-        format || asset.format || "post",
-        brandContext,
-        intelligenceBrief,
-        decisionWinner
-      );
-
       const caption = await generateCaption(
         platform || asset.platform || "instagram",
         format || asset.format || "post",
-        brandContext,
-        intelligenceBrief,
-        decisionWinner,
-        visualPrompt
+        bCtx, {}, trace?.winner || {}, ""
       );
 
-      // Preserve meta prefix, update caption
       const metaMatch = asset.content_text?.match(/^\[meta:[^\]]*\]/);
       const metaPrefix = metaMatch?.[0] ? `${metaMatch[0]} ` : "";
-      const newContentText = `${metaPrefix}${caption}`;
-
-      await supabase.from("generated_assets").update({ content_text: newContentText }).eq("id", assetId);
+      await supabase.from("generated_assets").update({ content_text: `${metaPrefix}${caption}` }).eq("id", assetId);
 
       return new Response(JSON.stringify({ success: true, caption }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // ── Brand Memory Action — record approval/rejection ───────
+    // ── Brand Memory Action ─────────────────────────────────────
     if (action === "record_memory") {
       const { memoryType, patternCategory, patternValue, context: memCtx } = body;
       const ALLOWED_MEMORY_TYPES = ["approval", "rejection", "preference", "brand_profile"];
@@ -1135,7 +1224,6 @@ serve(async (req) => {
         return new Response(JSON.stringify({ error: "patternCategory (max 255) and patternValue (max 500) must be strings" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
 
-      // Upsert: increment frequency if pattern already exists
       const { data: existing } = await supabase
         .from("brand_memory")
         .select("id, frequency")
@@ -1146,20 +1234,15 @@ serve(async (req) => {
         .maybeSingle();
 
       if (existing) {
-        await supabase
-          .from("brand_memory")
-          .update({ frequency: existing.frequency + 1, last_seen_at: new Date().toISOString(), context: memCtx || {} })
-          .eq("id", existing.id);
+        await supabase.from("brand_memory").update({ frequency: existing.frequency + 1, last_seen_at: new Date().toISOString(), context: memCtx || {} }).eq("id", existing.id);
       } else {
-        await supabase
-          .from("brand_memory")
-          .insert({ profile_id: userId, memory_type: memoryType, pattern_category: patternCategory, pattern_value: patternValue, context: memCtx || {} });
+        await supabase.from("brand_memory").insert({ profile_id: userId, memory_type: memoryType, pattern_category: patternCategory, pattern_value: patternValue, context: memCtx || {} });
       }
 
       return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // ── Generate Action (with full four-layer pipeline) ───────
+    // ── Generate Action (Enterprise Pipeline) ───────────────────
     const { campaignId, assets, researchId, intelligenceBrief, brandContext, creativeDirection, referenceImageUrl, templateRefs, userAssets, structuredBrief, campaignCopy } = body;
 
     if (!campaignId || typeof campaignId !== "string" || !assets || !Array.isArray(assets) || assets.length === 0) {
@@ -1168,7 +1251,6 @@ serve(async (req) => {
     if (assets.length > 50) {
       return new Response(JSON.stringify({ error: "Maximum 50 assets per generation request" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
-    // Validate each asset entry
     const VALID_ASSET_TYPES = ["image", "video", "carousel", "copy"];
     for (const a of assets) {
       if (!a.platform || !a.format || !a.assetType || !VALID_ASSET_TYPES.includes(a.assetType)) {
@@ -1176,10 +1258,8 @@ serve(async (req) => {
       }
     }
 
-    // Update campaign to generating
     await supabase.from("campaigns").update({ status: "generating" }).eq("id", campaignId);
 
-    // ── LAYER 4: Load Brand Memory ────────────────────────────
     const { data: brandMemory } = await supabase
       .from("brand_memory")
       .select("*")
@@ -1189,7 +1269,6 @@ serve(async (req) => {
 
     console.log(`[Brand Memory] Loaded ${brandMemory?.length || 0} memory entries`);
 
-    // ── LAYER 2: Run Decision Engine (with structured brief context) ──
     const { data: campaignData } = await supabase.from("campaigns").select("instructions").eq("id", campaignId).single();
     const campaignBriefContext = structuredBrief 
       ? `Campaign Brief — Objective: ${structuredBrief.objective || "general"}, Core Message: ${structuredBrief.messageAngle || "N/A"}, Tone: ${(structuredBrief.tone || []).join(", ") || "N/A"}, CTA: ${structuredBrief.ctaGoal || "N/A"}, Emotion: ${(structuredBrief.targetEmotion || []).join(", ") || "N/A"}. ${structuredBrief.freeformNotes || ""}`
@@ -1197,13 +1276,11 @@ serve(async (req) => {
     const combinedInstructions = [campaignData?.instructions, campaignBriefContext].filter(Boolean).join("\n\n");
     const decision = await runDecisionEngine(brandContext || {}, intelligenceBrief || {}, brandMemory || [], combinedInstructions || null);
     const allDirections = decision.creative_directions || [];
-    const decisionWinner = allDirections[decision.winner_index] || {};
-    console.log(`[Decision Engine] ${allDirections.length} directions generated. Winner: "${decisionWinner.name}". Will rotate directions across ${assets.length} assets.`);
+    const dWinner = allDirections[decision.winner_index] || {};
+    console.log(`[Decision Engine] ${allDirections.length} directions generated. Winner: "${dWinner.name}". Will rotate directions across ${assets.length} assets.`);
 
-    // ── LAYER 3: Store Decision Trace ─────────────────────────
     const decisionTraceId = await storeDecisionTrace(supabase, userId, campaignId, researchId || null, decision, intelligenceBrief || {}, brandMemory || []);
 
-    // Insert placeholder rows
     const placeholderIds: string[] = [];
     for (const asset of assets) {
       const { platform, format, aspectRatio, assetType } = asset;
@@ -1211,29 +1288,18 @@ serve(async (req) => {
       const { data: placeholder, error: insertError } = await supabase
         .from("generated_assets")
         .insert({
-          campaign_id: campaignId,
-          profile_id: userId,
-          asset_type: assetType,
-          content_url: null,
-          content_text: `[meta:${platform}|${format}|${aspectRatio}] Generating…`,
-          status: "pending_review",
-          platform,
-          format,
-          provider: route.provider,
-          generation_cost: 0,
-          generation_time_ms: 0,
-          research_id: researchId || null,
-          rationale: "Generating…",
+          campaign_id: campaignId, profile_id: userId, asset_type: assetType,
+          content_url: null, content_text: `[meta:${platform}|${format}|${aspectRatio}] Generating…`,
+          status: "pending_review", platform, format, provider: route.provider,
+          generation_cost: 0, generation_time_ms: 0, research_id: researchId || null, rationale: "Generating…",
         })
         .select("id")
         .single();
-
       placeholderIds.push(insertError ? "error" : placeholder.id);
     }
 
-    // Fire background processing — pass ALL directions so each asset gets a unique one
     EdgeRuntime.waitUntil(
-      processAssetsInBackground(userId, campaignId, assets, researchId || null, intelligenceBrief || {}, brandContext || {}, placeholderIds, decisionTraceId, decisionWinner, creativeDirection || null, referenceImageUrl || null, templateRefs || null, userAssets || null, structuredBrief || null, campaignCopy || null, allDirections.length > 1 ? allDirections : null)
+      processAssetsInBackground(userId, campaignId, assets, researchId || null, intelligenceBrief || {}, brandContext || {}, placeholderIds, decisionTraceId, dWinner, creativeDirection || null, referenceImageUrl || null, templateRefs || null, userAssets || null, structuredBrief || null, campaignCopy || null, allDirections.length > 1 ? allDirections : null)
         .catch((e) => console.error("[BG] Fatal error:", e))
     );
 
@@ -1242,12 +1308,7 @@ serve(async (req) => {
         message: "Generation started",
         placeholders: placeholderIds.length,
         decisionTraceId,
-        decision: {
-          winner: decisionWinner.name,
-          angle: decisionWinner.angle_type,
-          confidence: decision.confidence_score,
-          rationale: decision.winner_rationale,
-        },
+        decision: { winner: dWinner.name, angle: dWinner.angle_type, confidence: decision.confidence_score, rationale: decision.winner_rationale },
         summary: { total: assets.length, succeeded: 0, failed: 0, totalCost: "0.0000", status: "generating" },
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
