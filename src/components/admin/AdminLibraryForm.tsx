@@ -35,7 +35,7 @@ const AUTO_ANALYSIS_MAP: Record<TableName, { fileField: string; jsonField: strin
 const FORM_FIELDS: Record<TableName, { key: string; label: string; type: FieldType; options?: string[]; folder?: string }[]> = {
   video_templates: [
     { key: "template_name", label: "Template Name", type: "text" },
-    { key: "family", label: "Family", type: "select", options: ["F1_UGC", "F2_SPOKESPERSON", "F5_CINEMATIC", "F8_CREATIVE_CLONER"] },
+    { key: "family", label: "Family", type: "select", options: ["F1_UGC", "F2_SPOKESPERSON", "F3_PRODUCT_VIDEO", "F4_SOCIAL_CONTENT", "F5_CINEMATIC", "F6_CORE_ELEMENTS", "F7_AD_CREATOR", "F8_CREATIVE_CLONER", "F9_IMAGE_TEMPLATE"] },
     { key: "mood", label: "Mood", type: "text" },
     { key: "aspect_ratio", label: "Aspect Ratio", type: "select", options: ["9:16", "16:9", "1:1", "4:5"] },
     { key: "duration_s", label: "Duration (seconds)", type: "number" },
