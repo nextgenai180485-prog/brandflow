@@ -1448,6 +1448,15 @@ async function processAssetsInBackground(
         }
 
       } else if (assetType === "video") {
+        // ══════════════════════════════════════════════════════════
+        // VIDEO PIPELINE: Template + Product Swap → Image → Video
+        // 1. Build prompt from SEALCaM/creative direction
+        // 2. If user has assets (product/model), generate a hero IMAGE first
+        //    with product swap (using the full image pipeline)
+        // 3. Use that hero image as starting frame for image-to-video
+        // 4. Result: video that looks like the template but features user's product
+        // ══════════════════════════════════════════════════════════
+        
         let generatedPrompt = "";
         if (creativeDirection?.scenes?.length) {
           const sceneIndex = i % creativeDirection.scenes.length;
@@ -1458,28 +1467,96 @@ async function processAssetsInBackground(
           console.log(`[Generate] video for ${platform}/${format} via generic prompt`);
         }
 
-        // Add concise platform direction (no text/copy in video prompt either)
+        // Add concise platform direction
         const platSeed = PLATFORM_SEEDS[platform.toLowerCase()] || "";
         generatedPrompt += ` ${platSeed}`;
 
-        // Add campaign tone context only (not full copy)
         if (structuredBrief?.tone?.length) {
           generatedPrompt += ` Mood: ${structuredBrief.tone.join(", ")}.`;
         }
 
-        // User asset context for video
-        if (userAssets?.some((a: any) => a.role === "product")) {
-          generatedPrompt += " Feature the provided product prominently.";
-        }
-        if (userAssets?.some((a: any) => a.role === "model")) {
-          generatedPrompt += " Feature the provided person as the main subject.";
+        // ── HERO IMAGE PIPELINE: Generate starting frame with product/model swap ──
+        const hasUserProductOrModel = userAssets?.some((a: any) => a.role === "product" || a.role === "model");
+        const hasTemplateRef = (templateRefs?.length ?? 0) > 0 || referenceImageUrl;
+        let startingFrameUrl: string | undefined;
+
+        if (hasUserProductOrModel || hasTemplateRef) {
+          try {
+            console.log(`[Video Pipeline] Generating hero starting frame with product/model swap`);
+            
+            // Use the full image prompt bundle for the hero frame
+            const matchedTemplate = imageTemplates?.find(
+              (t: any) => (t.platform === platform || !t.platform) && (t.format === format || !t.format)
+            ) || imageTemplates?.[0] || null;
+
+            const bundle = buildPromptBundle(
+              platform, format, brandContext || {}, assetDirection, matchedTemplate,
+              userAssets, null, structuredBrief, referenceImageUrl, templateRefs,
+            );
+
+            // Hero frame prompt: combine visual prompt + video-specific motion cues
+            const heroPrompt = `${bundle.visualPrompt} ${bundle.platformSeed} Cinematic still frame composition suitable for animation. Strong visual anchor, clear subject placement.`;
+
+            const heroResult = await generateImage(
+              heroPrompt,
+              width || 1080,
+              height || 1920,
+              bundle.imageRefs.length > 0 ? bundle.imageRefs : undefined,
+            );
+
+            // Optional: SeedEdit identity refinement on hero frame
+            if (heroResult.url && (bundle.creativeMode === "identity_swap" || bundle.creativeMode === "product_in_scene" || bundle.creativeMode === "duo_editorial")) {
+              try {
+                const modelAsset = userAssets?.find((a: any) => a.role === "model");
+                const productAsset = userAssets?.find((a: any) => a.role === "product");
+                let editPrompt = "";
+                if (bundle.creativeMode === "identity_swap" && modelAsset?.url) {
+                  editPrompt = "Refine the person's face to match the reference exactly. Keep composition unchanged.";
+                } else if (bundle.creativeMode === "product_in_scene" && productAsset?.url) {
+                  editPrompt = "Refine the product to match the reference exactly. Keep composition unchanged.";
+                } else if (bundle.creativeMode === "duo_editorial") {
+                  editPrompt = "Refine both person and product to match references exactly. Keep composition unchanged.";
+                }
+                if (editPrompt) {
+                  console.log(`[Video Pipeline] Running SeedEdit refinement on hero frame`);
+                  const refined = await editImageSeedEdit(heroResult.url, editPrompt, 0.35);
+                  if (refined?.url) {
+                    startingFrameUrl = refined.url;
+                    actualCost += heroResult.cost + refined.cost;
+                    console.log(`[Video Pipeline] ✅ Hero frame refined via SeedEdit`);
+                  }
+                }
+              } catch (e) {
+                console.warn(`[Video Pipeline] SeedEdit refinement failed, using unrefined hero:`, e);
+              }
+            }
+
+            if (!startingFrameUrl) {
+              startingFrameUrl = heroResult.url;
+              actualCost += heroResult.cost;
+            }
+
+            actualProvider = `${heroResult.provider}+`;
+            console.log(`[Video Pipeline] ✅ Hero starting frame ready: ${startingFrameUrl ? "yes" : "no"}`);
+          } catch (e) {
+            console.warn(`[Video Pipeline] Hero frame generation failed, falling back to text-to-video:`, e);
+          }
+        } else {
+          // No user assets — add generic product/model context to prompt
+          if (userAssets?.some((a: any) => a.role === "product")) {
+            generatedPrompt += " Feature the provided product prominently.";
+          }
+          if (userAssets?.some((a: any) => a.role === "model")) {
+            generatedPrompt += " Feature the provided person as the main subject.";
+          }
         }
 
-        const result = await generateVideo(generatedPrompt, width || 1080, height || 1920);
-        contentUrl = result.url;
-        actualProvider = result.provider;
-        actualCost = result.cost;
-        generationTimeMs = result.timeMs;
+        // ── GENERATE VIDEO (image-to-video if hero frame exists, otherwise text-to-video) ──
+        const videoResult = await generateVideo(generatedPrompt, width || 1080, height || 1920, startingFrameUrl);
+        contentUrl = videoResult.url;
+        actualProvider = (actualProvider === "pending" ? "" : actualProvider) + videoResult.provider;
+        actualCost += videoResult.cost;
+        generationTimeMs = videoResult.timeMs;
       }
 
       // Generate caption (this uses full campaign copy — that's correct for captions)
