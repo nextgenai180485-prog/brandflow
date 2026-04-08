@@ -843,10 +843,13 @@ async function processAssetsInBackground(
       // Build user asset references for prompt injection
       let userAssetContext = "";
       if (userAssets?.length) {
+        const includeLogo = brandContext?.includeLogo !== false;
         const productAssets = userAssets.filter((a: any) => a.role === "product");
         const modelAssets = userAssets.filter((a: any) => a.role === "model");
+        const logoAssets = includeLogo ? userAssets.filter((a: any) => a.role === "logo") : [];
         if (productAssets.length) userAssetContext += `Feature this product: ${productAssets.map((a: any) => a.url).join(", ")}. `;
         if (modelAssets.length) userAssetContext += `Use this model/person: ${modelAssets.map((a: any) => a.url).join(", ")}. `;
+        if (logoAssets.length) userAssetContext += `Include brand logo: ${logoAssets.map((a: any) => a.url).join(", ")}. `;
       }
 
       // Template reference URLs for style matching
