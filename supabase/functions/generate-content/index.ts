@@ -795,6 +795,37 @@ async function processAssetsInBackground(
 
       let generatedPrompt = "";
 
+      // Build campaign-specific context to inject into all prompts
+      let campaignContext = "";
+      if (structuredBrief) {
+        const parts: string[] = [];
+        if (structuredBrief.objective) parts.push(`Campaign objective: ${structuredBrief.objective}`);
+        if (structuredBrief.messageAngle) parts.push(`Core message: ${structuredBrief.messageAngle}`);
+        if (structuredBrief.tone?.length) parts.push(`Tone: ${structuredBrief.tone.join(", ")}`);
+        if (structuredBrief.targetEmotion?.length) parts.push(`Target emotion: ${structuredBrief.targetEmotion.join(", ")}`);
+        if (parts.length) campaignContext += parts.join(". ") + ". ";
+      }
+      if (campaignCopy) {
+        if (campaignCopy.headline) campaignContext += `Headline text to feature: "${campaignCopy.headline}". `;
+        if (campaignCopy.subheadline) campaignContext += `Subheadline: "${campaignCopy.subheadline}". `;
+        if (campaignCopy.ctaText) campaignContext += `CTA: "${campaignCopy.ctaText}". `;
+      }
+
+      // Build user asset references for prompt injection
+      let userAssetContext = "";
+      if (userAssets?.length) {
+        const productAssets = userAssets.filter((a: any) => a.role === "product");
+        const modelAssets = userAssets.filter((a: any) => a.role === "model");
+        if (productAssets.length) userAssetContext += `Feature this product: ${productAssets.map((a: any) => a.url).join(", ")}. `;
+        if (modelAssets.length) userAssetContext += `Use this model/person: ${modelAssets.map((a: any) => a.url).join(", ")}. `;
+      }
+
+      // Template reference URLs for style matching
+      let templateRefContext = "";
+      if (templateRefs?.length) {
+        templateRefContext = `Style references: ${templateRefs.slice(0, 3).join(", ")}. Match the composition, lighting, and mood of these references. `;
+      }
+
       if (assetType === "image" || assetType === "carousel") {
         // Find best matching template for this platform/format combo
         const matchedTemplate = imageTemplates?.find(
@@ -806,6 +837,8 @@ async function processAssetsInBackground(
         }
 
         generatedPrompt = buildImagePrompt(platform, format, brandContext || {}, intelligenceBrief || {}, decisionWinner, matchedTemplate, referenceImageUrl);
+        // Inject campaign brief, user assets, and template refs
+        generatedPrompt += campaignContext + userAssetContext + templateRefContext;
         console.log(`[Generate] ${assetType} for ${platform}/${format} via Replicate Seedream 5`);
         const result = await generateImage(generatedPrompt, width || 1080, height || 1080);
         contentUrl = result.url;
@@ -824,6 +857,8 @@ async function processAssetsInBackground(
           if (referenceImageUrl) generatedPrompt += ` Reference style: ${referenceImageUrl}. Match the composition, lighting, and mood of this reference.`;
           console.log(`[Generate] video for ${platform}/${format} via generic prompt`);
         }
+        // Inject campaign brief, user assets, and template refs into video prompt too
+        generatedPrompt += " " + campaignContext + userAssetContext + templateRefContext;
         console.log(`[Generate] video for ${platform}/${format} via Kling 2.5`);
         const result = await generateVideo(generatedPrompt, width || 1080, height || 1920);
         contentUrl = result.url;
