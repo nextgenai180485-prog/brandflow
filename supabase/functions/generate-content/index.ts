@@ -867,8 +867,11 @@ async function processAssetsInBackground(
         generationTimeMs = result.timeMs;
       }
 
-      // Generate caption using decision context + the actual visual prompt for accuracy
-      const caption = await generateCaption(platform, format, brandContext || {}, intelligenceBrief || {}, decisionWinner, generatedPrompt);
+      // Generate caption using decision context + campaign copy + visual prompt
+      const captionPromptExtra = campaignCopy?.bodyCopy 
+        ? `. User-provided copy to incorporate: "${campaignCopy.bodyCopy}". Headline: "${campaignCopy.headline || ""}". CTA: "${campaignCopy.ctaText || ""}"`
+        : "";
+      const caption = await generateCaption(platform, format, brandContext || {}, intelligenceBrief || {}, decisionWinner, generatedPrompt + captionPromptExtra);
       if (!generationTimeMs) generationTimeMs = Date.now() - startTime;
 
       // Build structured rationale from decision engine
