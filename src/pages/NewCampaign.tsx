@@ -226,6 +226,13 @@ const NewCampaign = () => {
     load();
   }, [user]);
 
+  // Mood-to-tone mapping for auto-fill
+  const MOOD_TO_TONE: Record<string, string> = {
+    aspirational: "Luxurious", authentic: "Warm", cinematic: "Bold", dramatic: "Edgy",
+    educational: "Educational", energetic: "Playful", epic: "Bold", inspirational: "Warm",
+    luxurious: "Luxurious", professional: "Professional", urgent: "Urgent", warm: "Warm",
+  };
+
   // When user selects a template from source gallery
   const handleTemplateSelect = useCallback((template: SourceTemplate | null) => {
     setSelectedTemplate(template);
@@ -239,12 +246,44 @@ const NewCampaign = () => {
           asset_type: "reference", created_at: new Date().toISOString(),
         }]);
       }
+
+      // ── Auto-populate brief from template metadata ──
+      const autoTones: string[] = [];
+      if (template.mood_tags?.length) {
+        template.mood_tags.forEach(m => {
+          const mapped = MOOD_TO_TONE[m.toLowerCase()];
+          if (mapped && !autoTones.includes(mapped)) autoTones.push(mapped);
+        });
+      }
+
+      const autoNotes: string[] = [];
+      if (template.performance_notes) autoNotes.push(template.performance_notes);
+      if (template.sealcam_analysis && Object.keys(template.sealcam_analysis).length > 0) {
+        const sealcam = template.sealcam_analysis;
+        const parts = Object.entries(sealcam)
+          .filter(([_, v]) => v && typeof v === "string")
+          .map(([k, v]) => `${k}: ${v}`);
+        if (parts.length) autoNotes.push("Template direction:\n" + parts.join("\n"));
+      }
+
+      setStructuredBrief(prev => ({
+        ...prev,
+        tone: prev.tone.length ? prev.tone : autoTones,
+        freeformNotes: prev.freeformNotes || autoNotes.join("\n\n"),
+        messageAngle: prev.messageAngle || (template.industry_tags?.length ? `Targeting ${template.industry_tags.join(", ")} audience` : ""),
+      }));
+
+      // Auto-fill instructions from template description
+      if (!instructions.trim() && template.description) {
+        setInstructions(template.description);
+      }
+
       // Auto-switch to preview on mobile
       if (isMobile) setMobileTab("preview");
     } else {
       setCreativeReferenceAssets([]);
     }
-  }, [title, isMobile]);
+  }, [title, isMobile, instructions]);
 
   const toggleContentType = (ct: ContentType) => {
     setContentTypes((prev) => prev.includes(ct) ? prev.filter((t) => t !== ct) : [...prev, ct]);
