@@ -92,8 +92,9 @@ const CreativeBriefBuilder = ({ brief, onBriefChange, copy, onCopyChange, brandC
       const prompt = buildCopyPrompt(brief, brandContext);
       const { data, error } = await supabase.functions.invoke("cmo-chat", {
         body: {
-          message: prompt,
-          context: "copy_generation",
+          messages: [
+            { role: "user", content: prompt },
+          ],
         },
       });
 
