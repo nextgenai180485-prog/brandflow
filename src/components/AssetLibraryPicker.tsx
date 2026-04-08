@@ -28,6 +28,12 @@ export interface LibraryAsset {
 interface AssetLibraryPickerProps {
   selectedAssets: LibraryAsset[];
   onChange: (assets: LibraryAsset[]) => void;
+  /** Which tab to open by default */
+  defaultTab?: LibTabValue;
+  /** Custom trigger button label */
+  triggerLabel?: string;
+  /** Custom trigger button sub-label */
+  triggerSubLabel?: string;
 }
 
 // ── Library tab definitions ──
