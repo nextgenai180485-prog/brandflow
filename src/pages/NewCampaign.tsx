@@ -76,6 +76,7 @@ const NewCampaign = () => {
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [activePreviewIndex, setActivePreviewIndex] = useState(0);
   const [swapAssets, setSwapAssets] = useState<SwapAsset[]>([]);
+  const [includeLogo, setIncludeLogo] = useState(true);
   const [activeSwapIndex, setActiveSwapIndex] = useState(0);
 
   // Inline strategy gate
