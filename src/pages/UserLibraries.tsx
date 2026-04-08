@@ -14,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, Film, Users, Image, Megaphone, Eye, Zap, Radar, Globe, Loader2, VideoIcon } from "lucide-react";
+import { Search, Film, Users, Image, Megaphone, Eye, Zap, Radar, Globe, Loader2, VideoIcon, Tag, Building2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   Dialog,
