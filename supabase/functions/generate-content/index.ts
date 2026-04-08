@@ -1036,7 +1036,7 @@ serve(async (req) => {
     }
 
     // ── Generate Action (with full four-layer pipeline) ───────
-    const { campaignId, assets, researchId, intelligenceBrief, brandContext, creativeDirection, referenceImageUrl } = body;
+    const { campaignId, assets, researchId, intelligenceBrief, brandContext, creativeDirection, referenceImageUrl, templateRefs, userAssets, structuredBrief, campaignCopy } = body;
 
     if (!campaignId || typeof campaignId !== "string" || !assets || !Array.isArray(assets) || assets.length === 0) {
       return new Response(JSON.stringify({ error: "campaignId (string) and non-empty assets[] required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
