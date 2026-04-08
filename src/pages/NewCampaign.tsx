@@ -65,6 +65,7 @@ const NewCampaign = () => {
   const [mobileTab, setMobileTab] = useState<"builder" | "preview">("builder");
   const [isStarred, setIsStarred] = useState(false);
   const [showSaveModal, setShowSaveModal] = useState(false);
+  const [activePreviewIndex, setActivePreviewIndex] = useState(0);
 
   // Inline strategy gate
   const [needsStrategy, setNeedsStrategy] = useState(false);
