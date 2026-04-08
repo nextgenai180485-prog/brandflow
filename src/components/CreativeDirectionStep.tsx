@@ -45,6 +45,8 @@ interface CreativeDirectionStepProps {
   format: string;
   librarySelections?: LibrarySelection[];
   onLibrarySelectionsChange?: (selections: LibrarySelection[]) => void;
+  /** Template selected in Step 2 — used to auto-populate the brief */
+  selectedTemplate?: { title: string; sealcam_analysis?: Record<string, any>; mood_tags?: string[] | null; performance_notes?: string | null; description?: string | null } | null;
 }
 
 const FAMILY_CONFIG: Record<string, { icon: typeof Video; color: string; bg: string }> = {
