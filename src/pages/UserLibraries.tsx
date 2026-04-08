@@ -66,10 +66,42 @@ const TABS = [
 type TabValue = (typeof TABS)[number]["value"];
 
 const UserLibraries = () => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<TabValue>("video_templates");
   const [search, setSearch] = useState("");
   const [previewItem, setPreviewItem] = useState<any>(null);
   const [categoryFilters, setCategoryFilters] = useState<Record<string, string>>({});
+  const [selectedItems, setSelectedItems] = useState<LibrarySelectionItem[]>([]);
+
+  const toggleSelection = (item: any, type: string, nameField: string) => {
+    setSelectedItems(prev => {
+      const exists = prev.find(s => s.id === item.id);
+      if (exists) return prev.filter(s => s.id !== item.id);
+      return [...prev, {
+        id: item.id,
+        type,
+        name: item[nameField] || "Untitled",
+        thumbnail: item.thumbnail_url || item.preview_url || item.avatar_url || item.media_url,
+        data: item,
+      }];
+    });
+  };
+
+  const isSelected = (id: string) => selectedItems.some(s => s.id === id);
+
+  const handleUseInCampaign = () => {
+    navigate("/dashboard/new-campaign", {
+      state: {
+        libraryRefs: selectedItems.map(s => ({
+          id: s.id,
+          title: s.name,
+          mediaUrl: s.thumbnail,
+          type: s.type,
+          data: s.data,
+        })),
+      },
+    });
+  };
 
   const currentTab = TABS.find((t) => t.value === activeTab)!;
   const currentCategories = (currentTab.categories || []) as readonly { key: string; label: string; options: readonly string[] }[];
