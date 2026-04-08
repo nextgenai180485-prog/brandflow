@@ -135,6 +135,10 @@ const AdminLibraryForm = ({ tableName, editingItem, onClose, onSaved }: AdminLib
       });
 
       if (error) throw error;
+      if (data?.fallback || data?.error) {
+        toast.error(data.error || "Analysis unavailable", { id: "auto-analyze" });
+        return;
+      }
       if (data?.analysis) {
         const formatted = JSON.stringify(data.analysis, null, 2);
         setValues((prev) => ({ ...prev, [mapping.jsonField]: formatted }));
