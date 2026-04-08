@@ -229,46 +229,6 @@ const SentientCMORail = () => {
   // Desktop rail width
   const railWidth = shouldHide ? "0px" : isExpanded ? "380px" : "48px";
 
-  const toast_el = !shouldHide && !isExpanded && activeToast ? createPortal(
-    <div className="fixed right-14 top-20 z-[55] w-72 animate-fade-in">
-      <div className="bg-foreground text-background p-4 rounded-xl shadow-2xl border border-foreground/20 relative">
-        <div className="absolute top-4 -right-1.5 w-3 h-3 bg-foreground rotate-45 border-r border-t border-foreground/20" />
-        <div className="flex justify-between items-start mb-2">
-          <Badge
-            className={`text-[8px] ${
-              activeToast.type === "critical"
-                ? "bg-destructive text-destructive-foreground"
-                : "bg-amber-500 text-foreground"
-            }`}
-          >
-            {activeToast.type === "critical" ? "Action Required" : "New Activity"}
-          </Badge>
-          <button onClick={(e) => { e.stopPropagation(); dismissToast(); }}>
-            <X className="w-3 h-3 text-background/50 hover:text-background" />
-          </button>
-        </div>
-        <p className="text-xs font-semibold mb-1">{activeToast.title}</p>
-        <p className="text-[11px] text-background/70 leading-relaxed">{activeToast.body}</p>
-        <div className="mt-3 flex gap-2">
-          {activeToast.campaignId && (
-            <button
-              onClick={() => { handleInsightAction(activeToast); dismissToast(); }}
-              className="flex-1 py-1.5 bg-background text-foreground text-[10px] font-bold rounded-lg hover:bg-background/90 transition-colors"
-            >
-              {activeToast.action || "View"}
-            </button>
-          )}
-          <button
-            onClick={() => { setIsExpanded(true); dismissToast(); }}
-            className={`${activeToast.campaignId ? "" : "flex-1"} py-1.5 bg-background text-foreground text-[10px] font-bold rounded-lg hover:bg-background/90 transition-colors px-3`}
-          >
-            Open CMO
-          </button>
-        </div>
-      </div>
-    </div>,
-    document.body
-  ) : null;
 
   // ── Mobile: CMO is hidden entirely on mobile ──
   if (isMobile) return null;
