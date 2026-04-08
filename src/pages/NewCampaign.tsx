@@ -346,12 +346,18 @@ const NewCampaign = () => {
             <Label htmlFor="campaign-title" className="text-sm font-medium">Campaign Name</Label>
             <Input id="campaign-title" placeholder="e.g. Summer Product Launch" value={title} onChange={(e) => setTitle(e.target.value)} autoFocus className="h-11 text-sm" />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="campaign-instructions" className="text-sm font-medium">
-              Brief <span className="text-muted-foreground font-normal">(optional)</span>
-            </Label>
-            <Textarea id="campaign-instructions" placeholder="Describe the goal, tone, or specific requirements…" value={instructions} onChange={(e) => setInstructions(e.target.value)} rows={3} className="resize-none text-sm" />
-          </div>
+          <CreativeBriefBuilder
+            brief={structuredBrief}
+            onBriefChange={setStructuredBrief}
+            copy={campaignCopy}
+            onCopyChange={setCampaignCopy}
+            brandContext={brandProfile ? {
+              businessName: brandProfile.business_name || undefined,
+              industry: brandProfile.industry || undefined,
+              voiceTone: brandProfile.brand_voice_tone || undefined,
+              targetAudience: brandProfile.target_audience || undefined,
+            } : undefined}
+          />
 
           {/* Selected reference assets strip */}
           {selectedAssets.length > 0 && (
