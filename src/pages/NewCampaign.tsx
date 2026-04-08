@@ -41,7 +41,7 @@ const NewCampaign = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const isMobile = useIsMobile();
-  const showcaseState = location.state as { fromShowcase?: boolean; templateRef?: { id: string; title: string; mediaUrl?: string; industryTags?: string[]; moodTags?: string[]; platformTags?: string[] } } | null;
+  const showcaseState = location.state as { fromShowcase?: boolean; templateRef?: { id: string; title: string; mediaUrl?: string; industryTags?: string[]; moodTags?: string[]; platformTags?: string[] }; bulkRefs?: { id: string; title: string; mediaUrl?: string; industryTags?: string[]; moodTags?: string[]; platformTags?: string[] }[] } | null;
 
   const [step, setStep] = useState(0);
   const [title, setTitle] = useState(showcaseState?.templateRef?.title || "");
