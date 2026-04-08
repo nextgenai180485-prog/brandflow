@@ -216,11 +216,10 @@ async function generateVideo(prompt: string, width: number, height: number) {
     try {
       console.log(`[Kling 2.5] Generating video via Replicate, aspect: ${aspectRatio}`);
       const startTime = Date.now();
-      const response = await fetch("https://api.replicate.com/v1/predictions", {
+      const response = await fetch("https://api.replicate.com/v1/models/kwaai/kling-v2.5-pro/predictions", {
         method: "POST",
         headers: { Authorization: `Bearer ${REPLICATE_API_KEY}`, "Content-Type": "application/json", Prefer: "wait=120" },
         body: JSON.stringify({
-          model: "kwaai/kling-v2.5-pro",
           input: {
             prompt,
             duration: 5,
