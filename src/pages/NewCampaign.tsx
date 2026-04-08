@@ -420,6 +420,14 @@ const NewCampaign = () => {
           )}
 
           <AssetLibraryPicker selectedAssets={selectedAssets} onChange={setSelectedAssets} />
+
+          {/* Swap assets: product, model, logo */}
+          <SwapAssetStrip
+            assets={swapAssets}
+            onChange={setSwapAssets}
+            activeIndex={activeSwapIndex}
+            onActiveChange={setActiveSwapIndex}
+          />
         </>
       )}
 
