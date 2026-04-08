@@ -748,6 +748,25 @@ function buildVideoPromptFromDirection(creativeDirection: any, sceneIndex: numbe
   return compileSealcamToPrompt(scene, creativeDirection.family, brandContext);
 }
 
+// ── Platform-specific creative variation seed ────────────────
+const PLATFORM_CREATIVE_SEEDS: Record<string, string> = {
+  instagram: "Aspirational lifestyle aesthetic. Warm editorial tones. Discovery-optimized composition — visually striking thumbnail. Emphasis on beauty and desire.",
+  tiktok: "Raw, trend-forward energy. Bold colors, dynamic angles. Pattern-interrupt visual that demands attention in a fast-scrolling feed. Slightly unconventional framing.",
+  facebook: "Community-focused warmth. Relatable, approachable scene. Mid-range framing that tells a story. Inviting, familiar setting that sparks conversation.",
+  linkedin: "Executive-grade polish. Clean, professional composition. Trust-building visual language — blues, whites, structured layouts. Authority and credibility.",
+  x: "High-impact single frame. Maximum contrast, bold focal point. Designed to pop at small preview card size. Minimal clutter, maximum statement.",
+  youtube: "Cinematic widescreen feel. Dramatic lighting with clear focal subject. Thumbnail-optimized — face or product fills 60%+ of frame. High contrast.",
+  snapchat: "Ephemeral, in-the-moment energy. Bright, playful, youthful. Vertical-first with subject centered. Casual but eye-catching.",
+};
+
+const FORMAT_CREATIVE_SEEDS: Record<string, string> = {
+  post: "Static hero frame. Balanced composition, clean negative space. Gallery-worthy single image.",
+  story: "Full-bleed vertical. Immersive, up-close. Time-sensitive energy — designed for quick consumption.",
+  reel: "Motion-ready vertical. Dynamic pose or implied movement. Cinematic vertical framing with dramatic depth.",
+  carousel: "Sequence-ready. This is slide ${slideNum} of a series — maintain visual continuity but vary the angle/detail shown.",
+  landscape: "Wide cinematic frame. Layered depth with environmental storytelling. Panoramic premium feel.",
+};
+
 // ── Background Processing (with Decision Engine + Creative Direction) ─────────
 async function processAssetsInBackground(
   userId: string,
@@ -765,6 +784,7 @@ async function processAssetsInBackground(
   userAssets: any[] | null = null,
   structuredBrief: any | null = null,
   campaignCopy: any | null = null,
+  allDirections: any[] | null = null,
 ) {
   const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
@@ -779,6 +799,7 @@ async function processAssetsInBackground(
     .limit(5);
 
   console.log(`[Image Templates] Loaded ${imageTemplates?.length || 0} templates for vertical: ${industry}`);
+  console.log(`[Generation] Processing ${assets.length} assets with ${allDirections?.length || 1} creative directions`);
 
   for (let i = 0; i < assets.length; i++) {
     const asset = assets[i];
@@ -786,6 +807,12 @@ async function processAssetsInBackground(
     if (placeholderId === "error") continue;
     const startTime = Date.now();
     const { platform, format, aspectRatio, width, height, assetType } = asset;
+
+    // ── Select a DIFFERENT creative direction for each asset ──
+    // Rotate through all 5 directions so each platform gets a unique angle
+    const directionPool = allDirections?.length ? allDirections : [decisionWinner];
+    const assetDirection = directionPool[i % directionPool.length] || decisionWinner;
+    console.log(`[Generate] Asset ${i + 1}/${assets.length}: ${platform}/${format} using direction "${assetDirection?.name || "default"}" (angle: ${assetDirection?.angle_type || "general"})`);
 
     try {
       let contentUrl: string | null = null;
@@ -826,6 +853,11 @@ async function processAssetsInBackground(
         templateRefContext = `Style references: ${templateRefs.slice(0, 3).join(", ")}. Match the composition, lighting, and mood of these references. `;
       }
 
+      // ── Platform + Format specific variation (makes each output unique) ──
+      const platformSeed = PLATFORM_CREATIVE_SEEDS[platform.toLowerCase()] || "";
+      const formatSeed = (FORMAT_CREATIVE_SEEDS[format] || "").replace("${slideNum}", String(i + 1));
+      const variationContext = `PLATFORM-NATIVE DIRECTION for ${platform} ${format}: ${platformSeed} ${formatSeed} `;
+
       if (assetType === "image" || assetType === "carousel") {
         // Find best matching template for this platform/format combo
         const matchedTemplate = imageTemplates?.find(
@@ -836,9 +868,9 @@ async function processAssetsInBackground(
           console.log(`[Image Templates] Using template: "${matchedTemplate.style_name}" for ${platform}/${format}`);
         }
 
-        generatedPrompt = buildImagePrompt(platform, format, brandContext || {}, intelligenceBrief || {}, decisionWinner, matchedTemplate, referenceImageUrl);
-        // Inject campaign brief, user assets, and template refs
-        generatedPrompt += campaignContext + userAssetContext + templateRefContext;
+        generatedPrompt = buildImagePrompt(platform, format, brandContext || {}, intelligenceBrief || {}, assetDirection, matchedTemplate, referenceImageUrl);
+        // Inject variation + campaign brief + user assets + template refs
+        generatedPrompt += variationContext + campaignContext + userAssetContext + templateRefContext;
         console.log(`[Generate] ${assetType} for ${platform}/${format} via Replicate Seedream 5`);
         const result = await generateImage(generatedPrompt, width || 1080, height || 1080);
         contentUrl = result.url;
@@ -853,12 +885,12 @@ async function processAssetsInBackground(
           generatedPrompt = buildVideoPromptFromDirection(creativeDirection, sceneIndex, brandContext || {});
           console.log(`[Generate] video for ${platform}/${format} via SEALCaM scene ${sceneIndex + 1}/${creativeDirection.scenes.length} (${creativeDirection.family})`);
         } else {
-          generatedPrompt = buildVideoPrompt(platform, format, brandContext || {}, intelligenceBrief || {}, decisionWinner);
+          generatedPrompt = buildVideoPrompt(platform, format, brandContext || {}, intelligenceBrief || {}, assetDirection);
           if (referenceImageUrl) generatedPrompt += ` Reference style: ${referenceImageUrl}. Match the composition, lighting, and mood of this reference.`;
           console.log(`[Generate] video for ${platform}/${format} via generic prompt`);
         }
-        // Inject campaign brief, user assets, and template refs into video prompt too
-        generatedPrompt += " " + campaignContext + userAssetContext + templateRefContext;
+        // Inject variation + campaign brief + user assets + template refs into video prompt too
+        generatedPrompt += " " + variationContext + campaignContext + userAssetContext + templateRefContext;
         console.log(`[Generate] video for ${platform}/${format} via Kling 2.5`);
         const result = await generateVideo(generatedPrompt, width || 1080, height || 1920);
         contentUrl = result.url;
@@ -866,7 +898,6 @@ async function processAssetsInBackground(
         actualCost = result.cost;
         generationTimeMs = result.timeMs;
       }
-
       // Generate caption using decision context + campaign copy + visual prompt
       const captionPromptExtra = campaignCopy?.bodyCopy 
         ? `. User-provided copy to incorporate: "${campaignCopy.bodyCopy}". Headline: "${campaignCopy.headline || ""}". CTA: "${campaignCopy.ctaText || ""}"`
@@ -1114,7 +1145,9 @@ serve(async (req) => {
       : null;
     const combinedInstructions = [campaignData?.instructions, campaignBriefContext].filter(Boolean).join("\n\n");
     const decision = await runDecisionEngine(brandContext || {}, intelligenceBrief || {}, brandMemory || [], combinedInstructions || null);
-    const decisionWinner = decision.creative_directions?.[decision.winner_index] || {};
+    const allDirections = decision.creative_directions || [];
+    const decisionWinner = allDirections[decision.winner_index] || {};
+    console.log(`[Decision Engine] ${allDirections.length} directions generated. Winner: "${decisionWinner.name}". Will rotate directions across ${assets.length} assets.`);
 
     // ── LAYER 3: Store Decision Trace ─────────────────────────
     const decisionTraceId = await storeDecisionTrace(supabase, userId, campaignId, researchId || null, decision, intelligenceBrief || {}, brandMemory || []);
@@ -1147,9 +1180,9 @@ serve(async (req) => {
       placeholderIds.push(insertError ? "error" : placeholder.id);
     }
 
-    // Fire background processing
+    // Fire background processing — pass ALL directions so each asset gets a unique one
     EdgeRuntime.waitUntil(
-      processAssetsInBackground(userId, campaignId, assets, researchId || null, intelligenceBrief || {}, brandContext || {}, placeholderIds, decisionTraceId, decisionWinner, creativeDirection || null, referenceImageUrl || null, templateRefs || null, userAssets || null, structuredBrief || null, campaignCopy || null)
+      processAssetsInBackground(userId, campaignId, assets, researchId || null, intelligenceBrief || {}, brandContext || {}, placeholderIds, decisionTraceId, decisionWinner, creativeDirection || null, referenceImageUrl || null, templateRefs || null, userAssets || null, structuredBrief || null, campaignCopy || null, allDirections.length > 1 ? allDirections : null)
         .catch((e) => console.error("[BG] Fatal error:", e))
     );
 
