@@ -327,7 +327,7 @@ const Dashboard = () => {
                 <CampaignCard
                   campaign={campaign}
                   assets={campaign.assets}
-                  onClick={() => setSheetCampaignId(campaign.id)}
+                  onClick={() => navigate(`/dashboard/campaign/${campaign.id}`)}
                   onDelete={(e) => { e.stopPropagation(); setDeleteConfirmId(campaign.id); }}
                   onDuplicate={(e) => { e.stopPropagation(); duplicateCampaign(campaign); }}
                 />
@@ -351,20 +351,6 @@ const Dashboard = () => {
         )}
       </div>
 
-      {/* Asset Inspector Sheet */}
-      <AssetInspectorSheet
-        open={!!sheetCampaignId}
-        onClose={() => { setSheetCampaignId(null); setSheetAssetId(null); }}
-        campaign={sheetCampaign}
-        assets={sheetCampaign?.assets || []}
-        initialAssetId={sheetAssetId}
-        onAssetsChange={(newAssets) => {
-          setCampaigns(prev => prev.map(c => c.id === sheetCampaignId ? { ...c, assets: newAssets, assetCount: newAssets.length } : c));
-        }}
-        onCampaignChange={(updated) => {
-          setCampaigns(prev => prev.map(c => c.id === updated.id ? { ...c, ...updated } : c));
-        }}
-      />
 
       {/* Batch Action Bar */}
       <BatchActionBar
