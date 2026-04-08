@@ -14,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, Film, Users, Image, Megaphone, Eye, Zap, Radar, Globe, Loader2, VideoIcon } from "lucide-react";
+import { Search, Film, Users, Image, Megaphone, Eye, Zap, Radar, Globe, Loader2, VideoIcon, Tag, Building2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -189,6 +189,39 @@ const UserLibraries = () => {
   );
 };
 
+// ── Industry categories for quick discovery ──
+const AD_CATEGORIES = [
+  { label: "E-commerce", keyword: "ecommerce", icon: "🛒" },
+  { label: "Real Estate", keyword: "real estate", icon: "🏠" },
+  { label: "SaaS / Tech", keyword: "saas software", icon: "💻" },
+  { label: "Beauty", keyword: "beauty skincare", icon: "💄" },
+  { label: "Fitness", keyword: "fitness gym", icon: "💪" },
+  { label: "Finance", keyword: "finance investing", icon: "💰" },
+  { label: "Food & Bev", keyword: "food beverage", icon: "🍕" },
+  { label: "Fashion", keyword: "fashion clothing", icon: "👗" },
+  { label: "Education", keyword: "education course", icon: "📚" },
+  { label: "Health", keyword: "health wellness supplement", icon: "🏥" },
+  { label: "Travel", keyword: "travel tourism", icon: "✈️" },
+  { label: "Auto", keyword: "automotive car", icon: "🚗" },
+];
+
+const POPULAR_BRANDS = [
+  "Nike", "Apple", "Shopify", "Tesla", "Amazon", "Coca-Cola",
+  "Samsung", "Adidas", "Netflix", "Spotify", "Uber", "Airbnb",
+  "McDonald's", "Disney", "Microsoft", "Google", "Meta", "TikTok",
+  "Zara", "H&M", "Sephora", "Peloton", "Calm", "Headspace",
+];
+
+const ALPHA_GROUPS = ["A-D", "E-H", "I-L", "M-P", "Q-T", "U-Z"] as const;
+const ALPHA_MAP: Record<string, string[]> = {
+  "A-D": ["A", "B", "C", "D"],
+  "E-H": ["E", "F", "G", "H"],
+  "I-L": ["I", "J", "K", "L"],
+  "M-P": ["M", "N", "O", "P"],
+  "Q-T": ["Q", "R", "S", "T"],
+  "U-Z": ["U", "V", "W", "X", "Y", "Z"],
+};
+
 // ── Ad Intelligence Gallery (Foreplay) ──
 const AdIntelligenceGallery = ({ onPreview }: { onPreview: (item: any) => void }) => {
   const [query, setQuery] = useState("");
@@ -198,19 +231,21 @@ const AdIntelligenceGallery = ({ onPreview }: { onPreview: (item: any) => void }
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
   const [credits, setCredits] = useState<number | null>(null);
+  const [activeAlpha, setActiveAlpha] = useState<string | null>(null);
 
-  const searchAds = useCallback(async () => {
-    if (!query.trim()) return;
+  const doSearch = useCallback(async (searchQuery: string) => {
+    if (!searchQuery.trim()) return;
+    setQuery(searchQuery);
     setLoading(true);
     setSearched(true);
 
     try {
       const body: any = { endpoint: "discovery/ads", limit: 25 };
 
-      if (query.includes(".") && !query.includes(" ")) {
-        body.domain = query.trim();
+      if (searchQuery.includes(".") && !searchQuery.includes(" ")) {
+        body.domain = searchQuery.trim();
       } else {
-        body.keyword = query.trim();
+        body.keyword = searchQuery.trim();
       }
 
       if (platform !== "all") body.platform = platform;
@@ -231,11 +266,17 @@ const AdIntelligenceGallery = ({ onPreview }: { onPreview: (item: any) => void }
     } finally {
       setLoading(false);
     }
-  }, [query, platform, format]);
+  }, [platform, format]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") searchAds();
+    if (e.key === "Enter") doSearch(query);
   };
+
+  const filteredBrands = useMemo(() => {
+    if (!activeAlpha) return POPULAR_BRANDS;
+    const letters = ALPHA_MAP[activeAlpha] || [];
+    return POPULAR_BRANDS.filter(b => letters.includes(b[0].toUpperCase()));
+  }, [activeAlpha]);
 
   return (
     <div className="space-y-4">
@@ -244,7 +285,7 @@ const AdIntelligenceGallery = ({ onPreview }: { onPreview: (item: any) => void }
         <div className="relative flex-1">
           <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search by keyword or domain (e.g. nike.com)..."
+            placeholder="Search by brand, keyword, or domain (e.g. nike, skincare, nike.com)..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
@@ -261,6 +302,7 @@ const AdIntelligenceGallery = ({ onPreview }: { onPreview: (item: any) => void }
             <SelectItem value="instagram">Instagram</SelectItem>
             <SelectItem value="tiktok">TikTok</SelectItem>
             <SelectItem value="youtube">YouTube</SelectItem>
+            <SelectItem value="linkedin">LinkedIn</SelectItem>
           </SelectContent>
         </Select>
         <Select value={format} onValueChange={setFormat}>
@@ -274,7 +316,7 @@ const AdIntelligenceGallery = ({ onPreview }: { onPreview: (item: any) => void }
             <SelectItem value="carousel">Carousel</SelectItem>
           </SelectContent>
         </Select>
-        <Button onClick={searchAds} disabled={loading || !query.trim()} className="h-9 px-4">
+        <Button onClick={() => doSearch(query)} disabled={loading || !query.trim()} className="h-9 px-4">
           {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
         </Button>
       </div>
@@ -286,6 +328,78 @@ const AdIntelligenceGallery = ({ onPreview }: { onPreview: (item: any) => void }
         </div>
       )}
 
+      {/* Discovery Section — shown when no search yet */}
+      {!searched && !loading && (
+        <div className="space-y-5">
+          {/* Industry Categories */}
+          <div>
+            <div className="flex items-center gap-1.5 mb-2">
+              <Tag className="w-3.5 h-3.5 text-muted-foreground" />
+              <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Browse by Industry</span>
+            </div>
+            <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2">
+              {AD_CATEGORIES.map((cat) => (
+                <Button
+                  key={cat.keyword}
+                  variant="outline"
+                  size="sm"
+                  className="h-auto py-2.5 px-3 flex flex-col items-center gap-1 text-xs hover:border-primary/50 hover:bg-primary/5 transition-all"
+                  onClick={() => doSearch(cat.keyword)}
+                >
+                  <span className="text-lg">{cat.icon}</span>
+                  <span className="text-[10px] font-medium">{cat.label}</span>
+                </Button>
+              ))}
+            </div>
+          </div>
+
+          {/* Popular Brands with Alpha Filter */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-1.5">
+                <Building2 className="w-3.5 h-3.5 text-muted-foreground" />
+                <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Popular Brands</span>
+              </div>
+              <div className="flex gap-1">
+                <Badge
+                  variant={activeAlpha === null ? "default" : "outline"}
+                  className="text-[9px] px-1.5 py-0 cursor-pointer"
+                  onClick={() => setActiveAlpha(null)}
+                >
+                  All
+                </Badge>
+                {ALPHA_GROUPS.map((g) => (
+                  <Badge
+                    key={g}
+                    variant={activeAlpha === g ? "default" : "outline"}
+                    className="text-[9px] px-1.5 py-0 cursor-pointer hover:bg-primary/10"
+                    onClick={() => setActiveAlpha(prev => prev === g ? null : g)}
+                  >
+                    {g}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {filteredBrands.map((brand) => (
+                <Button
+                  key={brand}
+                  variant="outline"
+                  size="sm"
+                  className="h-7 px-3 text-[11px] hover:border-primary/50 hover:bg-primary/5"
+                  onClick={() => doSearch(brand)}
+                >
+                  {brand}
+                </Button>
+              ))}
+              {filteredBrands.length === 0 && (
+                <p className="text-xs text-muted-foreground py-2">No brands in this range. Try a different letter group.</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Results */}
       {loading ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
@@ -294,67 +408,66 @@ const AdIntelligenceGallery = ({ onPreview }: { onPreview: (item: any) => void }
           ))}
         </div>
       ) : results.length > 0 ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-          {results.map((ad: any) => {
-            const thumb = ad.thumbnail || ad.image || ad.avatar;
-            const name = ad.name || ad.headline || "Ad";
-            const brandName = ad.brand_name || ad.brand?.name;
+        <>
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-muted-foreground">{results.length} ads found</p>
+            <Button variant="ghost" size="sm" className="text-[10px] h-6" onClick={() => { setSearched(false); setResults([]); setQuery(""); }}>
+              ← Back to discovery
+            </Button>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+            {results.map((ad: any) => {
+              const thumb = ad.thumbnail || ad.image || ad.avatar;
+              const name = ad.name || ad.headline || "Ad";
+              const brandName = ad.brand_name || ad.brand?.name;
 
-            return (
-              <Card
-                key={ad.id || ad.ad_id}
-                className="group cursor-pointer transition-all hover:shadow-md hover:border-primary/30 overflow-hidden"
-                onClick={() => onPreview(ad)}
-              >
-                <div className="relative aspect-[4/5] bg-muted flex items-center justify-center overflow-hidden">
-                  {thumb ? (
-                    <img src={thumb} alt={name} className="w-full h-full object-cover" />
-                  ) : ad.display_format === "video" ? (
-                    <VideoIcon className="h-8 w-8 text-muted-foreground/30" />
-                  ) : (
-                    <Radar className="h-8 w-8 text-muted-foreground/30" />
-                  )}
-                  {ad.live && (
-                    <div className="absolute top-1.5 left-1.5 flex items-center gap-1 bg-emerald-500/90 text-white px-2 py-0.5 rounded-full">
-                      <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-                      <span className="text-[8px] font-semibold">LIVE</span>
+              return (
+                <Card
+                  key={ad.id || ad.ad_id}
+                  className="group cursor-pointer transition-all hover:shadow-md hover:border-primary/30 overflow-hidden"
+                  onClick={() => onPreview(ad)}
+                >
+                  <div className="relative aspect-[4/5] bg-muted flex items-center justify-center overflow-hidden">
+                    {thumb ? (
+                      <img src={thumb} alt={name} className="w-full h-full object-cover" />
+                    ) : ad.display_format === "video" ? (
+                      <VideoIcon className="h-8 w-8 text-muted-foreground/30" />
+                    ) : (
+                      <Radar className="h-8 w-8 text-muted-foreground/30" />
+                    )}
+                    {ad.live && (
+                      <div className="absolute top-1.5 left-1.5 flex items-center gap-1 bg-emerald-500/90 text-white px-2 py-0.5 rounded-full">
+                        <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                        <span className="text-[8px] font-semibold">LIVE</span>
+                      </div>
+                    )}
+                    <div className="absolute inset-0 bg-foreground/0 group-hover:bg-foreground/5 transition-colors flex items-center justify-center">
+                      <Eye className="h-5 w-5 text-foreground/0 group-hover:text-foreground/60 transition-colors" />
                     </div>
-                  )}
-                  <div className="absolute inset-0 bg-foreground/0 group-hover:bg-foreground/5 transition-colors flex items-center justify-center">
-                    <Eye className="h-5 w-5 text-foreground/0 group-hover:text-foreground/60 transition-colors" />
                   </div>
-                </div>
-                <CardContent className="p-2.5">
-                  <p className="text-xs font-medium text-foreground truncate">{name}</p>
-                  {brandName && <p className="text-[10px] text-muted-foreground mt-0.5 truncate">{brandName}</p>}
-                  <div className="flex flex-wrap gap-0.5 mt-1.5">
-                    {ad.display_format && <Badge variant="secondary" className="text-[7px] px-1 py-0">{ad.display_format}</Badge>}
-                    {ad.running_duration?.days > 0 && <Badge variant="outline" className="text-[7px] px-1 py-0">{ad.running_duration.days}d active</Badge>}
-                    {Array.isArray(ad.publisher_platform) && ad.publisher_platform[0] && <Badge variant="outline" className="text-[7px] px-1 py-0">{ad.publisher_platform[0]}</Badge>}
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
+                  <CardContent className="p-2.5">
+                    <p className="text-xs font-medium text-foreground truncate">{name}</p>
+                    {brandName && <p className="text-[10px] text-muted-foreground mt-0.5 truncate">{brandName}</p>}
+                    <div className="flex flex-wrap gap-0.5 mt-1.5">
+                      {ad.display_format && <Badge variant="secondary" className="text-[7px] px-1 py-0">{ad.display_format}</Badge>}
+                      {ad.running_duration?.days > 0 && <Badge variant="outline" className="text-[7px] px-1 py-0">{ad.running_duration.days}d active</Badge>}
+                      {Array.isArray(ad.publisher_platform) && ad.publisher_platform[0] && <Badge variant="outline" className="text-[7px] px-1 py-0">{ad.publisher_platform[0]}</Badge>}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </>
       ) : searched ? (
-        <div className="text-center py-16">
+        <div className="text-center py-12">
           <Radar className="h-8 w-8 text-muted-foreground/40 mx-auto mb-2" />
           <p className="text-sm text-muted-foreground">No ads found. Try different keywords or filters.</p>
+          <Button variant="ghost" size="sm" className="mt-2 text-xs" onClick={() => { setSearched(false); setResults([]); setQuery(""); }}>
+            ← Back to discovery
+          </Button>
         </div>
-      ) : (
-        <div className="flex flex-col items-center justify-center py-16 gap-3">
-          <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-            <Radar className="h-8 w-8 text-primary/60" />
-          </div>
-          <div className="text-center">
-            <p className="text-base font-semibold text-foreground">Ad Intelligence</p>
-            <p className="text-xs text-muted-foreground mt-1 max-w-xs">
-              Search 100M+ real competitor ads by keyword or domain. Discover winning creative patterns and clone their style.
-            </p>
-          </div>
-        </div>
-      )}
+      ) : null}
     </div>
   );
 };
