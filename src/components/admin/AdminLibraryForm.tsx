@@ -257,6 +257,23 @@ const AdminLibraryForm = ({ tableName, editingItem, onClose, onSaved }: AdminLib
                     }`}
                     rows={field.type === "json" ? 4 : 2}
                   />
+                  {field.type === "json" && hasAnalysisMapping(field.key) && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="absolute top-1.5 right-1.5 h-7 text-[10px] gap-1 bg-background/80 backdrop-blur-sm"
+                      disabled={!!analyzing}
+                      onClick={() => triggerManualAnalysis(field.key)}
+                    >
+                      {isFieldAnalyzing(field.key) ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        <Sparkles className="h-3 w-3" />
+                      )}
+                      {isFieldAnalyzing(field.key) ? "Analyzing…" : "Auto-Extract"}
+                    </Button>
+                  )}
                 </div>
               ) : (
                 <Input
