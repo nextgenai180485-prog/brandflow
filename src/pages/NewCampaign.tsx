@@ -271,14 +271,26 @@ const NewCampaign = () => {
     const publishPlatforms = platforms.map((p) => `${p.platform}|${p.format}`);
     const ctEntries = contentTypes.map((ct) => `ct:${ct}`);
 
-    const { data: campaign, error } = await supabase
-      .from("campaigns").insert({
-        profile_id: user.id, title: title.trim(),
-        instructions: instructions.trim() || null, status: "draft",
-        publish_platforms: [...publishPlatforms, ...ctEntries],
-      }).select().single();
-
-    if (error || !campaign) { toast.error("Failed to create campaign."); setCreating(false); return; }
+    // Reuse existing draft row or create new
+    let campaignId = draftId;
+    if (campaignId) {
+      const { error } = await supabase.from("campaigns").update({
+        title: title.trim(), instructions: instructions.trim() || null,
+        status: "generating", publish_platforms: [...publishPlatforms, ...ctEntries],
+        draft_state: null as any,
+      }).eq("id", campaignId);
+      if (error) { toast.error("Failed to update campaign."); setCreating(false); return; }
+    } else {
+      const { data: newCampaign, error } = await supabase
+        .from("campaigns").insert({
+          profile_id: user.id, title: title.trim(),
+          instructions: instructions.trim() || null, status: "generating",
+          publish_platforms: [...publishPlatforms, ...ctEntries],
+        }).select().single();
+      if (error || !newCampaign) { toast.error("Failed to create campaign."); setCreating(false); return; }
+      campaignId = newCampaign.id;
+    }
+    const campaign = { id: campaignId! };
 
     if (selectedAssets.length > 0) {
       const assetRefs = selectedAssets.map((a, i) => ({
