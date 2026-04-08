@@ -18,6 +18,7 @@ import AssetPlatformSelector from "@/components/AssetPlatformSelector";
 import AssetLibraryPicker, { type LibraryAsset } from "@/components/AssetLibraryPicker";
 import CreativeDirectionStep, { type DirectorOutput } from "@/components/CreativeDirectionStep";
 import CampaignSimulator from "@/components/campaign/CampaignSimulator";
+import SwapAssetStrip, { type SwapAsset } from "@/components/campaign/SwapAssetStrip";
 import type { SourceTemplate } from "@/components/campaign/SourceGallery";
 import SaveToLibraryModal from "@/components/campaign/SaveToLibraryModal";
 import type { SocialPlatform, ContentType, BrandProfile } from "@/types/campaigns";
@@ -67,6 +68,8 @@ const NewCampaign = () => {
   const [isStarred, setIsStarred] = useState(false);
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [activePreviewIndex, setActivePreviewIndex] = useState(0);
+  const [swapAssets, setSwapAssets] = useState<SwapAsset[]>([]);
+  const [activeSwapIndex, setActiveSwapIndex] = useState(0);
 
   // Inline strategy gate
   const [needsStrategy, setNeedsStrategy] = useState(false);
@@ -417,6 +420,14 @@ const NewCampaign = () => {
           )}
 
           <AssetLibraryPicker selectedAssets={selectedAssets} onChange={setSelectedAssets} />
+
+          {/* Swap assets: product, model, logo */}
+          <SwapAssetStrip
+            assets={swapAssets}
+            onChange={setSwapAssets}
+            activeIndex={activeSwapIndex}
+            onActiveChange={setActiveSwapIndex}
+          />
         </>
       )}
 

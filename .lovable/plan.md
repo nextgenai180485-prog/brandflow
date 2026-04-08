@@ -1,26 +1,44 @@
+## Product/Model Swap Assets — Enterprise Implementation
 
+### Concept
+Two distinct asset layers in the workspace:
+- **Reference Assets** (already built) = style/mood direction ("make it look like THIS")
+- **Swap Assets** (new) = user's own content ("put MY product/model/logo INTO it")
 
-## Single Action Button — Enterprise Grade
+### UI: New "Your Assets" Section in Workspace Builder
 
-You're right. Two buttons ("New Campaign" and "Create with N refs") is redundant. Enterprise tools use **one adaptive button** that changes its label based on context:
+**Location**: Below the reference strip, above the "Add from Library" picker
 
-- **No refs selected** → `+ New Campaign` (blank workspace)
-- **3 refs selected** → `+ New Campaign · 3 refs` (workspace pre-loaded)
+**Layout**: Horizontal scrollable strip (same pattern as reference strip) with:
+- Each card shows thumbnail + role badge (product / model / logo / background)
+- Hover reveals ✕ remove button + role dropdown to re-tag
+- "+" button opens a picker modal (upload new or select from brand_assets library)
+- Role auto-detection: image filename containing "logo" → auto-tag as logo, etc.
 
-Same button, same position, zero cognitive overhead. This is how Figma and Canva handle selection-aware actions.
+### Upload Flow
+- Inline drag-and-drop zone OR file picker
+- Files upload to `campaign_assets` bucket under user's folder
+- Saved to `brand_assets` table (reusable across campaigns)
+- Role tag stored in component state (passed to generation engine)
 
-### Changes
+### Data Model
+No DB migration needed — role tagging is per-campaign session state. The swap assets are `brand_assets` records; their role context is passed to the generation engine at creation time.
 
-**`src/components/EmptyCampaigns.tsx`**
-- Remove the conditional "Create with N refs" button from the hero section
-- Pass `selectedRefs` count up to the parent so the main button can reflect it
+**State shape:**
+```ts
+interface SwapAsset {
+  id: string;
+  file_name: string;
+  file_url: string;
+  asset_type: string;
+  role: 'product' | 'model' | 'logo' | 'background' | 'other';
+}
+```
 
-**`src/pages/Dashboard.tsx`**
-- Track selected refs from `EmptyCampaigns` via a callback or lifted state
-- Update the single "New Campaign" button label:
-  - `selectedIds.size === 0` → `+ New Campaign`
-  - `selectedIds.size > 0` → `+ New Campaign · {n} refs`
-- On click, pass refs to workspace via `location.state.bulkRefs` (existing logic)
+### Files to Create/Edit
+1. **New: `src/components/campaign/SwapAssetStrip.tsx`** — the tagged asset strip component
+2. **Edit: `src/pages/NewCampaign.tsx`** — integrate SwapAssetStrip into the builder zone
+3. **Edit: generation engine call** — pass swap assets with roles to the edge function
 
-**Result**: One button, adaptive label, zero friction.
-
+### Generation Integration
+Swap assets get passed as `swapAssets` array in the generation payload, separate from `referenceImageUrl`. The edge function uses them for targeted product/model injection in prompts.
