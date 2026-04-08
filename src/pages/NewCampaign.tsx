@@ -319,7 +319,7 @@ const NewCampaign = () => {
     setStep(step + 1);
   };
 
-  const isImageUrl = (url: string) => /\.(jpg|jpeg|png|gif|webp|svg)(\?|$)/i.test(url);
+  const isImageUrl = (url: string) => !/\.(mp4|mov|avi|webm|mkv)(\?|$)/i.test(url);
 
   // Derive simulator preview URL: active selected asset > selectedTemplate > null
   const simulatorPreviewUrl = selectedAssets.length > 0
