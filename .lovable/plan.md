@@ -1,32 +1,58 @@
 
-## Replace Slide-In Sheet → Full-Page Campaign Review
 
-The current slide-in sheet is a constrained overlay that fights with the dashboard. Enterprise tools use a **dedicated review page** — you click a campaign card and navigate into a full workspace.
+# Wire OKLCH Color Engine + Apple-Grade Typography into Text Overlay
 
-### Architecture
+## What This Does
+Makes every generated creative look like it came from an Apple design studio: mathematically precise brand colors derived from your seed hex via the OKLCH perceptual color engine, paired with premium typography directives (SF Pro / Inter weight hierarchy, precise tracking/leading, optical sizing).
 
-**`/dashboard/campaign/:id`** — Full-page Campaign Review
+## Architecture
 
-**Layout**: Same enterprise workspace pattern as the campaign creator:
-- **Left panel (50%)**: Asset grid with thumbnails, approval/reject buttons, batch actions, caption editor
-- **Right panel (50%)**: iPhone 16 Pro Simulator showing the active asset at full fidelity
+### 1. Port OKLCH Color Engine to Edge Function
+**File**: `supabase/functions/generate-content/index.ts`
 
-**Top bar**: Campaign title, status badge, back-to-dashboard button, bulk actions (Approve All, Download All)
+Copy the minimal OKLCH math from `src/lib/colorEngine.ts` into the edge function:
+- `hexToRgb`, `srgbToLinear`, `linearRgbToOklab`, `oklabToOklch`, `oklchToOklab`, `oklabToLinearRgb`, `clampToGamut`, `oklchToHex`
+- `generateBrandScale` — takes a single hex seed, returns 10-step scale with semantic tokens
 
-**Asset grid behavior**:
-- Cards show thumbnail + platform badge + status indicator
-- Click a card → it loads in the simulator on the right
-- Keyboard nav (arrows, A/R/D) still works
-- Multi-select for batch approve/reject/download
+### 2. Compute Brand Color Tokens in `buildPromptBundle`
+When `brandContext.brandColors.primary` exists, run it through `generateBrandScale` to produce:
+- `vibrant` (step 400) — headlines
+- `active` (step 600) — CTA backgrounds
+- `soft` (step 200) — subtitle fills
+- `text` (step 900) — dark readable text
+- `deep` (step 800) — shadows/backing
+- `subtle` (step 100) — near-white tints
 
-### Changes
+Attach these hex values to `textOverlay.brandColors`.
 
-1. **`src/pages/CampaignReview.tsx`** — Rewrite as full-page workspace (not the existing unused file)
-2. **`src/App.tsx`** — Add route `/dashboard/campaign/:id`
-3. **`src/pages/Dashboard.tsx`** — Change card click from `setSheetCampaignId` to `navigate(/dashboard/campaign/${id})`
-4. **Remove**: `AssetInspectorSheet` import and usage from Dashboard
+### 3. Rewrite `applyTextOverlay` with Exact Hex + Apple Typography
 
-### Result
-- Campaign card click → navigates to `/dashboard/campaign/:id`
-- Full viewport workspace with asset grid + simulator
-- No overlay, no slide-in, no fighting for space
+Replace the current vague line 842 (`"use brand color accents"`) with:
+
+```
+Typography system (Apple-grade):
+- Font: SF Pro Display or Inter — clean geometric sans-serif only
+- Headline: Semibold 600 weight, -0.02em tracking, 1.1 line-height
+  Color: ${vibrant} or #FFFFFF — pick whichever has higher contrast
+- Subheadline: Regular 400 weight, -0.01em tracking, 1.3 line-height
+  Color: ${soft} or #FFFFFF
+- CTA: Medium 500 weight, ALL CAPS, 0.08em tracking
+  Background: ${active}, text: #FFFFFF, rounded pill shape
+- Brand name: Light 300 weight, 0.04em tracking
+  Color: ${text}
+- Text shadow: ${deep} at 40% opacity, 2px blur — only if needed for contrast
+- WCAG AA minimum contrast required on all text
+- No decorative fonts, no serifs, no outlines, no gradients on text
+```
+
+### 4. Fallback
+If no brand colors exist: white text, `rgba(0,0,0,0.5)` shadow — current safe default preserved.
+
+## Files Changed
+- **`supabase/functions/generate-content/index.ts`** — Add ~120 lines of OKLCH math, update `TextOverlayMeta` interface, rewrite overlay color/typography directives
+
+## Result
+- Text colors are mathematically computed from your brand seed — no AI guessing
+- Typography follows Apple's exact weight/tracking/leading hierarchy
+- Every generated creative has consistent, premium-feeling text layout
+
