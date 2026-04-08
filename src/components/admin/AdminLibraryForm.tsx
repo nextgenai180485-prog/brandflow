@@ -135,6 +135,10 @@ const AdminLibraryForm = ({ tableName, editingItem, onClose, onSaved }: AdminLib
       });
 
       if (error) throw error;
+      if (data?.unsupported_format) {
+        toast.warning("Video files can't be vision-analyzed. Upload a thumbnail image for SEALCaM extraction.", { id: "auto-analyze", duration: 6000 });
+        return;
+      }
       if (data?.fallback || data?.error) {
         toast.error(data.error || "Analysis unavailable", { id: "auto-analyze" });
         return;
