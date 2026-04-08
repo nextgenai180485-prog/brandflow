@@ -760,7 +760,11 @@ async function processAssetsInBackground(
   decisionTraceId: string | null,
   decisionWinner: any,
   creativeDirection: any | null,
-  referenceImageUrl: string | null = null
+  referenceImageUrl: string | null = null,
+  templateRefs: string[] | null = null,
+  userAssets: any[] | null = null,
+  structuredBrief: any | null = null,
+  campaignCopy: any | null = null,
 ) {
   const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
@@ -791,6 +795,37 @@ async function processAssetsInBackground(
 
       let generatedPrompt = "";
 
+      // Build campaign-specific context to inject into all prompts
+      let campaignContext = "";
+      if (structuredBrief) {
+        const parts: string[] = [];
+        if (structuredBrief.objective) parts.push(`Campaign objective: ${structuredBrief.objective}`);
+        if (structuredBrief.messageAngle) parts.push(`Core message: ${structuredBrief.messageAngle}`);
+        if (structuredBrief.tone?.length) parts.push(`Tone: ${structuredBrief.tone.join(", ")}`);
+        if (structuredBrief.targetEmotion?.length) parts.push(`Target emotion: ${structuredBrief.targetEmotion.join(", ")}`);
+        if (parts.length) campaignContext += parts.join(". ") + ". ";
+      }
+      if (campaignCopy) {
+        if (campaignCopy.headline) campaignContext += `Headline text to feature: "${campaignCopy.headline}". `;
+        if (campaignCopy.subheadline) campaignContext += `Subheadline: "${campaignCopy.subheadline}". `;
+        if (campaignCopy.ctaText) campaignContext += `CTA: "${campaignCopy.ctaText}". `;
+      }
+
+      // Build user asset references for prompt injection
+      let userAssetContext = "";
+      if (userAssets?.length) {
+        const productAssets = userAssets.filter((a: any) => a.role === "product");
+        const modelAssets = userAssets.filter((a: any) => a.role === "model");
+        if (productAssets.length) userAssetContext += `Feature this product: ${productAssets.map((a: any) => a.url).join(", ")}. `;
+        if (modelAssets.length) userAssetContext += `Use this model/person: ${modelAssets.map((a: any) => a.url).join(", ")}. `;
+      }
+
+      // Template reference URLs for style matching
+      let templateRefContext = "";
+      if (templateRefs?.length) {
+        templateRefContext = `Style references: ${templateRefs.slice(0, 3).join(", ")}. Match the composition, lighting, and mood of these references. `;
+      }
+
       if (assetType === "image" || assetType === "carousel") {
         // Find best matching template for this platform/format combo
         const matchedTemplate = imageTemplates?.find(
@@ -802,6 +837,8 @@ async function processAssetsInBackground(
         }
 
         generatedPrompt = buildImagePrompt(platform, format, brandContext || {}, intelligenceBrief || {}, decisionWinner, matchedTemplate, referenceImageUrl);
+        // Inject campaign brief, user assets, and template refs
+        generatedPrompt += campaignContext + userAssetContext + templateRefContext;
         console.log(`[Generate] ${assetType} for ${platform}/${format} via Replicate Seedream 5`);
         const result = await generateImage(generatedPrompt, width || 1080, height || 1080);
         contentUrl = result.url;
@@ -820,6 +857,8 @@ async function processAssetsInBackground(
           if (referenceImageUrl) generatedPrompt += ` Reference style: ${referenceImageUrl}. Match the composition, lighting, and mood of this reference.`;
           console.log(`[Generate] video for ${platform}/${format} via generic prompt`);
         }
+        // Inject campaign brief, user assets, and template refs into video prompt too
+        generatedPrompt += " " + campaignContext + userAssetContext + templateRefContext;
         console.log(`[Generate] video for ${platform}/${format} via Kling 2.5`);
         const result = await generateVideo(generatedPrompt, width || 1080, height || 1920);
         contentUrl = result.url;
@@ -828,8 +867,11 @@ async function processAssetsInBackground(
         generationTimeMs = result.timeMs;
       }
 
-      // Generate caption using decision context + the actual visual prompt for accuracy
-      const caption = await generateCaption(platform, format, brandContext || {}, intelligenceBrief || {}, decisionWinner, generatedPrompt);
+      // Generate caption using decision context + campaign copy + visual prompt
+      const captionPromptExtra = campaignCopy?.bodyCopy 
+        ? `. User-provided copy to incorporate: "${campaignCopy.bodyCopy}". Headline: "${campaignCopy.headline || ""}". CTA: "${campaignCopy.ctaText || ""}"`
+        : "";
+      const caption = await generateCaption(platform, format, brandContext || {}, intelligenceBrief || {}, decisionWinner, generatedPrompt + captionPromptExtra);
       if (!generationTimeMs) generationTimeMs = Date.now() - startTime;
 
       // Build structured rationale from decision engine
@@ -1036,7 +1078,7 @@ serve(async (req) => {
     }
 
     // ── Generate Action (with full four-layer pipeline) ───────
-    const { campaignId, assets, researchId, intelligenceBrief, brandContext, creativeDirection, referenceImageUrl } = body;
+    const { campaignId, assets, researchId, intelligenceBrief, brandContext, creativeDirection, referenceImageUrl, templateRefs, userAssets, structuredBrief, campaignCopy } = body;
 
     if (!campaignId || typeof campaignId !== "string" || !assets || !Array.isArray(assets) || assets.length === 0) {
       return new Response(JSON.stringify({ error: "campaignId (string) and non-empty assets[] required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -1065,9 +1107,13 @@ serve(async (req) => {
 
     console.log(`[Brand Memory] Loaded ${brandMemory?.length || 0} memory entries`);
 
-    // ── LAYER 2: Run Decision Engine ──────────────────────────
+    // ── LAYER 2: Run Decision Engine (with structured brief context) ──
     const { data: campaignData } = await supabase.from("campaigns").select("instructions").eq("id", campaignId).single();
-    const decision = await runDecisionEngine(brandContext || {}, intelligenceBrief || {}, brandMemory || [], campaignData?.instructions || null);
+    const campaignBriefContext = structuredBrief 
+      ? `Campaign Brief — Objective: ${structuredBrief.objective || "general"}, Core Message: ${structuredBrief.messageAngle || "N/A"}, Tone: ${(structuredBrief.tone || []).join(", ") || "N/A"}, CTA: ${structuredBrief.ctaGoal || "N/A"}, Emotion: ${(structuredBrief.targetEmotion || []).join(", ") || "N/A"}. ${structuredBrief.freeformNotes || ""}`
+      : null;
+    const combinedInstructions = [campaignData?.instructions, campaignBriefContext].filter(Boolean).join("\n\n");
+    const decision = await runDecisionEngine(brandContext || {}, intelligenceBrief || {}, brandMemory || [], combinedInstructions || null);
     const decisionWinner = decision.creative_directions?.[decision.winner_index] || {};
 
     // ── LAYER 3: Store Decision Trace ─────────────────────────
@@ -1103,7 +1149,7 @@ serve(async (req) => {
 
     // Fire background processing
     EdgeRuntime.waitUntil(
-      processAssetsInBackground(userId, campaignId, assets, researchId || null, intelligenceBrief || {}, brandContext || {}, placeholderIds, decisionTraceId, decisionWinner, creativeDirection || null, referenceImageUrl || null)
+      processAssetsInBackground(userId, campaignId, assets, researchId || null, intelligenceBrief || {}, brandContext || {}, placeholderIds, decisionTraceId, decisionWinner, creativeDirection || null, referenceImageUrl || null, templateRefs || null, userAssets || null, structuredBrief || null, campaignCopy || null)
         .catch((e) => console.error("[BG] Fatal error:", e))
     );
 

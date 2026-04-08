@@ -296,6 +296,16 @@ const NewCampaign = () => {
 
     const referenceImageUrl = selectedTemplate?.media_url || showcaseState?.templateRef?.mediaUrl || undefined;
 
+    // Collect all workspace template reference URLs from library selections
+    const templateRefs = librarySelections
+      .map((s: LibrarySelection) => s.data?.media_url || s.data?.thumbnail_url || s.data?.example_url || s.data?.avatar_url)
+      .filter(Boolean);
+
+    // Collect user-uploaded swap assets (product images, models, etc.)
+    const userAssets = swapAssets
+      .filter(a => a.file_url)
+      .map(a => ({ url: a.file_url, role: a.role, name: a.file_name }));
+
     supabase.functions.invoke("generate-content", {
       body: {
         campaignId: campaign.id, assets: generationAssets, brandContext,
@@ -306,6 +316,10 @@ const NewCampaign = () => {
         } : null,
         creativeDirection: creativeDirection || null,
         referenceImageUrl: referenceImageUrl || null,
+        templateRefs: templateRefs.length ? templateRefs : null,
+        userAssets: userAssets.length ? userAssets : null,
+        structuredBrief: (structuredBrief.objective || structuredBrief.messageAngle) ? structuredBrief : null,
+        campaignCopy: (campaignCopy.headline || campaignCopy.bodyCopy) ? campaignCopy : null,
       },
     }).then(({ error: genError }) => {
       if (genError) console.error("[Generation] Trigger error:", genError);
