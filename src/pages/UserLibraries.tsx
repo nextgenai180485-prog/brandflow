@@ -252,7 +252,8 @@ const AdIntelligenceGallery = ({ onPreview }: { onPreview: (item: any) => void }
         body.keyword = searchQuery.trim();
       }
 
-      if (niche || selectedNiche) body.niche = niche || selectedNiche;
+      const nicheLabel = niche || selectedNiche;
+      if (nicheLabel) body.niche = FOREPLAY_NICHE_MAP[nicheLabel] || nicheLabel.toLowerCase();
       if (platform !== "all") body.platform = platform;
       if (format !== "all") body.display_format = format;
 
