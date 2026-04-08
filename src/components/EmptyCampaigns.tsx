@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Zap, Calendar, Megaphone, TrendingUp, ArrowRight, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
+import { Plus, Zap, Calendar, Megaphone, TrendingUp, ArrowRight, Loader2, CheckCircle2, AlertCircle, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -15,7 +15,7 @@ import realestateImg from "@/assets/showcase/realestate-luxury.jpg";
 import fitnessImg from "@/assets/showcase/fitness-energy.jpg";
 
 interface EmptyCampaignsProps {
-  onCreateClick: () => void;
+  onCreateClick: (selectedRefs?: ShowcaseRef[]) => void;
   hasProfile?: boolean;
 }
 
@@ -71,6 +71,7 @@ const EmptyCampaigns = ({ onCreateClick }: EmptyCampaignsProps) => {
   const [refs, setRefs] = useState<ShowcaseRef[]>(STATIC_REFS);
   const [loading, setLoading] = useState(true);
   const [brandReadiness, setBrandReadiness] = useState({ score: 0, missing: [] as string[] });
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   // Fetch showcase refs
   useEffect(() => {
@@ -106,6 +107,17 @@ const EmptyCampaigns = ({ onCreateClick }: EmptyCampaignsProps) => {
     });
   }, [user]);
 
+  const toggleSelect = (ref: ShowcaseRef) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(ref.id)) next.delete(ref.id);
+      else next.add(ref.id);
+      return next;
+    });
+  };
+
+  const selectedRefs = refs.filter(r => selectedIds.has(r.id));
+
   const handleTemplate = (template: typeof CAMPAIGN_TEMPLATES[0]) => {
     navigate("/dashboard/campaigns/new", {
       state: {
@@ -115,32 +127,34 @@ const EmptyCampaigns = ({ onCreateClick }: EmptyCampaignsProps) => {
           platforms: template.platforms,
           instructions: template.instructions,
         },
+        ...(selectedRefs.length > 0 && {
+          bulkRefs: selectedRefs.map(r => ({
+            id: r.id, title: r.title,
+            mediaUrl: r.media_url || r.thumbnail_url,
+            industryTags: r.industry_tags, moodTags: r.mood_tags, platformTags: r.platform_tags,
+          })),
+        }),
       },
     });
   };
 
-  const handleShowcaseRef = (ref: ShowcaseRef) => {
-    navigate("/dashboard/campaigns/new", {
-      state: {
-        fromShowcase: true,
-        templateRef: {
-          id: ref.id,
-          title: ref.title,
-          mediaUrl: ref.media_url || ref.thumbnail_url,
-          industryTags: ref.industry_tags,
-          moodTags: ref.mood_tags,
-          platformTags: ref.platform_tags,
-        },
-      },
-    });
+  const handleCreateWithSelection = () => {
+    onCreateClick(selectedRefs.length > 0 ? selectedRefs : undefined);
   };
 
   return (
     <div className="space-y-8">
       {/* Hero section */}
-      <div>
-        <h2 className="text-xl font-semibold text-foreground">Launch your first campaign</h2>
-        <p className="text-sm text-muted-foreground mt-0.5">Choose a template or start from an inspiration reference</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-semibold text-foreground">Launch your first campaign</h2>
+          <p className="text-sm text-muted-foreground mt-0.5">Choose a template or select inspiration references below</p>
+        </div>
+        {selectedIds.size > 0 && (
+          <Button size="sm" onClick={handleCreateWithSelection} className="h-8 text-xs gap-1.5">
+            <Plus className="w-3.5 h-3.5" /> Create with {selectedIds.size} ref{selectedIds.size > 1 ? "s" : ""}
+          </Button>
+        )}
       </div>
 
       {/* Brand readiness + templates row */}
@@ -211,11 +225,13 @@ const EmptyCampaigns = ({ onCreateClick }: EmptyCampaignsProps) => {
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-            {refs.map((ref) => (
+            {refs.map((ref) => {
+              const isSelected = selectedIds.has(ref.id);
+              return (
               <div
                 key={ref.id}
-                onClick={() => handleShowcaseRef(ref)}
-                className="rounded-xl overflow-hidden border border-border/50 group cursor-pointer transition-all hover:shadow-md hover:border-border hover:scale-[1.02]"
+                onClick={() => toggleSelect(ref)}
+                className={`rounded-xl overflow-hidden border-2 group cursor-pointer transition-all hover:shadow-md hover:scale-[1.02] ${isSelected ? "border-primary ring-2 ring-primary/20" : "border-border/50 hover:border-border"}`}
               >
                 <div className="aspect-[4/5] relative overflow-hidden">
                   <img
@@ -224,9 +240,15 @@ const EmptyCampaigns = ({ onCreateClick }: EmptyCampaignsProps) => {
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     loading="lazy"
                   />
+                  {isSelected && (
+                    <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-primary flex items-center justify-center">
+                      <Check className="w-3 h-3 text-primary-foreground" />
+                    </div>
+                  )}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-2.5">
                     <div className="flex items-center gap-1.5 text-[10px] font-medium text-white">
-                      <Zap className="w-3 h-3" /> Use This
+                      {isSelected ? <Check className="w-3 h-3" /> : <Zap className="w-3 h-3" />}
+                      {isSelected ? "Selected" : "Select"}
                     </div>
                   </div>
                 </div>
@@ -235,7 +257,9 @@ const EmptyCampaigns = ({ onCreateClick }: EmptyCampaignsProps) => {
                   <p className="text-[9px] text-muted-foreground capitalize">{ref.mood_tags?.[0] || ref.industry_tags?.[0] || "Template"}</p>
                 </div>
               </div>
-            ))}
+              );
+            })}
+
           </div>
         )}
       </div>
