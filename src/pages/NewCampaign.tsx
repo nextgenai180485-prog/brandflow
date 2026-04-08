@@ -352,7 +352,7 @@ const NewCampaign = () => {
   }, [title, isMobile, instructions]);
 
   const toggleContentType = (ct: ContentType) => {
-    setContentTypes((prev) => prev.includes(ct) ? prev.filter((t) => t !== ct) : [...prev, ct]);
+    setContentTypes([ct]);
   };
 
   const routeFamily = useCallback((ct: ContentType, platform: SocialPlatform): string => {
