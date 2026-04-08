@@ -88,6 +88,41 @@ const NewCampaign = () => {
   const [businessName, setBusinessName] = useState("");
   const [industry, setIndustry] = useState("");
 
+  // ── Auto-save draft system ──
+  const { draftId, saveStatus, saveDraft, loadDraft, finalizeDraft } = useAutoSaveDraft({ resumeId: resumeDraftId });
+
+  // Load draft state when resuming
+  useEffect(() => {
+    if (!resumeDraftId) return;
+    loadDraft(resumeDraftId).then((state) => {
+      if (!state) return;
+      setTitle(state.title || "");
+      setInstructions(state.instructions || "");
+      if (state.structuredBrief) setStructuredBrief(state.structuredBrief);
+      if (state.campaignCopy) setCampaignCopy(state.campaignCopy);
+      if (state.platforms) setPlatforms(state.platforms);
+      if (state.contentTypes) setContentTypes(state.contentTypes as ContentType[]);
+      if (typeof state.includeLogo === "boolean") setIncludeLogo(state.includeLogo);
+      if (typeof state.step === "number") setStep(state.step);
+      if (state.swapAssets) setSwapAssets(state.swapAssets);
+      if (state.creativeDirection) setCreativeDirection(state.creativeDirection);
+      if (state.librarySelections) setLibrarySelections(state.librarySelections);
+      toast.success("Draft restored");
+    });
+  }, [resumeDraftId]);
+
+  // Auto-save on every meaningful state change
+  useEffect(() => {
+    if (!user || showcaseState?.fromShowcase) return;
+    if (!title.trim() && platforms.length === 0 && contentTypes.length === 0) return;
+    saveDraft({
+      title, instructions, structuredBrief, campaignCopy,
+      platforms, contentTypes, includeLogo, step,
+      swapAssets, selectedAssetIds: selectedAssets.map(a => a.id),
+      creativeDirection, librarySelections,
+    });
+  }, [title, instructions, structuredBrief, campaignCopy, platforms, contentTypes, includeLogo, step, swapAssets, selectedAssets, creativeDirection, librarySelections]);
+
   const hasVideoContent = contentTypes.some(ct => ct === "ugc_video" || ct === "pro_video");
 
   const STEPS = useMemo(() => {
