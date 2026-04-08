@@ -136,7 +136,7 @@ const UserLibraries = () => {
           </div>
         )}
 
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabValue)}>
+        <Tabs value={activeTab} onValueChange={handleTabChange}>
           <TabsList className="mb-5 w-full grid grid-cols-6 h-auto p-1">
             {TABS.map((tab) => (
               <TabsTrigger
@@ -161,6 +161,7 @@ const UserLibraries = () => {
                   nameField={tab.nameField}
                   icon={tab.icon}
                   search={search}
+                  categoryFilters={categoryFilters}
                   onPreview={setPreviewItem}
                 />
               )}
