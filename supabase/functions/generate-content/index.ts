@@ -1290,6 +1290,39 @@ async function processAssetsInBackground(
         actualCost = result.cost;
         generationTimeMs = result.timeMs;
 
+        // Step 1.5: Identity/Product Refinement via SeedEdit (for swap modes)
+        // When user selected a template AND provided their own assets,
+        // run a surgical SeedEdit pass to strengthen identity/product fidelity
+        if (contentUrl && (bundle.creativeMode === "identity_swap" || bundle.creativeMode === "product_in_scene" || bundle.creativeMode === "duo_editorial")) {
+          try {
+            const modelAsset = userAssets?.find((a: any) => a.role === "model");
+            const productAsset = userAssets?.find((a: any) => a.role === "product");
+            let editPrompt = "";
+
+            if (bundle.creativeMode === "identity_swap" && modelAsset?.url) {
+              editPrompt = "Refine the person's face to match the reference photo exactly. Preserve all facial proportions, skin tone, features, and expression. Keep the background, clothing, and composition unchanged.";
+            } else if (bundle.creativeMode === "product_in_scene" && productAsset?.url) {
+              editPrompt = "Refine the product to match the reference photo exactly. Preserve product shape, color, label, branding, and material texture. Keep background and composition unchanged.";
+            } else if (bundle.creativeMode === "duo_editorial") {
+              editPrompt = "Refine both the person's face and the product to match their reference photos exactly. Preserve facial identity, skin tone, product branding. Keep background unchanged.";
+            }
+
+            if (editPrompt) {
+              console.log(`[Refinement] Running SeedEdit identity pass for ${bundle.creativeMode}`);
+              const refined = await editImageSeedEdit(contentUrl, editPrompt, 0.35);
+              if (refined?.url) {
+                contentUrl = refined.url;
+                actualProvider += "+identity_refinement";
+                actualCost += refined.cost;
+                console.log(`[Refinement] ✅ Identity refinement applied via SeedEdit`);
+              }
+            }
+          } catch (e) {
+            console.warn(`[Refinement] SeedEdit pass failed, using base image:`, e);
+            // Non-fatal — base image is still good
+          }
+        }
+
         // Step 2: Post-processing — apply text overlay if campaign copy exists
         if (contentUrl && (bundle.textOverlay.headline || bundle.textOverlay.ctaText)) {
           console.log(`[PostProcess] Applying text overlay to ${platform}/${format}`);
@@ -1297,7 +1330,7 @@ async function processAssetsInBackground(
           if (overlaidUrl !== contentUrl) {
             contentUrl = overlaidUrl;
             actualProvider += "+text_overlay";
-            actualCost += 0.01; // overlay cost
+            actualCost += 0.01;
           }
         }
 
