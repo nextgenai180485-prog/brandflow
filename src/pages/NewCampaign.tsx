@@ -46,7 +46,7 @@ const NewCampaign = () => {
   const [searchParams] = useSearchParams();
   const isMobile = useIsMobile();
   const resumeDraftId = searchParams.get("draft") || null;
-  const showcaseState = location.state as { fromShowcase?: boolean; templateRef?: { id: string; title: string; mediaUrl?: string; industryTags?: string[]; moodTags?: string[]; platformTags?: string[] }; bulkRefs?: { id: string; title: string; mediaUrl?: string; industryTags?: string[]; moodTags?: string[]; platformTags?: string[] }[] } | null;
+  const showcaseState = location.state as { fromShowcase?: boolean; templateRef?: { id: string; title: string; mediaUrl?: string; industryTags?: string[]; moodTags?: string[]; platformTags?: string[] }; bulkRefs?: { id: string; title: string; mediaUrl?: string; industryTags?: string[]; moodTags?: string[]; platformTags?: string[] }[]; libraryRefs?: { id: string; title: string; mediaUrl?: string; type: string; data: any }[] } | null;
 
   const [step, setStep] = useState(0);
   const [title, setTitle] = useState(showcaseState?.templateRef?.title || "");
@@ -184,6 +184,72 @@ const NewCampaign = () => {
     if (contentTypes.length === 0) setContentTypes(["image"]);
   }, []);
 
+  // Auto-populate from library page selections
+  useEffect(() => {
+    if (!showcaseState?.libraryRefs?.length) return;
+    const refs = showcaseState.libraryRefs;
+
+    // Convert to library selections for the generation engine
+    const libSelections: LibrarySelection[] = refs.map(r => ({
+      type: (r.type === "character_library" ? "character" : r.type === "ad_reference_library" ? "ad_reference" : r.type === "image_templates" ? "image_template" : "video_template") as any,
+      id: r.id,
+      name: r.title,
+      data: r.data,
+    }));
+    setLibrarySelections(libSelections);
+
+    // Set first item with media as the template reference
+    const withMedia = refs.find(r => r.mediaUrl);
+    if (withMedia) {
+      const d = withMedia.data || {};
+      setSelectedTemplate({
+        id: withMedia.id, title: withMedia.title, description: d.description || null,
+        media_url: withMedia.mediaUrl || null, thumbnail_url: d.thumbnail_url || withMedia.mediaUrl || null,
+        industry_tags: d.industry_tags || null, mood_tags: d.mood_tags || null,
+        platform_tags: d.platform_tags || null, sealcam_analysis: d.sealcam_analysis || {},
+        performance_notes: d.performance_notes || null,
+      });
+    }
+
+    // Auto-fill title from first ref if empty
+    if (!title.trim() && refs[0]?.title) setTitle(refs[0].title);
+
+    // Auto-populate brief from first template's metadata
+    const first = refs[0]?.data;
+    if (first) {
+      const autoTones: string[] = [];
+      const moodMap: Record<string, string> = {
+        aspirational: "Luxurious", authentic: "Warm", cinematic: "Bold", dramatic: "Edgy",
+        educational: "Educational", energetic: "Playful", epic: "Bold", inspirational: "Warm",
+        luxurious: "Luxurious", professional: "Professional", urgent: "Urgent", warm: "Warm",
+      };
+      (first.mood_tags || [first.mood]).filter(Boolean).forEach((m: string) => {
+        const mapped = moodMap[m.toLowerCase()];
+        if (mapped && !autoTones.includes(mapped)) autoTones.push(mapped);
+      });
+
+      const notes: string[] = [];
+      if (first.performance_notes) notes.push(first.performance_notes);
+      if (first.sealcam_analysis && Object.keys(first.sealcam_analysis).length > 0) {
+        const parts = Object.entries(first.sealcam_analysis)
+          .filter(([_, v]) => v && typeof v === "string")
+          .map(([k, v]) => `${k}: ${v}`);
+        if (parts.length) notes.push("Template direction:\n" + parts.join("\n"));
+      }
+
+      setStructuredBrief(prev => ({
+        ...prev,
+        tone: prev.tone.length ? prev.tone : autoTones,
+        freeformNotes: prev.freeformNotes || notes.join("\n\n"),
+        messageAngle: prev.messageAngle || (first.industry_tags?.length ? `Targeting ${first.industry_tags.join(", ")} audience` : ""),
+      }));
+
+      if (first.description) setInstructions(first.description);
+    }
+
+    if (contentTypes.length === 0) setContentTypes(["image"]);
+  }, []);
+
   // Check for brand strategy + load brand profile
   useEffect(() => {
     if (!user) return;
@@ -226,6 +292,13 @@ const NewCampaign = () => {
     load();
   }, [user]);
 
+  // Mood-to-tone mapping for auto-fill
+  const MOOD_TO_TONE: Record<string, string> = {
+    aspirational: "Luxurious", authentic: "Warm", cinematic: "Bold", dramatic: "Edgy",
+    educational: "Educational", energetic: "Playful", epic: "Bold", inspirational: "Warm",
+    luxurious: "Luxurious", professional: "Professional", urgent: "Urgent", warm: "Warm",
+  };
+
   // When user selects a template from source gallery
   const handleTemplateSelect = useCallback((template: SourceTemplate | null) => {
     setSelectedTemplate(template);
@@ -239,12 +312,44 @@ const NewCampaign = () => {
           asset_type: "reference", created_at: new Date().toISOString(),
         }]);
       }
+
+      // ── Auto-populate brief from template metadata ──
+      const autoTones: string[] = [];
+      if (template.mood_tags?.length) {
+        template.mood_tags.forEach(m => {
+          const mapped = MOOD_TO_TONE[m.toLowerCase()];
+          if (mapped && !autoTones.includes(mapped)) autoTones.push(mapped);
+        });
+      }
+
+      const autoNotes: string[] = [];
+      if (template.performance_notes) autoNotes.push(template.performance_notes);
+      if (template.sealcam_analysis && Object.keys(template.sealcam_analysis).length > 0) {
+        const sealcam = template.sealcam_analysis;
+        const parts = Object.entries(sealcam)
+          .filter(([_, v]) => v && typeof v === "string")
+          .map(([k, v]) => `${k}: ${v}`);
+        if (parts.length) autoNotes.push("Template direction:\n" + parts.join("\n"));
+      }
+
+      setStructuredBrief(prev => ({
+        ...prev,
+        tone: prev.tone.length ? prev.tone : autoTones,
+        freeformNotes: prev.freeformNotes || autoNotes.join("\n\n"),
+        messageAngle: prev.messageAngle || (template.industry_tags?.length ? `Targeting ${template.industry_tags.join(", ")} audience` : ""),
+      }));
+
+      // Auto-fill instructions from template description
+      if (!instructions.trim() && template.description) {
+        setInstructions(template.description);
+      }
+
       // Auto-switch to preview on mobile
       if (isMobile) setMobileTab("preview");
     } else {
       setCreativeReferenceAssets([]);
     }
-  }, [title, isMobile]);
+  }, [title, isMobile, instructions]);
 
   const toggleContentType = (ct: ContentType) => {
     setContentTypes((prev) => prev.includes(ct) ? prev.filter((t) => t !== ct) : [...prev, ct]);
