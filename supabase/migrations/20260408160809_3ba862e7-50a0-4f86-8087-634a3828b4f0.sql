@@ -1,0 +1,2 @@
+ALTER TABLE public.video_templates DROP CONSTRAINT video_templates_family_check;
+ALTER TABLE public.video_templates ADD CONSTRAINT video_templates_family_check CHECK (family = ANY (ARRAY['F1_UGC', 'F2_SPOKESPERSON', 'F5_CINEMATIC', 'F8_CREATIVE_CLONER']));
