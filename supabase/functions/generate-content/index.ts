@@ -941,23 +941,15 @@ function buildPromptBundle(
     if (parts.length) styleDirective = parts.join(". ");
   }
 
-  // ── STEP 2: Adaptive subject rendering (Skill Guide §2A) ──
-  let subjectDirective = "";
-  const hasModel = userAssets?.some((a: any) => a.role === "model");
-  const hasProduct = userAssets?.some((a: any) => a.role === "product");
-  if (hasModel && hasProduct) {
-    subjectDirective = "Feature the provided person as main subject with product prominently visible. Natural interaction between person and product. Preserve exact identity, likeness, facial features, hair texture. ";
-  } else if (hasModel) {
-    subjectDirective = "Feature the provided person as main subject. Preserve exact identity, likeness, facial features, hair texture, skin pores, natural imperfections. ";
-  } else if (hasProduct) {
-    subjectDirective = "Feature the provided product as hero element with physical weight and material honesty. 60% clean negative space, product as visual anchor. ";
-  }
+  // ── STEP 2: Auto-detect creative mode (zero toggles) ──
+  const creativeMode = detectCreativeMode(userAssets, !!imageTemplate, templateRefs);
+  const subjectDirective = MODE_DIRECTIVES[creativeMode];
+  console.log(`[CreativeMode] Auto-detected: ${creativeMode}`);
 
   // ── STEP 3: Adaptive realism by tone (Skill Guide §2B) ──
   const tones = structuredBrief?.tone || [];
   const toneSet = new Set(tones.map((t: string) => t.toLowerCase()));
 
-  // Select realism approach based on user's tone selection
   let realismApproach = "Clean studio, controlled directional lighting, subtle film grain.";
   if (toneSet.has("luxurious") || toneSet.has("bold")) {
     realismApproach = "Rich contrast, dramatic directional light, cinematic film grain, deep shadows.";
@@ -993,7 +985,7 @@ function buildPromptBundle(
   ].join(" ");
 
   // ── ASSEMBLE: Visual prompt ≤80 words, STRICTLY visual (Skill Guide §1) ──
-  let visualPrompt = `${subjectDirective}${angle}. `;
+  let visualPrompt = `${subjectDirective} ${angle}. `;
   if (hookVisual) visualPrompt += `${hookVisual}. `;
   visualPrompt += `${realismApproach} ${emotionLighting}`;
   visualPrompt += `${styleDirective}. ${formatRule}. `;
@@ -1002,7 +994,6 @@ function buildPromptBundle(
   visualPrompt += `Avoid: stock photo feel, clipart, illustration, 3D render, cartoon, airbrushed, beauty filter, porcelain skin.`;
 
   // ── 3. Extract text overlay metadata (for post-processing) ──
-  // ── Compute OKLCH brand color tokens from seed hex ──
   let computedBrandColors: BrandColorTokens | undefined;
   const seedHex = brandContext?.brandColors?.primary
     || brandContext?.brandPalette?.primary
@@ -1028,9 +1019,9 @@ function buildPromptBundle(
 
   const platformSeed = PLATFORM_SEEDS[platform.toLowerCase()] || PLATFORM_SEEDS.instagram;
 
-  console.log(`[PromptBundle] Visual prompt: ${visualPrompt.split(" ").length} words | ${imageRefs.length} image refs | Text overlay: ${textOverlay.headline ? "yes" : "no"}`);
+  console.log(`[PromptBundle] Visual prompt: ${visualPrompt.split(" ").length} words | ${imageRefs.length} image refs | Text overlay: ${textOverlay.headline ? "yes" : "no"} | Mode: ${creativeMode}`);
 
-  return { visualPrompt, imageRefs, textOverlay, platformSeed };
+  return { visualPrompt, imageRefs, textOverlay, platformSeed, creativeMode };
 }
 
 // ══════════════════════════════════════════════════════════════
