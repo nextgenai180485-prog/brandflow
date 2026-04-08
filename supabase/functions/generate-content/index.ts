@@ -749,12 +749,95 @@ interface TextOverlayMeta {
   brandColors?: BrandColorTokens;
 }
 
+// ══════════════════════════════════════════════════════════════
+// CREATIVE MODE AUTO-ROUTER
+// Zero toggles — system detects the best rendering approach
+// from user assets, template selection, and brief context.
+// ══════════════════════════════════════════════════════════════
+type CreativeMode =
+  | "identity_swap"      // Model + template → preserve face/identity INTO template composition
+  | "product_hero"       // Product only → product as visual anchor, 60% negative space
+  | "lifestyle_blend"    // Model + product → natural interaction, editorial lifestyle
+  | "template_style"     // Template selected, no user assets → style-guided generation
+  | "editorial_free"     // No template, no user assets → pure creative direction
+  | "product_in_scene"   // Product + template → composite product into template scene
+  | "duo_editorial"      // Model + product + template → full editorial with identity + product swap
+  ;
+
+function detectCreativeMode(
+  userAssets: any[] | null,
+  hasTemplate: boolean,
+  templateRefs: string[] | null,
+): CreativeMode {
+  const hasModel = userAssets?.some((a: any) => a.role === "model");
+  const hasProduct = userAssets?.some((a: any) => a.role === "product");
+  const hasAnyTemplate = hasTemplate || (templateRefs?.length ?? 0) > 0;
+
+  if (hasModel && hasProduct && hasAnyTemplate) return "duo_editorial";
+  if (hasModel && hasAnyTemplate) return "identity_swap";
+  if (hasProduct && hasAnyTemplate) return "product_in_scene";
+  if (hasModel && hasProduct) return "lifestyle_blend";
+  if (hasProduct) return "product_hero";
+  if (hasAnyTemplate) return "template_style";
+  return "editorial_free";
+}
+
+// Mode-specific prompt directives — these replace the old if/else subject logic
+const MODE_DIRECTIVES: Record<CreativeMode, string> = {
+  identity_swap: [
+    "Recreate the template's exact composition, pose structure, and framing with the provided person as the subject.",
+    "CRITICAL: Preserve the person's EXACT identity — face shape, skin tone, facial features, hair texture, expression.",
+    "Match template lighting, color grade, and environment precisely.",
+    "The result should look like the person was photographed in the template's original setting.",
+  ].join(" "),
+
+  product_in_scene: [
+    "Recreate the template's composition with the provided product as the hero element.",
+    "Product must retain exact shape, color, branding, label details, material texture.",
+    "Maintain template's lighting direction, color palette, and spatial arrangement.",
+    "Product should feel physically present — real shadows, reflections, surface interaction.",
+  ].join(" "),
+
+  duo_editorial: [
+    "Feature the provided person holding/interacting with the provided product in the template's composition style.",
+    "CRITICAL: Preserve person's EXACT identity and product's EXACT appearance.",
+    "Match template's pose structure, lighting, and environment.",
+    "Natural hand-product interaction, authentic body language, editorial quality.",
+  ].join(" "),
+
+  lifestyle_blend: [
+    "Feature the provided person naturally interacting with the provided product.",
+    "Preserve exact identity, likeness, facial features, hair texture, skin pores.",
+    "Product must retain exact shape, color, branding details.",
+    "Lifestyle editorial feel — authentic moment captured, not posed.",
+  ].join(" "),
+
+  product_hero: [
+    "Feature the provided product as hero element with physical weight and material honesty.",
+    "60% clean negative space, product as visual anchor.",
+    "Exact product shape, color, branding, label, material texture preserved.",
+    "Studio-quality product photography feel.",
+  ].join(" "),
+
+  template_style: [
+    "Generate content matching the reference template's exact visual style.",
+    "Match composition, color grade, lighting direction, and mood precisely.",
+    "Professional campaign-quality output following template as blueprint.",
+  ].join(" "),
+
+  editorial_free: [
+    "Professional brand showcase with editorial quality.",
+    "Clean composition, intentional negative space, premium feel.",
+  ].join(" "),
+};
+
 // The result of the prompt builder — visual prompt for model + metadata for post-processing
 interface PromptBundle {
   visualPrompt: string;       // ≤80 words — sent to image model
   imageRefs: string[];         // actual image URLs — sent as image_urls to img2img
   textOverlay: TextOverlayMeta; // consumed by post-processing step only
   platformSeed: string;        // platform-native direction context
+  creativeMode: CreativeMode;  // auto-detected rendering approach
 }
 
 // Platform-specific aesthetic seeds (concise)
@@ -858,23 +941,15 @@ function buildPromptBundle(
     if (parts.length) styleDirective = parts.join(". ");
   }
 
-  // ── STEP 2: Adaptive subject rendering (Skill Guide §2A) ──
-  let subjectDirective = "";
-  const hasModel = userAssets?.some((a: any) => a.role === "model");
-  const hasProduct = userAssets?.some((a: any) => a.role === "product");
-  if (hasModel && hasProduct) {
-    subjectDirective = "Feature the provided person as main subject with product prominently visible. Natural interaction between person and product. Preserve exact identity, likeness, facial features, hair texture. ";
-  } else if (hasModel) {
-    subjectDirective = "Feature the provided person as main subject. Preserve exact identity, likeness, facial features, hair texture, skin pores, natural imperfections. ";
-  } else if (hasProduct) {
-    subjectDirective = "Feature the provided product as hero element with physical weight and material honesty. 60% clean negative space, product as visual anchor. ";
-  }
+  // ── STEP 2: Auto-detect creative mode (zero toggles) ──
+  const creativeMode = detectCreativeMode(userAssets, !!imageTemplate, templateRefs);
+  const subjectDirective = MODE_DIRECTIVES[creativeMode];
+  console.log(`[CreativeMode] Auto-detected: ${creativeMode}`);
 
   // ── STEP 3: Adaptive realism by tone (Skill Guide §2B) ──
   const tones = structuredBrief?.tone || [];
   const toneSet = new Set(tones.map((t: string) => t.toLowerCase()));
 
-  // Select realism approach based on user's tone selection
   let realismApproach = "Clean studio, controlled directional lighting, subtle film grain.";
   if (toneSet.has("luxurious") || toneSet.has("bold")) {
     realismApproach = "Rich contrast, dramatic directional light, cinematic film grain, deep shadows.";
@@ -910,7 +985,7 @@ function buildPromptBundle(
   ].join(" ");
 
   // ── ASSEMBLE: Visual prompt ≤80 words, STRICTLY visual (Skill Guide §1) ──
-  let visualPrompt = `${subjectDirective}${angle}. `;
+  let visualPrompt = `${subjectDirective} ${angle}. `;
   if (hookVisual) visualPrompt += `${hookVisual}. `;
   visualPrompt += `${realismApproach} ${emotionLighting}`;
   visualPrompt += `${styleDirective}. ${formatRule}. `;
@@ -919,7 +994,6 @@ function buildPromptBundle(
   visualPrompt += `Avoid: stock photo feel, clipart, illustration, 3D render, cartoon, airbrushed, beauty filter, porcelain skin.`;
 
   // ── 3. Extract text overlay metadata (for post-processing) ──
-  // ── Compute OKLCH brand color tokens from seed hex ──
   let computedBrandColors: BrandColorTokens | undefined;
   const seedHex = brandContext?.brandColors?.primary
     || brandContext?.brandPalette?.primary
@@ -945,9 +1019,9 @@ function buildPromptBundle(
 
   const platformSeed = PLATFORM_SEEDS[platform.toLowerCase()] || PLATFORM_SEEDS.instagram;
 
-  console.log(`[PromptBundle] Visual prompt: ${visualPrompt.split(" ").length} words | ${imageRefs.length} image refs | Text overlay: ${textOverlay.headline ? "yes" : "no"}`);
+  console.log(`[PromptBundle] Visual prompt: ${visualPrompt.split(" ").length} words | ${imageRefs.length} image refs | Text overlay: ${textOverlay.headline ? "yes" : "no"} | Mode: ${creativeMode}`);
 
-  return { visualPrompt, imageRefs, textOverlay, platformSeed };
+  return { visualPrompt, imageRefs, textOverlay, platformSeed, creativeMode };
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -1216,6 +1290,39 @@ async function processAssetsInBackground(
         actualCost = result.cost;
         generationTimeMs = result.timeMs;
 
+        // Step 1.5: Identity/Product Refinement via SeedEdit (for swap modes)
+        // When user selected a template AND provided their own assets,
+        // run a surgical SeedEdit pass to strengthen identity/product fidelity
+        if (contentUrl && (bundle.creativeMode === "identity_swap" || bundle.creativeMode === "product_in_scene" || bundle.creativeMode === "duo_editorial")) {
+          try {
+            const modelAsset = userAssets?.find((a: any) => a.role === "model");
+            const productAsset = userAssets?.find((a: any) => a.role === "product");
+            let editPrompt = "";
+
+            if (bundle.creativeMode === "identity_swap" && modelAsset?.url) {
+              editPrompt = "Refine the person's face to match the reference photo exactly. Preserve all facial proportions, skin tone, features, and expression. Keep the background, clothing, and composition unchanged.";
+            } else if (bundle.creativeMode === "product_in_scene" && productAsset?.url) {
+              editPrompt = "Refine the product to match the reference photo exactly. Preserve product shape, color, label, branding, and material texture. Keep background and composition unchanged.";
+            } else if (bundle.creativeMode === "duo_editorial") {
+              editPrompt = "Refine both the person's face and the product to match their reference photos exactly. Preserve facial identity, skin tone, product branding. Keep background unchanged.";
+            }
+
+            if (editPrompt) {
+              console.log(`[Refinement] Running SeedEdit identity pass for ${bundle.creativeMode}`);
+              const refined = await editImageSeedEdit(contentUrl, editPrompt, 0.35);
+              if (refined?.url) {
+                contentUrl = refined.url;
+                actualProvider += "+identity_refinement";
+                actualCost += refined.cost;
+                console.log(`[Refinement] ✅ Identity refinement applied via SeedEdit`);
+              }
+            }
+          } catch (e) {
+            console.warn(`[Refinement] SeedEdit pass failed, using base image:`, e);
+            // Non-fatal — base image is still good
+          }
+        }
+
         // Step 2: Post-processing — apply text overlay if campaign copy exists
         if (contentUrl && (bundle.textOverlay.headline || bundle.textOverlay.ctaText)) {
           console.log(`[PostProcess] Applying text overlay to ${platform}/${format}`);
@@ -1223,7 +1330,7 @@ async function processAssetsInBackground(
           if (overlaidUrl !== contentUrl) {
             contentUrl = overlaidUrl;
             actualProvider += "+text_overlay";
-            actualCost += 0.01; // overlay cost
+            actualCost += 0.01;
           }
         }
 
@@ -1273,6 +1380,7 @@ async function processAssetsInBackground(
         hook: assetDirection?.hook_suggestion || "",
         trace_id: decisionTraceId,
         prompt_words: 80,
+        creative_mode: bundle?.creativeMode || "editorial_free",
         image_refs: userAssets?.filter((a: any) => a.role === "product" || a.role === "model").length || 0,
         text_overlay: campaignCopy?.headline ? true : false,
       });
