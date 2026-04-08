@@ -59,13 +59,32 @@ const UserLibraries = () => {
   const [activeTab, setActiveTab] = useState<TabValue>("video_templates");
   const [search, setSearch] = useState("");
   const [previewItem, setPreviewItem] = useState<any>(null);
+  const [categoryFilters, setCategoryFilters] = useState<Record<string, string>>({});
 
   const currentTab = TABS.find((t) => t.value === activeTab)!;
+  const currentCategories = (currentTab.categories || []) as readonly { key: string; label: string; options: readonly string[] }[];
+
+  const toggleCategory = (key: string, value: string) => {
+    setCategoryFilters(prev => {
+      const next = { ...prev };
+      if (next[key] === value) delete next[key];
+      else next[key] = value;
+      return next;
+    });
+  };
+
+  const handleTabChange = (v: string) => {
+    setActiveTab(v as TabValue);
+    setCategoryFilters({});
+    setSearch("");
+  };
+
+  const activeFilterCount = Object.keys(categoryFilters).length + (search ? 1 : 0);
 
   return (
     <AppShell>
       <div className="px-4 sm:px-6 pt-4 pb-8">
-        <div className="mb-6">
+        <div className="mb-4">
           <h1 className="text-lg font-bold text-foreground">Content Library</h1>
           <p className="text-xs text-muted-foreground mt-1">
             Browse curated templates, characters, references, and competitor ad intelligence.
@@ -73,14 +92,47 @@ const UserLibraries = () => {
         </div>
 
         {activeTab !== "ad_intelligence" && (
-          <div className="relative mb-4">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search by name, mood, style, platform, format, tag..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 h-9 text-sm"
-            />
+          <div className="space-y-3 mb-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by name, mood, style, platform, format, tag..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-9 h-9 text-sm"
+              />
+            </div>
+
+            {/* Category Filter Chips */}
+            {currentCategories.length > 0 && (
+              <div className="space-y-2">
+                {currentCategories.map((cat) => (
+                  <div key={cat.key} className="flex items-center gap-2 flex-wrap">
+                    <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider w-14 shrink-0">{cat.label}</span>
+                    {cat.options.map((opt) => (
+                      <Badge
+                        key={opt}
+                        variant={categoryFilters[cat.key] === opt ? "default" : "outline"}
+                        className="text-[10px] px-2 py-0.5 cursor-pointer hover:bg-primary/10 transition-colors capitalize"
+                        onClick={() => toggleCategory(cat.key, opt)}
+                      >
+                        {opt.replace(/_/g, " ")}
+                      </Badge>
+                    ))}
+                  </div>
+                ))}
+                {activeFilterCount > 0 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-[10px] h-6 px-2 text-muted-foreground"
+                    onClick={() => { setCategoryFilters({}); setSearch(""); }}
+                  >
+                    Clear all ({activeFilterCount})
+                  </Button>
+                )}
+              </div>
+            )}
           </div>
         )}
 
