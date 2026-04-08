@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { getFamilyLabel } from "@/lib/familyLabels";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,7 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, Film, Users, Image, Megaphone, Eye, Zap, Radar, Globe, Loader2, VideoIcon, Tag, Building2 } from "lucide-react";
+import { Search, Film, Users, Image, Megaphone, Eye, Zap, Radar, Globe, Loader2, VideoIcon, Tag, Building2, Check, ArrowRight, X, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -23,6 +24,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+
+interface LibrarySelectionItem {
+  id: string;
+  type: string;
+  name: string;
+  thumbnail?: string;
+  data: any;
+}
 
 const TABS = [
   { value: "video_templates", label: "Video Templates", icon: Film, table: "video_templates" as const, nameField: "template_name",
@@ -57,10 +66,42 @@ const TABS = [
 type TabValue = (typeof TABS)[number]["value"];
 
 const UserLibraries = () => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<TabValue>("video_templates");
   const [search, setSearch] = useState("");
   const [previewItem, setPreviewItem] = useState<any>(null);
   const [categoryFilters, setCategoryFilters] = useState<Record<string, string>>({});
+  const [selectedItems, setSelectedItems] = useState<LibrarySelectionItem[]>([]);
+
+  const toggleSelection = (item: any, type: string, nameField: string) => {
+    setSelectedItems(prev => {
+      const exists = prev.find(s => s.id === item.id);
+      if (exists) return prev.filter(s => s.id !== item.id);
+      return [...prev, {
+        id: item.id,
+        type,
+        name: item[nameField] || "Untitled",
+        thumbnail: item.thumbnail_url || item.preview_url || item.avatar_url || item.media_url,
+        data: item,
+      }];
+    });
+  };
+
+  const isSelected = (id: string) => selectedItems.some(s => s.id === id);
+
+  const handleUseInCampaign = () => {
+    navigate("/dashboard/new-campaign", {
+      state: {
+        libraryRefs: selectedItems.map(s => ({
+          id: s.id,
+          title: s.name,
+          mediaUrl: s.thumbnail,
+          type: s.type,
+          data: s.data,
+        })),
+      },
+    });
+  };
 
   const currentTab = TABS.find((t) => t.value === activeTab)!;
   const currentCategories = (currentTab.categories || []) as readonly { key: string; label: string; options: readonly string[] }[];
@@ -154,7 +195,7 @@ const UserLibraries = () => {
 
           {TABS.map((tab) => (
             <TabsContent key={tab.value} value={tab.value}>
-              {tab.value === "ad_intelligence" ? (
+               {tab.value === "ad_intelligence" ? (
                 <AdIntelligenceGallery onPreview={setPreviewItem} />
               ) : (
                 <LibraryGallery
@@ -164,11 +205,49 @@ const UserLibraries = () => {
                   search={search}
                   categoryFilters={categoryFilters}
                   onPreview={setPreviewItem}
+                  selectedIds={selectedItems.map(s => s.id)}
+                  onToggleSelect={(item) => toggleSelection(item, tab.value, tab.nameField)}
                 />
               )}
             </TabsContent>
           ))}
         </Tabs>
+
+        {/* Floating Selection Bar */}
+        {selectedItems.length > 0 && (
+          <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-primary text-primary-foreground rounded-full shadow-lg px-5 py-3 flex items-center gap-4 animate-in slide-in-from-bottom-4 fade-in duration-200">
+            <div className="flex items-center gap-2">
+              <div className="flex -space-x-2">
+                {selectedItems.slice(0, 4).map((s) => (
+                  <div key={s.id} className="w-8 h-8 rounded-full border-2 border-primary bg-primary-foreground/10 flex items-center justify-center overflow-hidden">
+                    {s.thumbnail ? (
+                      <img src={s.thumbnail} alt={s.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <Check className="w-3 h-3" />
+                    )}
+                  </div>
+                ))}
+              </div>
+              <span className="text-sm font-medium">{selectedItems.length} selected</span>
+            </div>
+            <Button
+              size="sm"
+              variant="secondary"
+              className="h-8 text-xs gap-1.5 font-semibold"
+              onClick={handleUseInCampaign}
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              Use in Campaign
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Button>
+            <button
+              onClick={() => setSelectedItems([])}
+              className="ml-1 p-1 rounded-full hover:bg-primary-foreground/20 transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
 
         {/* Preview Dialog */}
         <Dialog open={!!previewItem} onOpenChange={() => setPreviewItem(null)}>
@@ -660,9 +739,11 @@ interface LibraryGalleryProps {
   search: string;
   categoryFilters: Record<string, string>;
   onPreview: (item: any) => void;
+  selectedIds: string[];
+  onToggleSelect: (item: any) => void;
 }
 
-const LibraryGallery = ({ table, nameField, icon: Icon, search, categoryFilters, onPreview }: LibraryGalleryProps) => {
+const LibraryGallery = ({ table, nameField, icon: Icon, search, categoryFilters, onPreview, selectedIds, onToggleSelect }: LibraryGalleryProps) => {
   const { data: items = [], isLoading } = useQuery({
     queryKey: ["user-library", table],
     queryFn: async () => {
@@ -677,7 +758,6 @@ const LibraryGallery = ({ table, nameField, icon: Icon, search, categoryFilters,
   });
 
   const filtered = items.filter((item: any) => {
-    // Category filters — exact match
     for (const [key, value] of Object.entries(categoryFilters)) {
       const itemVal = item[key];
       if (Array.isArray(itemVal)) {
@@ -686,7 +766,6 @@ const LibraryGallery = ({ table, nameField, icon: Icon, search, categoryFilters,
         return false;
       }
     }
-    // Text search
     if (!search) return true;
     const q = search.toLowerCase();
     const searchable = [
@@ -745,12 +824,13 @@ const LibraryGallery = ({ table, nameField, icon: Icon, search, categoryFilters,
           ...(item.mood_tags || []),
           ...(item.industry_tags || []),
         ].slice(0, 3);
+        const selected = selectedIds.includes(item.id);
 
         return (
           <Card
             key={item.id}
-            className="group cursor-pointer transition-all hover:shadow-md hover:border-primary/30 overflow-hidden"
-            onClick={() => onPreview(item)}
+            className={`group cursor-pointer transition-all overflow-hidden ${selected ? "ring-2 ring-primary border-primary shadow-md" : "hover:shadow-md hover:border-primary/30"}`}
+            onClick={() => onToggleSelect(item)}
           >
             <div className="relative aspect-[4/5] bg-muted flex items-center justify-center overflow-hidden">
               {thumb ? (
@@ -758,9 +838,19 @@ const LibraryGallery = ({ table, nameField, icon: Icon, search, categoryFilters,
               ) : (
                 <Icon className="h-8 w-8 text-muted-foreground/30" />
               )}
-              <div className="absolute inset-0 bg-foreground/0 group-hover:bg-foreground/5 transition-colors flex items-center justify-center">
-                <Eye className="h-5 w-5 text-foreground/0 group-hover:text-foreground/60 transition-colors" />
-              </div>
+              {/* Selection checkmark */}
+              {selected && (
+                <div className="absolute top-2 left-2 w-6 h-6 rounded-full bg-primary flex items-center justify-center shadow-sm">
+                  <Check className="h-3.5 w-3.5 text-primary-foreground" />
+                </div>
+              )}
+              {/* Preview eye button */}
+              <button
+                className="absolute top-2 right-2 w-7 h-7 rounded-full bg-background/80 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-background shadow-sm"
+                onClick={(e) => { e.stopPropagation(); onPreview(item); }}
+              >
+                <Eye className="h-3.5 w-3.5 text-foreground" />
+              </button>
             </div>
 
             <CardContent className="p-2.5">
