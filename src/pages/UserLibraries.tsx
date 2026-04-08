@@ -90,7 +90,7 @@ const UserLibraries = () => {
   const isSelected = (id: string) => selectedItems.some(s => s.id === id);
 
   const handleUseInCampaign = () => {
-    navigate("/dashboard/new-campaign", {
+    navigate("/dashboard/campaigns/new", {
       state: {
         libraryRefs: selectedItems.map(s => ({
           id: s.id,
