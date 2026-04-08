@@ -220,9 +220,46 @@ const AdminLibraryForm = ({ tableName, editingItem, onClose, onSaved }: AdminLib
         return;
       }
       if (data?.analysis) {
-        const formatted = JSON.stringify(data.analysis, null, 2);
-        setValues((prev) => ({ ...prev, [mapping.jsonField]: formatted }));
-        toast.success(isVideo ? "✨ Video frame analyzed — JSON auto-populated" : "✨ Analysis complete — JSON auto-populated", { id: "auto-analyze" });
+        // Auto-fill metadata fields from AI suggestions (only fill empty fields)
+        const a = data.analysis;
+        const autoFills: Record<string, string> = {};
+        
+        if (tableName === "video_templates") {
+          if (a.suggested_template_name && !values.template_name) autoFills.template_name = a.suggested_template_name;
+          if (a.suggested_family && !values.family) autoFills.family = a.suggested_family;
+          if (a.suggested_mood && !values.mood) autoFills.mood = a.suggested_mood;
+          if (a.suggested_aspect_ratio && !values.aspect_ratio) autoFills.aspect_ratio = a.suggested_aspect_ratio;
+          if (a.suggested_duration_s && !values.duration_s) autoFills.duration_s = String(a.suggested_duration_s);
+          if (a.suggested_hook_type && !values.hook_type) autoFills.hook_type = a.suggested_hook_type;
+          if (a.suggested_tags?.length && (!values.tags || values.tags === "")) autoFills.tags = a.suggested_tags.join(", ");
+        }
+        if (tableName === "character_library") {
+          if (a.casting_type && !values.name) autoFills.name = a.casting_type;
+          if (a.energy && !values.mood_tags) autoFills.mood_tags = a.energy;
+        }
+        if (tableName === "image_templates") {
+          if (a.mood && !values.style_name) autoFills.style_name = a.mood;
+        }
+
+        // Remove suggested_ fields from the JSON stored in sealcam_analysis
+        const cleanAnalysis = { ...a };
+        delete cleanAnalysis.suggested_template_name;
+        delete cleanAnalysis.suggested_family;
+        delete cleanAnalysis.suggested_mood;
+        delete cleanAnalysis.suggested_aspect_ratio;
+        delete cleanAnalysis.suggested_hook_type;
+        delete cleanAnalysis.suggested_tags;
+        delete cleanAnalysis.suggested_duration_s;
+
+        const formatted = JSON.stringify(cleanAnalysis, null, 2);
+        const filledCount = Object.keys(autoFills).length;
+        setValues((prev) => ({ ...prev, ...autoFills, [mapping.jsonField]: formatted }));
+        toast.success(
+          filledCount > 0
+            ? `✨ Analysis complete — ${filledCount} fields auto-filled`
+            : isVideo ? "✨ Video frame analyzed — JSON auto-populated" : "✨ Analysis complete — JSON auto-populated",
+          { id: "auto-analyze" }
+        );
       }
     } catch (e: any) {
       console.error("Auto-analysis failed:", e);
