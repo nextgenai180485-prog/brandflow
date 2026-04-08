@@ -1165,10 +1165,10 @@ async function processAssetsInBackground(
   console.log(`[Generation] Processing ${assets.length} assets with ${allDirections?.length || 1} creative directions`);
 
   // Process all assets in PARALLEL to avoid sequential timeout kills
-  const assetPromises = assets.map(async (asset: any, i: number) => {
-    const asset = assets[i];
+  const assetPromises = assets.map(async (assetItem: any, i: number) => {
     const placeholderId = placeholderIds[i];
-    if (placeholderId === "error") continue;
+    if (placeholderId === "error") return null;
+    const { platform, format, aspectRatio, width, height, assetType } = assetItem;
     const startTime = Date.now();
     const { platform, format, aspectRatio, width, height, assetType } = asset;
 
