@@ -306,7 +306,9 @@ const AdminLibraryForm = ({ tableName, editingItem, onClose, onSaved }: AdminLib
         } else if (field.type === "json") {
           try { payload[field.key] = JSON.parse(raw); } catch { payload[field.key] = {}; }
         } else if (field.type === "number") {
-          payload[field.key] = Number(raw) || 0;
+          const num = Number(raw) || 0;
+          const INTEGER_FIELDS = ["duration_s", "usage_count"];
+          payload[field.key] = INTEGER_FIELDS.includes(field.key) ? Math.round(num) : num;
         } else {
           payload[field.key] = raw || null;
         }
