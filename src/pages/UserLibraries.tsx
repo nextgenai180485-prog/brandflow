@@ -310,8 +310,8 @@ const AdIntelDetail = ({ item }: { item: any }) => {
         {item.cta_title && (
           <div><span className="text-muted-foreground">CTA:</span> <span className="font-medium text-foreground">{item.cta_title}</span></div>
         )}
-        {item.running_duration && (
-          <div><span className="text-muted-foreground">Running:</span> <span className="font-medium text-foreground">{item.running_duration} days</span></div>
+        {item.running_duration?.days > 0 && (
+          <div><span className="text-muted-foreground">Running:</span> <span className="font-medium text-foreground">{item.running_duration.days} days</span></div>
         )}
         {item.live !== undefined && (
           <div><span className="text-muted-foreground">Status:</span> <span className="font-medium text-foreground">{item.live ? "🟢 Live" : "⏸ Inactive"}</span></div>
