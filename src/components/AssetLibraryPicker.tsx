@@ -32,13 +32,13 @@ interface AssetLibraryPickerProps {
 
 // ── Library tab definitions ──
 const LIBRARY_TABS = [
-  { value: "your_assets", label: "Your Uploads", icon: Upload, table: "brand_assets" as const, nameField: "file_name", isUserAssets: true },
-  { value: "video_templates", label: "Video Templates", icon: Film, table: "video_templates" as const, nameField: "template_name" },
-  { value: "character_library", label: "Characters", icon: Users, table: "character_library" as const, nameField: "name" },
-  { value: "ad_reference_library", label: "Ad References", icon: Megaphone, table: "ad_reference_library" as const, nameField: "title" },
-  { value: "image_templates", label: "Image Templates", icon: Image, table: "image_templates" as const, nameField: "style_name" },
-  { value: "hooks", label: "Hooks", icon: Zap, table: "hooks" as const, nameField: "hook_text" },
-] as const;
+  { value: "your_assets" as const, label: "Your Uploads", icon: Upload, table: "brand_assets" as const, nameField: "file_name" },
+  { value: "video_templates" as const, label: "Video Templates", icon: Film, table: "video_templates" as const, nameField: "template_name" },
+  { value: "character_library" as const, label: "Characters", icon: Users, table: "character_library" as const, nameField: "name" },
+  { value: "ad_reference_library" as const, label: "Ad References", icon: Megaphone, table: "ad_reference_library" as const, nameField: "title" },
+  { value: "image_templates" as const, label: "Image Templates", icon: Image, table: "image_templates" as const, nameField: "style_name" },
+  { value: "hooks" as const, label: "Hooks", icon: Zap, table: "hooks" as const, nameField: "hook_text" },
+];
 
 type LibTabValue = (typeof LIBRARY_TABS)[number]["value"];
 
