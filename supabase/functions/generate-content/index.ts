@@ -550,8 +550,8 @@ async function storeDecisionTrace(
   }
 }
 
-// ── Caption Generation via Lovable AI ────────────────────────
-async function generateCaption(platform: string, format: string, brandContext: any, intelligenceBrief: any, decisionWinner: any, imagePrompt: string): Promise<string> {
+// ── Caption Generation via Lovable AI (campaign-brief-first) ─
+async function generateCaption(platform: string, format: string, brandContext: any, intelligenceBrief: any, decisionWinner: any, imagePrompt: string, campaignCopy?: any, structuredBrief?: any): Promise<string> {
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
   if (!LOVABLE_API_KEY) return `Content for ${platform} ${format}`;
 
@@ -559,6 +559,7 @@ async function generateCaption(platform: string, format: string, brandContext: a
   const angle = decisionWinner?.angle_type || "";
   const directionName = decisionWinner?.name || "brand showcase";
   const directionDesc = decisionWinner?.description || "";
+  const brandName = brandContext.businessName || "the brand";
 
   const platformRules: Record<string, string> = {
     instagram: "Use relevant hashtags (5-10), line breaks for readability, emojis that match the tone. Start with a hook that stops the scroll. Keep under 2200 chars. End with a CTA.",
@@ -568,8 +569,20 @@ async function generateCaption(platform: string, format: string, brandContext: a
     twitter: "Concise, punchy. Under 280 chars. 1-2 hashtags max. Make every word count.",
     youtube: "Descriptive title + description format. Include relevant keywords naturally. Add timestamps if applicable.",
   };
-
   const platformRule = platformRules[platform.toLowerCase()] || platformRules.instagram;
+
+  // Build campaign-specific copy context for the caption
+  let campaignContext = "";
+  if (structuredBrief) {
+    if (structuredBrief.objective) campaignContext += `Campaign objective: ${structuredBrief.objective}. `;
+    if (structuredBrief.messageAngle) campaignContext += `Core message: ${structuredBrief.messageAngle}. `;
+    if (structuredBrief.tone?.length) campaignContext += `Tone: ${structuredBrief.tone.join(", ")}. `;
+  }
+  if (campaignCopy) {
+    if (campaignCopy.headline) campaignContext += `Headline: "${campaignCopy.headline}". `;
+    if (campaignCopy.ctaText) campaignContext += `CTA: "${campaignCopy.ctaText}". `;
+    if (campaignCopy.bodyCopy) campaignContext += `Copy direction: ${campaignCopy.bodyCopy}. `;
+  }
 
   const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
@@ -579,30 +592,26 @@ async function generateCaption(platform: string, format: string, brandContext: a
       messages: [
         {
           role: "system",
-          content: `You are an elite social media copywriter for "${brandContext.businessName || "the brand"}" in the ${brandContext.industry || "beauty"} industry. 
-Brand voice: ${brandContext.brandVoice || "professional, warm"}.
-Target audience: ${brandContext.targetAudience || "general audience"}.
-
-You write captions that feel NATIVE to each platform — not generic marketing copy. Every caption must:
+          content: `You are an elite social media copywriter. You write captions that feel NATIVE to each platform — not generic marketing copy. Every caption must:
 1. Open with a scroll-stopping hook
 2. Connect emotionally with the target audience
 3. Include a clear but subtle call-to-action
 4. Match the platform's culture and formatting norms
-5. Be directly relevant to the visual content being posted`,
+5. Be directly relevant to the visual content being posted
+
+IMPORTANT: Use ONLY the campaign brief provided. Do NOT invent brand descriptions, company summaries, or value propositions. Write for the specific campaign, not the entire company.`,
         },
         {
           role: "user",
           content: `Write a caption for this ${platform} ${format} post.
+Brand name: ${brandName}
 
-THE VISUAL CONTENT: ${imagePrompt}
+CAMPAIGN BRIEF (PRIMARY INPUT — use this):
+${campaignContext || "General brand awareness campaign."}
 
 CREATIVE DIRECTION: "${directionName}" — ${directionDesc}
 ANGLE: ${angle}
 HOOK INSPIRATION: ${hookSuggestion}
-
-${intelligenceBrief?.content_angles ? `TRENDING ANGLES IN THIS SPACE: ${intelligenceBrief.content_angles.slice(0, 5).join(", ")}` : ""}
-${intelligenceBrief?.hooks ? `COMPETITOR HOOKS WORKING NOW: ${intelligenceBrief.hooks.slice(0, 5).join(" | ")}` : ""}
-${intelligenceBrief?.avoid ? `AVOID THESE APPROACHES: ${intelligenceBrief.avoid.join(", ")}` : ""}
 
 PLATFORM RULES: ${platformRule}
 
@@ -614,7 +623,7 @@ Output ONLY the caption text. No explanations, no quotes around it. Just the raw
 
   if (!response.ok) {
     await response.text();
-    return `Discover the difference at ${brandContext.businessName || "our studio"}. ✨ #${brandContext.industry || "beauty"}`;
+    return `✨ ${campaignCopy?.headline || "Discover something new"} #${brandContext.industry || "lifestyle"}`;
   }
   const data = await response.json();
   return data.choices?.[0]?.message?.content?.trim() || `Content for ${platform}`;
