@@ -325,6 +325,7 @@ export type Database = {
       campaigns: {
         Row: {
           created_at: string
+          draft_state: Json | null
           id: string
           instructions: string | null
           profile_id: string
@@ -336,6 +337,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          draft_state?: Json | null
           id?: string
           instructions?: string | null
           profile_id: string
@@ -347,6 +349,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          draft_state?: Json | null
           id?: string
           instructions?: string | null
           profile_id?: string
