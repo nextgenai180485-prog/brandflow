@@ -906,16 +906,24 @@ async function processAssetsInBackground(
         if (campaignCopy.ctaText) campaignContext += `CTA: "${campaignCopy.ctaText}". `;
       }
 
-      // Build user asset references for prompt injection
+      // Build user asset references — collect actual image URLs for img2img pipeline
       let userAssetContext = "";
+      const userImageRefs: string[] = [];
       if (userAssets?.length) {
         const includeLogo = brandContext?.includeLogo !== false;
         const productAssets = userAssets.filter((a: any) => a.role === "product");
         const modelAssets = userAssets.filter((a: any) => a.role === "model");
         const logoAssets = includeLogo ? userAssets.filter((a: any) => a.role === "logo") : [];
-        if (productAssets.length) userAssetContext += `Feature this product: ${productAssets.map((a: any) => a.url).join(", ")}. `;
-        if (modelAssets.length) userAssetContext += `Use this model/person: ${modelAssets.map((a: any) => a.url).join(", ")}. `;
-        if (logoAssets.length) userAssetContext += `Include brand logo: ${logoAssets.map((a: any) => a.url).join(", ")}. `;
+        
+        // Collect actual image URLs for the img2img pipeline (product and model only)
+        for (const a of [...productAssets, ...modelAssets]) {
+          if (a.url) userImageRefs.push(a.url);
+        }
+        
+        // Also add text context for prompt enrichment
+        if (productAssets.length) userAssetContext += `The image must prominently feature the user's product. `;
+        if (modelAssets.length) userAssetContext += `The image must feature the exact person/model provided by the user as the main subject. `;
+        if (logoAssets.length) userAssetContext += `Include brand logo overlay. `;
       }
 
       // Template reference URLs for style matching
@@ -940,10 +948,17 @@ async function processAssetsInBackground(
         }
 
         generatedPrompt = buildImagePrompt(platform, format, brandContext || {}, intelligenceBrief || {}, assetDirection, matchedTemplate, referenceImageUrl);
-        // Inject variation + campaign brief + user assets + template refs
+        // Inject variation + campaign brief + user context + template refs
         generatedPrompt += variationContext + campaignContext + userAssetContext + templateRefContext;
-        console.log(`[Generate] ${assetType} for ${platform}/${format} via Replicate Seedream 5`);
-        const result = await generateImage(generatedPrompt, width || 1080, height || 1080);
+        
+        // Pass actual user image URLs to the img2img pipeline when available
+        const hasUserImages = userImageRefs.length > 0;
+        if (hasUserImages) {
+          console.log(`[Generate] ${assetType} for ${platform}/${format} via Img2Img pipeline with ${userImageRefs.length} reference image(s)`);
+        } else {
+          console.log(`[Generate] ${assetType} for ${platform}/${format} via text-to-image`);
+        }
+        const result = await generateImage(generatedPrompt, width || 1080, height || 1080, hasUserImages ? userImageRefs : undefined);
         contentUrl = result.url;
         actualProvider = result.provider;
         actualCost = result.cost;
