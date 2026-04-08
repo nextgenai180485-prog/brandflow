@@ -503,6 +503,53 @@ const NewCampaign = () => {
   );
 
   // ══════════════════════════════════════════════════════
+  // INLINE STRATEGY GATE — compact founder interview
+  // ══════════════════════════════════════════════════════
+  if (!strategyChecked) {
+    return (
+      <AppShell>
+        <div className="flex h-[calc(100vh-3.5rem)] items-center justify-center">
+          <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+        </div>
+      </AppShell>
+    );
+  }
+
+  if (needsStrategy) {
+    return (
+      <AppShell>
+        <div className="flex h-[calc(100vh-3.5rem)] overflow-hidden">
+          <div className="flex-1 flex items-center justify-center">
+            <div className="max-w-lg w-full px-6 py-8">
+              <div className="flex items-center gap-2 mb-6">
+                <Brain className="w-5 h-5 text-primary" />
+                <div>
+                  <h1 className="text-lg font-bold text-foreground">Quick Strategy Setup</h1>
+                  <p className="text-xs text-muted-foreground">3 questions to unlock personalized campaigns — takes 2 minutes</p>
+                </div>
+              </div>
+              <FounderInterview
+                businessName={businessName}
+                industry={industry}
+                onStrategyGenerated={() => {
+                  setNeedsStrategy(false);
+                  toast.success("Strategy locked — let's create!");
+                }}
+              />
+              <button
+                onClick={() => setNeedsStrategy(false)}
+                className="mt-4 text-[10px] text-muted-foreground hover:text-foreground transition-colors w-full text-center"
+              >
+                Skip for now — I'll set this up later
+              </button>
+            </div>
+          </div>
+        </div>
+      </AppShell>
+    );
+  }
+
+  // ══════════════════════════════════════════════════════
   // MOBILE LAYOUT: Tab-switched (Builder / Preview / Source)
   // ══════════════════════════════════════════════════════
   if (isMobile) {
