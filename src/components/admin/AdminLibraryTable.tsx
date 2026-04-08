@@ -237,7 +237,12 @@ const AdminLibraryTable = ({ tableName }: AdminLibraryTableProps) => {
             <tr key={item.id} className="border-b border-border last:border-0 hover:bg-accent/30 transition-colors">
               {config.columns.map((col) => (
                 <td key={col.key} className="px-3 py-2.5 text-foreground max-w-[160px] truncate">
-                  {String(item[col.key] ?? "—")}
+                  <div className="flex items-center gap-2">
+                    {col.key === config.nameField && tableName === "image_templates" && item.preview_url && (
+                      <img src={item.preview_url} alt="" className="w-8 h-8 rounded object-cover shrink-0" />
+                    )}
+                    <span className="truncate">{String(item[col.key] ?? "—")}</span>
+                  </div>
                 </td>
               ))}
               <td className="px-3 py-2.5">

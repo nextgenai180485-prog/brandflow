@@ -246,7 +246,7 @@ const LibraryTabGrid = ({ tab, search, isSelected, toggleAsset, onChange, select
 
   // Convert any library item to a LibraryAsset for selection
   const toLibraryAsset = (item: any): LibraryAsset => {
-    const url = item.file_url || item.avatar_url || item.thumbnail_url || item.media_url || item.example_url || "";
+    const url = item.file_url || item.preview_url || item.avatar_url || item.thumbnail_url || item.media_url || item.example_url || "";
     const name = item[tab.nameField] || item.file_name || "Untitled";
     return {
       id: item.id,
@@ -299,7 +299,7 @@ const LibraryTabGrid = ({ tab, search, isSelected, toggleAsset, onChange, select
           {filtered.map((item: any) => {
             const asset = toLibraryAsset(item);
             const selected = isSelected(item.id);
-            const thumb = item.file_url || item.avatar_url || item.thumbnail_url || item.media_url || item.example_url;
+            const thumb = item.file_url || item.preview_url || item.avatar_url || item.thumbnail_url || item.media_url || item.example_url;
             const name = item[tab.nameField] || "Untitled";
             const tags = [...(item.tags || []), ...(item.mood_tags || [])].slice(0, 2);
 

@@ -59,6 +59,7 @@ const FORM_FIELDS: Record<TableName, { key: string; label: string; type: FieldTy
   ],
   image_templates: [
     { key: "style_name", label: "Style Name", type: "text" },
+    { key: "preview_url", label: "Preview Thumbnail", type: "file", folder: "image-templates" },
     { key: "vertical", label: "Vertical", type: "select", options: ["general", "beauty", "fitness", "saas", "ecommerce", "food", "realestate", "fashion", "wellness", "automotive"] },
     { key: "platform", label: "Platform", type: "select", options: ["instagram", "tiktok", "facebook", "linkedin", "x", "youtube"] },
     { key: "format", label: "Format", type: "select", options: ["post", "story", "reel", "carousel"] },
