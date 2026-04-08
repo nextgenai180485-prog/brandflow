@@ -702,12 +702,10 @@ function buildImagePrompt(platform: string, format: string, brandContext: any, i
 }
 
 function buildVideoPrompt(platform: string, format: string, brandContext: any, intelligenceBrief: any, decisionWinner: any): string {
-  const baseStyle = intelligenceBrief?.visual_direction || "cinematic, smooth motion, professional";
   const angle = decisionWinner?.description || "brand experience showcase";
   const hookText = decisionWinner?.hook_suggestion || "";
 
-  let prompt = `Professional ${brandContext.industry || "beauty"} marketing video for ${platform} ${format}. `;
-  prompt += `Brand: "${brandContext.businessName || "luxury studio"}". Style: ${baseStyle}. `;
+  let prompt = `Professional ${brandContext.industry || "general"} marketing video for ${platform} ${format}. `;
   prompt += `Creative direction: ${angle}. `;
   if (hookText) prompt += `Opening concept: ${hookText}. `;
   prompt += `Smooth camera movement, high production value, aspirational feel. `;
