@@ -106,9 +106,38 @@ const NewCampaign = () => {
     if (contentTypes.length === 0) setContentTypes(["image"]);
   }, []);
 
+  // Check for brand strategy + load brand profile
   useEffect(() => {
     if (!user) return;
     const load = async () => {
+      // Check strategy existence
+      const { data: stratRows } = await supabase
+        .from("brand_strategy")
+        .select("id, strategy_generated")
+        .eq("profile_id", user.id)
+        .limit(1);
+      
+      const hasStrategy = stratRows && stratRows.length > 0 && (stratRows[0] as any).strategy_generated;
+      
+      if (!hasStrategy) {
+        // Check if they have brand_memory or research (website users skip interview)
+        const { data: memCheck } = await supabase
+          .from("brand_memory").select("id").eq("profile_id", user.id)
+          .eq("memory_type", "brand_profile").limit(1);
+        
+        if (!memCheck || memCheck.length === 0) {
+          // Get profile info for the interview
+          const { data: profile } = await supabase
+            .from("profiles").select("business_name, industry")
+            .eq("id", user.id).single();
+          setBusinessName(profile?.business_name || "");
+          setIndustry(profile?.industry || "");
+          setNeedsStrategy(true);
+        }
+      }
+      setStrategyChecked(true);
+
+      // Load brand profile
       const { data } = await supabase
         .from("brand_memory").select("context").eq("profile_id", user.id)
         .eq("memory_type", "brand_profile").eq("pattern_category", "auto_research")
