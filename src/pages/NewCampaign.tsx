@@ -309,11 +309,7 @@ const NewCampaign = () => {
     supabase.functions.invoke("generate-content", {
       body: {
         campaignId: campaign.id, assets: generationAssets, brandContext,
-        intelligenceBrief: brandProfile ? {
-          summary: brandProfile.summary, competitors: brandProfile.competitors,
-          hooks: brandProfile.content_pillars || [], content_angles: brandProfile.key_themes || [],
-          visual_direction: brandProfile.visual_style,
-        } : null,
+        intelligenceBrief: null,
         creativeDirection: creativeDirection || null,
         referenceImageUrl: referenceImageUrl || null,
         templateRefs: templateRefs.length ? templateRefs : null,
