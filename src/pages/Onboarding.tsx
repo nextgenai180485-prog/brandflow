@@ -230,7 +230,7 @@ const Onboarding = () => {
 
     toast.success("Welcome to Brandflow! 🚀");
     setSaving(false);
-    navigate("/dashboard/strategy/new");
+    navigate("/dashboard/campaigns/new");
   };
 
   if (loading) {
