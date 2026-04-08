@@ -90,6 +90,61 @@ const FORM_FIELDS: Record<TableName, { key: string; label: string; type: FieldTy
   ],
 };
 
+/** Extract a single frame from a video URL as a JPEG blob using HTML5 video+canvas */
+function extractVideoFrame(videoUrl: string, seekTime = 1): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    const video = document.createElement("video");
+    video.crossOrigin = "anonymous";
+    video.muted = true;
+    video.preload = "auto";
+
+    const timeout = setTimeout(() => {
+      cleanup();
+      reject(new Error("Video frame extraction timed out"));
+    }, 15000);
+
+    const cleanup = () => {
+      clearTimeout(timeout);
+      video.removeAttribute("src");
+      video.load();
+    };
+
+    video.addEventListener("loadeddata", () => {
+      video.currentTime = Math.min(seekTime, video.duration * 0.1 || seekTime);
+    });
+
+    video.addEventListener("seeked", () => {
+      try {
+        const canvas = document.createElement("canvas");
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) { cleanup(); reject(new Error("Canvas not supported")); return; }
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob(
+          (blob) => {
+            cleanup();
+            if (blob) resolve(blob);
+            else reject(new Error("Failed to capture frame"));
+          },
+          "image/jpeg",
+          0.85
+        );
+      } catch (e) {
+        cleanup();
+        reject(e);
+      }
+    });
+
+    video.addEventListener("error", () => {
+      cleanup();
+      reject(new Error("Failed to load video for frame extraction"));
+    });
+
+    video.src = videoUrl;
+  });
+}
+
 const AdminLibraryForm = ({ tableName, editingItem, onClose, onSaved }: AdminLibraryFormProps) => {
   const fields = FORM_FIELDS[tableName];
   const [saving, setSaving] = useState(false);
@@ -116,27 +171,43 @@ const AdminLibraryForm = ({ tableName, editingItem, onClose, onSaved }: AdminLib
 
   const [values, setValues] = useState<Record<string, string>>(getInitialValues);
 
-  // Auto-analyze uploaded media via vision AI
+  // Auto-analyze uploaded media via vision AI (with video frame extraction)
   const triggerAutoAnalysis = useCallback(async (fileFieldKey: string, mediaUrl: string) => {
     const mappings = AUTO_ANALYSIS_MAP[tableName] || [];
     const mapping = mappings.find((m) => m.fileField === fileFieldKey);
     if (!mapping || !mediaUrl) return;
 
-    // Accept images and videos — vision models can handle video thumbnails/frames
     const isMedia = /\.(jpg|jpeg|png|gif|webp|svg|mp4|mov|webm|avi)(\?|$)/i.test(mediaUrl);
     if (!isMedia) return;
 
     setAnalyzing(mapping.jsonField);
-    toast.info("🔍 Auto-analyzing media…", { id: "auto-analyze" });
+
+    const isVideo = /\.(mp4|mov|webm|avi)(\?|$)/i.test(mediaUrl);
+    let analysisUrl = mediaUrl;
 
     try {
+      if (isVideo) {
+        toast.info("🎬 Extracting frame from video…", { id: "auto-analyze" });
+        const frameBlob = await extractVideoFrame(mediaUrl);
+        const frameName = `frame-${Date.now()}.jpg`;
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from("library-assets")
+          .upload(`video-frames/${frameName}`, frameBlob, { contentType: "image/jpeg" });
+        if (uploadError) throw uploadError;
+        const { data: { publicUrl } } = supabase.storage.from("library-assets").getPublicUrl(uploadData.path);
+        analysisUrl = publicUrl;
+        toast.info("🔍 Analyzing extracted frame…", { id: "auto-analyze" });
+      } else {
+        toast.info("🔍 Auto-analyzing media…", { id: "auto-analyze" });
+      }
+
       const { data, error } = await supabase.functions.invoke("analyze-asset", {
-        body: { image_url: mediaUrl, analysis_mode: mapping.mode },
+        body: { image_url: analysisUrl, analysis_mode: mapping.mode },
       });
 
       if (error) throw error;
       if (data?.unsupported_format) {
-        toast.warning("Video files can't be vision-analyzed. Upload a thumbnail image for SEALCaM extraction.", { id: "auto-analyze", duration: 6000 });
+        toast.warning("Could not analyze this file format.", { id: "auto-analyze", duration: 6000 });
         return;
       }
       if (data?.fallback || data?.error) {
@@ -146,11 +217,11 @@ const AdminLibraryForm = ({ tableName, editingItem, onClose, onSaved }: AdminLib
       if (data?.analysis) {
         const formatted = JSON.stringify(data.analysis, null, 2);
         setValues((prev) => ({ ...prev, [mapping.jsonField]: formatted }));
-        toast.success("✨ Analysis complete — JSON auto-populated", { id: "auto-analyze" });
+        toast.success(isVideo ? "✨ Video frame analyzed — JSON auto-populated" : "✨ Analysis complete — JSON auto-populated", { id: "auto-analyze" });
       }
     } catch (e: any) {
       console.error("Auto-analysis failed:", e);
-      toast.error("Analysis failed — you can fill JSON manually", { id: "auto-analyze" });
+      toast.error(isVideo ? "Video frame extraction failed — try uploading a thumbnail image instead" : "Analysis failed — you can fill JSON manually", { id: "auto-analyze" });
     } finally {
       setAnalyzing(null);
     }
