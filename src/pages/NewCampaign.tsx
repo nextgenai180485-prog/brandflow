@@ -1,11 +1,12 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
 import type { LibrarySelection } from "@/components/LibraryBrowser";
-import { useNavigate, useLocation } from "react-router-dom";
-import { ArrowLeft, ArrowRight, Loader2, ImageIcon, Sparkles, Film, Camera, Check, VideoIcon, Layout, Brain, X } from "lucide-react";
+import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
+import { ArrowLeft, ArrowRight, Loader2, ImageIcon, Sparkles, Film, Camera, Check, VideoIcon, Layout, Brain, X, CloudOff, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useAutoSaveDraft } from "@/hooks/useAutoSaveDraft";
 import { useIsMobile } from "@/hooks/use-mobile";
 import AppShell from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
@@ -42,7 +43,9 @@ const NewCampaign = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const isMobile = useIsMobile();
+  const resumeDraftId = searchParams.get("draft") || null;
   const showcaseState = location.state as { fromShowcase?: boolean; templateRef?: { id: string; title: string; mediaUrl?: string; industryTags?: string[]; moodTags?: string[]; platformTags?: string[] }; bulkRefs?: { id: string; title: string; mediaUrl?: string; industryTags?: string[]; moodTags?: string[]; platformTags?: string[] }[] } | null;
 
   const [step, setStep] = useState(0);
@@ -84,6 +87,41 @@ const NewCampaign = () => {
   const [strategyChecked, setStrategyChecked] = useState(false);
   const [businessName, setBusinessName] = useState("");
   const [industry, setIndustry] = useState("");
+
+  // ── Auto-save draft system ──
+  const { draftId, saveStatus, saveDraft, loadDraft, finalizeDraft } = useAutoSaveDraft({ resumeId: resumeDraftId });
+
+  // Load draft state when resuming
+  useEffect(() => {
+    if (!resumeDraftId) return;
+    loadDraft(resumeDraftId).then((state) => {
+      if (!state) return;
+      setTitle(state.title || "");
+      setInstructions(state.instructions || "");
+      if (state.structuredBrief) setStructuredBrief(state.structuredBrief);
+      if (state.campaignCopy) setCampaignCopy(state.campaignCopy);
+      if (state.platforms) setPlatforms(state.platforms);
+      if (state.contentTypes) setContentTypes(state.contentTypes as ContentType[]);
+      if (typeof state.includeLogo === "boolean") setIncludeLogo(state.includeLogo);
+      if (typeof state.step === "number") setStep(state.step);
+      if (state.swapAssets) setSwapAssets(state.swapAssets);
+      if (state.creativeDirection) setCreativeDirection(state.creativeDirection);
+      if (state.librarySelections) setLibrarySelections(state.librarySelections);
+      toast.success("Draft restored");
+    });
+  }, [resumeDraftId]);
+
+  // Auto-save on every meaningful state change
+  useEffect(() => {
+    if (!user || showcaseState?.fromShowcase) return;
+    if (!title.trim() && platforms.length === 0 && contentTypes.length === 0) return;
+    saveDraft({
+      title, instructions, structuredBrief, campaignCopy,
+      platforms, contentTypes, includeLogo, step,
+      swapAssets, selectedAssetIds: selectedAssets.map(a => a.id),
+      creativeDirection, librarySelections,
+    });
+  }, [title, instructions, structuredBrief, campaignCopy, platforms, contentTypes, includeLogo, step, swapAssets, selectedAssets, creativeDirection, librarySelections]);
 
   const hasVideoContent = contentTypes.some(ct => ct === "ugc_video" || ct === "pro_video");
 
@@ -233,14 +271,26 @@ const NewCampaign = () => {
     const publishPlatforms = platforms.map((p) => `${p.platform}|${p.format}`);
     const ctEntries = contentTypes.map((ct) => `ct:${ct}`);
 
-    const { data: campaign, error } = await supabase
-      .from("campaigns").insert({
-        profile_id: user.id, title: title.trim(),
-        instructions: instructions.trim() || null, status: "draft",
-        publish_platforms: [...publishPlatforms, ...ctEntries],
-      }).select().single();
-
-    if (error || !campaign) { toast.error("Failed to create campaign."); setCreating(false); return; }
+    // Reuse existing draft row or create new
+    let campaignId = draftId;
+    if (campaignId) {
+      const { error } = await supabase.from("campaigns").update({
+        title: title.trim(), instructions: instructions.trim() || null,
+        status: "generating", publish_platforms: [...publishPlatforms, ...ctEntries],
+        draft_state: null as any,
+      }).eq("id", campaignId);
+      if (error) { toast.error("Failed to update campaign."); setCreating(false); return; }
+    } else {
+      const { data: newCampaign, error } = await supabase
+        .from("campaigns").insert({
+          profile_id: user.id, title: title.trim(),
+          instructions: instructions.trim() || null, status: "generating",
+          publish_platforms: [...publishPlatforms, ...ctEntries],
+        }).select().single();
+      if (error || !newCampaign) { toast.error("Failed to create campaign."); setCreating(false); return; }
+      campaignId = newCampaign.id;
+    }
+    const campaign = { id: campaignId! };
 
     if (selectedAssets.length > 0) {
       const assetRefs = selectedAssets.map((a, i) => ({
@@ -771,7 +821,19 @@ const NewCampaign = () => {
               <button onClick={() => navigate("/dashboard")} className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors mb-2">
                 <ArrowLeft className="w-3.5 h-3.5" /> Back to Dashboard
               </button>
-              <h1 className="text-base font-semibold text-foreground mb-2">Create Campaign</h1>
+              <div className="flex items-center gap-2 mb-2">
+                <h1 className="text-base font-semibold text-foreground">Create Campaign</h1>
+                {saveStatus === "saving" && (
+                  <span className="flex items-center gap-1 text-[10px] text-muted-foreground animate-pulse">
+                    <Loader2 className="w-3 h-3 animate-spin" /> Saving…
+                  </span>
+                )}
+                {saveStatus === "saved" && (
+                  <span className="flex items-center gap-1 text-[10px] text-emerald-500">
+                    <CheckCircle2 className="w-3 h-3" /> Saved
+                  </span>
+                )}
+              </div>
 
               {/* Progress Steps */}
               <div className="flex gap-1.5">

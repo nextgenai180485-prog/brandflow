@@ -1,5 +1,5 @@
 import { format } from "date-fns";
-import { Clock, ImageIcon, Video, Layers, FileText, LayoutGrid, CheckCircle2, Loader2, Trash2, Copy } from "lucide-react";
+import { Clock, ImageIcon, Video, Layers, FileText, LayoutGrid, CheckCircle2, Loader2, Trash2, Copy, Pencil } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import type { Campaign, GeneratedAsset, CampaignStatus } from "@/types/campaigns";
@@ -16,12 +16,13 @@ const statusConfig: Record<CampaignStatus, { label: string; className: string }>
 interface CampaignCardProps {
   campaign: Campaign;
   assets: GeneratedAsset[];
+  isDraft?: boolean;
   onClick: () => void;
   onDelete: (e: React.MouseEvent) => void;
   onDuplicate?: (e: React.MouseEvent) => void;
 }
 
-export default function CampaignCard({ campaign, assets, onClick, onDelete, onDuplicate }: CampaignCardProps) {
+export default function CampaignCard({ campaign, assets, isDraft, onClick, onDelete, onDuplicate }: CampaignCardProps) {
   const status = statusConfig[campaign.status as CampaignStatus] || statusConfig.draft;
   const thumbnails = assets.filter(a => a.content_url && a.asset_type !== "copy").slice(0, 4);
   const isGenerating = campaign.status === "generating";
@@ -69,6 +70,11 @@ export default function CampaignCard({ campaign, assets, onClick, onDelete, onDu
               <div className="flex flex-col items-center gap-2">
                 <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
                 <span className="text-[10px] text-muted-foreground font-medium">Generating…</span>
+              </div>
+            ) : isDraft ? (
+              <div className="flex flex-col items-center gap-2">
+                <Pencil className="w-6 h-6 text-muted-foreground/50" />
+                <span className="text-[10px] text-muted-foreground font-medium">Continue Editing</span>
               </div>
             ) : (
               <LayoutGrid className="w-8 h-8 text-muted-foreground/30" />
