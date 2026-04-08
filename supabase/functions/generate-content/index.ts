@@ -1145,7 +1145,9 @@ serve(async (req) => {
       : null;
     const combinedInstructions = [campaignData?.instructions, campaignBriefContext].filter(Boolean).join("\n\n");
     const decision = await runDecisionEngine(brandContext || {}, intelligenceBrief || {}, brandMemory || [], combinedInstructions || null);
-    const decisionWinner = decision.creative_directions?.[decision.winner_index] || {};
+    const allDirections = decision.creative_directions || [];
+    const decisionWinner = allDirections[decision.winner_index] || {};
+    console.log(`[Decision Engine] ${allDirections.length} directions generated. Winner: "${decisionWinner.name}". Will rotate directions across ${assets.length} assets.`);
 
     // ── LAYER 3: Store Decision Trace ─────────────────────────
     const decisionTraceId = await storeDecisionTrace(supabase, userId, campaignId, researchId || null, decision, intelligenceBrief || {}, brandMemory || []);
@@ -1178,9 +1180,9 @@ serve(async (req) => {
       placeholderIds.push(insertError ? "error" : placeholder.id);
     }
 
-    // Fire background processing
+    // Fire background processing — pass ALL directions so each asset gets a unique one
     EdgeRuntime.waitUntil(
-      processAssetsInBackground(userId, campaignId, assets, researchId || null, intelligenceBrief || {}, brandContext || {}, placeholderIds, decisionTraceId, decisionWinner, creativeDirection || null, referenceImageUrl || null, templateRefs || null, userAssets || null, structuredBrief || null, campaignCopy || null)
+      processAssetsInBackground(userId, campaignId, assets, researchId || null, intelligenceBrief || {}, brandContext || {}, placeholderIds, decisionTraceId, decisionWinner, creativeDirection || null, referenceImageUrl || null, templateRefs || null, userAssets || null, structuredBrief || null, campaignCopy || null, allDirections.length > 1 ? allDirections : null)
         .catch((e) => console.error("[BG] Fatal error:", e))
     );
 
