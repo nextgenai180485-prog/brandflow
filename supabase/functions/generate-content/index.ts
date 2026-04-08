@@ -1065,9 +1065,12 @@ serve(async (req) => {
 
     console.log(`[Brand Memory] Loaded ${brandMemory?.length || 0} memory entries`);
 
-    // ── LAYER 2: Run Decision Engine ──────────────────────────
-    const { data: campaignData } = await supabase.from("campaigns").select("instructions").eq("id", campaignId).single();
-    const decision = await runDecisionEngine(brandContext || {}, intelligenceBrief || {}, brandMemory || [], campaignData?.instructions || null);
+    // ── LAYER 2: Run Decision Engine (with structured brief context) ──
+    const campaignBriefContext = structuredBrief 
+      ? `Campaign Brief — Objective: ${structuredBrief.objective || "general"}, Core Message: ${structuredBrief.messageAngle || "N/A"}, Tone: ${(structuredBrief.tone || []).join(", ") || "N/A"}, CTA: ${structuredBrief.ctaGoal || "N/A"}, Emotion: ${(structuredBrief.targetEmotion || []).join(", ") || "N/A"}. ${structuredBrief.freeformNotes || ""}`
+      : null;
+    const combinedInstructions = [campaignData?.instructions, campaignBriefContext].filter(Boolean).join("\n\n");
+    const decision = await runDecisionEngine(brandContext || {}, intelligenceBrief || {}, brandMemory || [], combinedInstructions || null);
     const decisionWinner = decision.creative_directions?.[decision.winner_index] || {};
 
     // ── LAYER 3: Store Decision Trace ─────────────────────────
