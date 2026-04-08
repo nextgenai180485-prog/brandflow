@@ -971,7 +971,8 @@ async function processAssetsInBackground(
   console.log(`[Image Templates] Loaded ${imageTemplates?.length || 0} templates for vertical: ${industry}`);
   console.log(`[Generation] Processing ${assets.length} assets with ${allDirections?.length || 1} creative directions`);
 
-  for (let i = 0; i < assets.length; i++) {
+  // Process all assets in PARALLEL to avoid sequential timeout kills
+  const assetPromises = assets.map(async (asset: any, i: number) => {
     const asset = assets[i];
     const placeholderId = placeholderIds[i];
     if (placeholderId === "error") continue;
@@ -1120,7 +1121,9 @@ async function processAssetsInBackground(
         })
         .eq("id", placeholderId);
     }
-  }
+  });
+
+  await Promise.allSettled(assetPromises);
 
   const { data: finalAssets } = await supabase.from("generated_assets").select("content_url").eq("campaign_id", campaignId);
   const hasSuccesses = finalAssets?.some((a: any) => a.content_url != null);
