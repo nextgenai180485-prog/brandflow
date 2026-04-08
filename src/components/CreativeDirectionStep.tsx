@@ -76,9 +76,42 @@ const CreativeDirectionStep = ({
   direction, onDirectionChange,
   platform, format,
   librarySelections = [], onLibrarySelectionsChange,
+  selectedTemplate,
 }: CreativeDirectionStepProps) => {
   const [loading, setLoading] = useState(false);
   const [expandedScene, setExpandedScene] = useState<number | null>(0);
+  const [autoPopulated, setAutoPopulated] = useState(false);
+
+  // Auto-populate brief from selected template's SEALCaM/metadata
+  useEffect(() => {
+    if (autoPopulated || brief.trim() || !selectedTemplate) return;
+    const parts: string[] = [];
+
+    if (selectedTemplate.description) {
+      parts.push(selectedTemplate.description);
+    }
+
+    if (selectedTemplate.sealcam_analysis && Object.keys(selectedTemplate.sealcam_analysis).length > 0) {
+      const sealcam = selectedTemplate.sealcam_analysis;
+      const sealParts = Object.entries(sealcam)
+        .filter(([_, v]) => v && typeof v === "string")
+        .map(([k, v]) => `${k.charAt(0).toUpperCase() + k.slice(1)}: ${v}`);
+      if (sealParts.length) parts.push(sealParts.join(". "));
+    }
+
+    if (selectedTemplate.mood_tags?.length) {
+      parts.push(`Mood: ${selectedTemplate.mood_tags.join(", ")}`);
+    }
+
+    if (selectedTemplate.performance_notes) {
+      parts.push(selectedTemplate.performance_notes);
+    }
+
+    if (parts.length > 0) {
+      onBriefChange(parts.join("\n\n"));
+      setAutoPopulated(true);
+    }
+  }, [selectedTemplate, brief, autoPopulated, onBriefChange]);
 
   const handleStructure = async () => {
     if (brief.trim().length < 10) {
