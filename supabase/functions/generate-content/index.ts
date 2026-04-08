@@ -133,61 +133,30 @@ async function generateImage(prompt: string, width: number, height: number, refe
 // ── Image Generation WITH user reference images (product/model) ──
 // Uses FLUX with IP-Adapter style reference for actual image incorporation
 async function generateImageWithReference(prompt: string, width: number, height: number, referenceImageUrls: string[]) {
-  const REPLICATE_API_KEY = Deno.env.get("REPLICATE_API_KEY");
-  const primaryRef = referenceImageUrls[0];
+  const KIE_AI_API_KEY = Deno.env.get("KIE_AI_API_KEY")!;
+  const aspectRatio = mapAspectRatio(width, height);
   const startTime = Date.now();
 
-  // Strategy 1: Replicate FLUX Redux (image variation with prompt guidance)
-  if (REPLICATE_API_KEY) {
-    try {
-      console.log(`[Img2Img] Generating with ${referenceImageUrls.length} reference image(s) via Replicate FLUX`);
-      const response = await fetch("https://api.replicate.com/v1/models/black-forest-labs/flux-1.1-pro-ultra/predictions", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${REPLICATE_API_KEY}`, "Content-Type": "application/json", Prefer: "wait=120" },
-        body: JSON.stringify({
-          input: {
-            prompt: `${prompt} Incorporate the subject from the reference image naturally into the scene.`,
-            image: primaryRef,
-            image_prompt_strength: 0.35,
-            aspect_ratio: mapAspectRatio(width, height),
-            output_format: "png",
-            safety_tolerance: 5,
-          },
-        }),
-      });
-      if (!response.ok) {
-        const err = await response.text();
-        console.error(`[FLUX Img2Img] Replicate error ${response.status}: ${err}`);
-        throw new Error(`FLUX img2img error: ${response.status}`);
-      }
-      const prediction = await response.json();
-      if (prediction.status === "succeeded" && prediction.output) {
-        const url = typeof prediction.output === "string" ? prediction.output : prediction.output?.[0];
-        if (url) return { url, provider: "replicate_flux_img2img", cost: 0.06, timeMs: Date.now() - startTime };
-      }
-      // Poll
-      for (let i = 0; i < 60; i++) {
-        await new Promise((r) => setTimeout(r, 3000));
-        const pollResp = await fetch(`https://api.replicate.com/v1/predictions/${prediction.id}`, {
-          headers: { Authorization: `Bearer ${REPLICATE_API_KEY}` },
-        });
-        const pollData = await pollResp.json();
-        if (pollData.status === "succeeded" && pollData.output) {
-          const url = typeof pollData.output === "string" ? pollData.output : pollData.output?.[0];
-          if (url) return { url, provider: "replicate_flux_img2img", cost: 0.06, timeMs: Date.now() - startTime };
-        }
-        if (pollData.status === "failed" || pollData.status === "canceled") {
-          throw new Error(`FLUX img2img failed: ${pollData.error || "Unknown"}`);
-        }
-      }
-      throw new Error("FLUX img2img timed out");
-    } catch (e) {
-      console.error("[FLUX Img2Img] Failed, falling back to text-to-image with description:", e);
-    }
+  // Primary: Kie AI Seedream 5 Lite Image-to-Image
+  try {
+    console.log(`[Img2Img] Generating with ${referenceImageUrls.length} reference image(s) via Kie AI Seedream 5 Lite Img2Img`);
+    const taskId = await kieCreateTask(KIE_AI_API_KEY, "seedream/5-lite-image-to-image", {
+      prompt,
+      image_urls: referenceImageUrls,
+      aspect_ratio: aspectRatio,
+      quality: "basic",
+      nsfw_checker: true,
+    });
+    const result = await kiePollTask(KIE_AI_API_KEY, taskId, 90, 3000);
+    if (!result.urls?.length) throw new Error("Seedream 5 Lite Img2Img returned no image URLs");
+    console.log(`[Img2Img] ✅ Seedream 5 Lite Img2Img success in ${result.costTime}ms`);
+    return { url: result.urls[0], provider: "kie_ai_seedream_5_img2img", cost: 0.06, timeMs: result.costTime || (Date.now() - startTime) };
+  } catch (e) {
+    console.error("[Img2Img] Seedream 5 Lite Img2Img failed, falling back to text-to-image:", e);
   }
 
-  // Strategy 2: Fallback to standard text-to-image (describe the reference instead)
-  console.warn("[Img2Img] All image-reference providers failed, falling back to text-only generation");
+  // Fallback: standard text-to-image (no reference image support)
+  console.warn("[Img2Img] Img2Img provider failed, falling back to text-only generation");
   return await generateImageKie(prompt, width, height);
 }
 
