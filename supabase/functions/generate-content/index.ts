@@ -1365,6 +1365,7 @@ async function processAssetsInBackground(
       let actualProvider = "pending";
       let actualCost = 0;
       let generationTimeMs = 0;
+      let bundle: any = null;
 
       if (assetType === "image" || assetType === "carousel") {
         // ── ENTERPRISE PROMPT BUNDLE ──
