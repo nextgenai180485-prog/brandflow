@@ -550,8 +550,8 @@ async function storeDecisionTrace(
   }
 }
 
-// ── Caption Generation via Lovable AI ────────────────────────
-async function generateCaption(platform: string, format: string, brandContext: any, intelligenceBrief: any, decisionWinner: any, imagePrompt: string): Promise<string> {
+// ── Caption Generation via Lovable AI (campaign-brief-first) ─
+async function generateCaption(platform: string, format: string, brandContext: any, intelligenceBrief: any, decisionWinner: any, imagePrompt: string, campaignCopy?: any, structuredBrief?: any): Promise<string> {
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
   if (!LOVABLE_API_KEY) return `Content for ${platform} ${format}`;
 
@@ -559,6 +559,7 @@ async function generateCaption(platform: string, format: string, brandContext: a
   const angle = decisionWinner?.angle_type || "";
   const directionName = decisionWinner?.name || "brand showcase";
   const directionDesc = decisionWinner?.description || "";
+  const brandName = brandContext.businessName || "the brand";
 
   const platformRules: Record<string, string> = {
     instagram: "Use relevant hashtags (5-10), line breaks for readability, emojis that match the tone. Start with a hook that stops the scroll. Keep under 2200 chars. End with a CTA.",
@@ -568,8 +569,20 @@ async function generateCaption(platform: string, format: string, brandContext: a
     twitter: "Concise, punchy. Under 280 chars. 1-2 hashtags max. Make every word count.",
     youtube: "Descriptive title + description format. Include relevant keywords naturally. Add timestamps if applicable.",
   };
-
   const platformRule = platformRules[platform.toLowerCase()] || platformRules.instagram;
+
+  // Build campaign-specific copy context for the caption
+  let campaignContext = "";
+  if (structuredBrief) {
+    if (structuredBrief.objective) campaignContext += `Campaign objective: ${structuredBrief.objective}. `;
+    if (structuredBrief.messageAngle) campaignContext += `Core message: ${structuredBrief.messageAngle}. `;
+    if (structuredBrief.tone?.length) campaignContext += `Tone: ${structuredBrief.tone.join(", ")}. `;
+  }
+  if (campaignCopy) {
+    if (campaignCopy.headline) campaignContext += `Headline: "${campaignCopy.headline}". `;
+    if (campaignCopy.ctaText) campaignContext += `CTA: "${campaignCopy.ctaText}". `;
+    if (campaignCopy.bodyCopy) campaignContext += `Copy direction: ${campaignCopy.bodyCopy}. `;
+  }
 
   const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
@@ -579,30 +592,26 @@ async function generateCaption(platform: string, format: string, brandContext: a
       messages: [
         {
           role: "system",
-          content: `You are an elite social media copywriter for "${brandContext.businessName || "the brand"}" in the ${brandContext.industry || "beauty"} industry. 
-Brand voice: ${brandContext.brandVoice || "professional, warm"}.
-Target audience: ${brandContext.targetAudience || "general audience"}.
-
-You write captions that feel NATIVE to each platform — not generic marketing copy. Every caption must:
+          content: `You are an elite social media copywriter. You write captions that feel NATIVE to each platform — not generic marketing copy. Every caption must:
 1. Open with a scroll-stopping hook
 2. Connect emotionally with the target audience
 3. Include a clear but subtle call-to-action
 4. Match the platform's culture and formatting norms
-5. Be directly relevant to the visual content being posted`,
+5. Be directly relevant to the visual content being posted
+
+IMPORTANT: Use ONLY the campaign brief provided. Do NOT invent brand descriptions, company summaries, or value propositions. Write for the specific campaign, not the entire company.`,
         },
         {
           role: "user",
           content: `Write a caption for this ${platform} ${format} post.
+Brand name: ${brandName}
 
-THE VISUAL CONTENT: ${imagePrompt}
+CAMPAIGN BRIEF (PRIMARY INPUT — use this):
+${campaignContext || "General brand awareness campaign."}
 
 CREATIVE DIRECTION: "${directionName}" — ${directionDesc}
 ANGLE: ${angle}
 HOOK INSPIRATION: ${hookSuggestion}
-
-${intelligenceBrief?.content_angles ? `TRENDING ANGLES IN THIS SPACE: ${intelligenceBrief.content_angles.slice(0, 5).join(", ")}` : ""}
-${intelligenceBrief?.hooks ? `COMPETITOR HOOKS WORKING NOW: ${intelligenceBrief.hooks.slice(0, 5).join(" | ")}` : ""}
-${intelligenceBrief?.avoid ? `AVOID THESE APPROACHES: ${intelligenceBrief.avoid.join(", ")}` : ""}
 
 PLATFORM RULES: ${platformRule}
 
@@ -614,7 +623,7 @@ Output ONLY the caption text. No explanations, no quotes around it. Just the raw
 
   if (!response.ok) {
     await response.text();
-    return `Discover the difference at ${brandContext.businessName || "our studio"}. ✨ #${brandContext.industry || "beauty"}`;
+    return `✨ ${campaignCopy?.headline || "Discover something new"} #${brandContext.industry || "lifestyle"}`;
   }
   const data = await response.json();
   return data.choices?.[0]?.message?.content?.trim() || `Content for ${platform}`;
@@ -653,13 +662,11 @@ const VERTICAL_PHOTOGRAPHY: Record<string, string> = {
   general: "Professional commercial photography. Three-point lighting setup. Clean, intentional composition following rule of thirds. Neutral-warm color temperature. Shot on 50mm f/1.8 — natural perspective with beautiful bokeh.",
 };
 
-// ── Prompt Builders (now powered by Decision Engine + Image Templates) ──
+// ── Prompt Builders (campaign-brief-first — no brand analysis in prompts) ──
 function buildImagePrompt(platform: string, format: string, brandContext: any, intelligenceBrief: any, decisionWinner: any, imageTemplate?: any, referenceImageUrl?: string | null): string {
   const industry = (brandContext.industry || "general").toLowerCase();
-  const baseStyle = intelligenceBrief?.visual_direction || "modern, clean, professional photography style";
-  const angle = decisionWinner?.description || "showcase the brand experience";
+  const angle = decisionWinner?.description || "showcase the product or service";
   const hookText = decisionWinner?.hook_suggestion || "";
-  const avoid = intelligenceBrief?.avoid || [];
 
   // Get vertical-specific photography rules
   const verticalRules = VERTICAL_PHOTOGRAPHY[industry] || VERTICAL_PHOTOGRAPHY.general;
@@ -667,7 +674,6 @@ function buildImagePrompt(platform: string, format: string, brandContext: any, i
   const platformRules = PLATFORM_AESTHETICS[platform.toLowerCase()] || PLATFORM_AESTHETICS.instagram;
 
   let prompt = `Ultra-high-quality professional ${industry} marketing photograph. `;
-  prompt += `Brand: "${brandContext.businessName || "luxury brand"}". `;
   prompt += `Creative direction: ${angle}. `;
   if (hookText) prompt += `Visual concept: ${hookText}. `;
 
@@ -695,24 +701,20 @@ function buildImagePrompt(platform: string, format: string, brandContext: any, i
 
   prompt += `${formatRules} `;
   prompt += `${platformRules} `;
-  prompt += `Visual style reference: ${baseStyle}. `;
   prompt += `Photorealistic, shot on high-end mirrorless camera, professional post-processing. Natural color grading — not over-saturated. `;
   prompt += `No text, no watermarks, no logos, no borders, no UI elements. `;
 
-  // Negative prompt elements baked in
-  const avoidList = [...avoid.slice(0, 3), "stock photo feel", "clipart", "illustration", "3D render", "cartoon", "amateur lighting"];
+  const avoidList = ["stock photo feel", "clipart", "illustration", "3D render", "cartoon", "amateur lighting"];
   prompt += `Strictly avoid: ${avoidList.join(", ")}. `;
 
   return prompt;
 }
 
 function buildVideoPrompt(platform: string, format: string, brandContext: any, intelligenceBrief: any, decisionWinner: any): string {
-  const baseStyle = intelligenceBrief?.visual_direction || "cinematic, smooth motion, professional";
   const angle = decisionWinner?.description || "brand experience showcase";
   const hookText = decisionWinner?.hook_suggestion || "";
 
-  let prompt = `Professional ${brandContext.industry || "beauty"} marketing video for ${platform} ${format}. `;
-  prompt += `Brand: "${brandContext.businessName || "luxury studio"}". Style: ${baseStyle}. `;
+  let prompt = `Professional ${brandContext.industry || "general"} marketing video for ${platform} ${format}. `;
   prompt += `Creative direction: ${angle}. `;
   if (hookText) prompt += `Opening concept: ${hookText}. `;
   prompt += `Smooth camera movement, high production value, aspirational feel. `;
@@ -841,10 +843,13 @@ async function processAssetsInBackground(
       // Build user asset references for prompt injection
       let userAssetContext = "";
       if (userAssets?.length) {
+        const includeLogo = brandContext?.includeLogo !== false;
         const productAssets = userAssets.filter((a: any) => a.role === "product");
         const modelAssets = userAssets.filter((a: any) => a.role === "model");
+        const logoAssets = includeLogo ? userAssets.filter((a: any) => a.role === "logo") : [];
         if (productAssets.length) userAssetContext += `Feature this product: ${productAssets.map((a: any) => a.url).join(", ")}. `;
         if (modelAssets.length) userAssetContext += `Use this model/person: ${modelAssets.map((a: any) => a.url).join(", ")}. `;
+        if (logoAssets.length) userAssetContext += `Include brand logo: ${logoAssets.map((a: any) => a.url).join(", ")}. `;
       }
 
       // Template reference URLs for style matching
@@ -898,19 +903,16 @@ async function processAssetsInBackground(
         actualCost = result.cost;
         generationTimeMs = result.timeMs;
       }
-      // Generate caption using decision context + campaign copy + visual prompt
-      const captionPromptExtra = campaignCopy?.bodyCopy 
-        ? `. User-provided copy to incorporate: "${campaignCopy.bodyCopy}". Headline: "${campaignCopy.headline || ""}". CTA: "${campaignCopy.ctaText || ""}"`
-        : "";
-      const caption = await generateCaption(platform, format, brandContext || {}, intelligenceBrief || {}, decisionWinner, generatedPrompt + captionPromptExtra);
+      // Generate caption using campaign brief + creative direction (no brand analysis)
+      const caption = await generateCaption(platform, format, brandContext || {}, intelligenceBrief || {}, assetDirection, generatedPrompt, campaignCopy, structuredBrief);
       if (!generationTimeMs) generationTimeMs = Date.now() - startTime;
 
       // Build structured rationale from decision engine
       const rationale = JSON.stringify({
-        direction: decisionWinner?.name || "default",
-        angle: decisionWinner?.angle_type || "general",
-        confidence: decisionWinner?.total_score || 0,
-        hook: decisionWinner?.hook_suggestion || "",
+        direction: assetDirection?.name || "default",
+        angle: assetDirection?.angle_type || "general",
+        confidence: assetDirection?.total_score || 0,
+        hook: assetDirection?.hook_suggestion || "",
         trace_id: decisionTraceId,
       });
 
