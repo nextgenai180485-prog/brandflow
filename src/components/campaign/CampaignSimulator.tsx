@@ -263,8 +263,7 @@ export default function CampaignSimulator({
   const availableHeight = typeof window !== "undefined" ? window.innerHeight - 56 - 40 : 600;
   const maxPhoneHeight = availableHeight - 90;
   const dynamicScale = Math.min(0.62, maxPhoneHeight / 852);
-  const phoneScale = Math.max(0.35, dynamicScale);
-  const expandedScale = 0.85;
+  const phoneScale = fullscreen ? Math.min(0.82, (availableHeight - 40) / 852) : Math.max(0.35, dynamicScale);
 
   // Get active aspect ratio dimensions
   const activeVariant = ASPECT_VARIANTS.find(v => v.label === activeAspect) || ASPECT_VARIANTS[0];
@@ -356,44 +355,30 @@ export default function CampaignSimulator({
     );
   };
 
-  // ── Fullscreen Overlay ──
-  const fullscreenOverlay = fullscreen && (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center" onClick={closeFullscreen}>
-      <div className="relative flex flex-col items-center gap-3 animate-in zoom-in-95 fade-in duration-200" onClick={(e) => e.stopPropagation()}>
-        {/* Close hint */}
-        <p className="text-[10px] text-white/50 font-medium">Click outside or press Esc to close</p>
-        {renderPhone(expandedScale)}
-        {/* Compact controls in overlay */}
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1 px-2.5 py-1 bg-white/10 rounded-full border border-white/20">
-            <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-            <span className="text-[10px] font-semibold text-white capitalize">{platform}</span>
-          </div>
-          <button
-            onClick={() => setShowSafeZones(!showSafeZones)}
-            className={cn(
-              "flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold transition-all border",
-              showSafeZones ? "bg-red-500/20 border-red-500/40 text-red-300" : "bg-white/10 border-white/20 text-white/70 hover:text-white"
-            )}
-          >
-            {showSafeZones ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
-            Safe Zones
-          </button>
-          <button
-            onClick={closeFullscreen}
-            className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold bg-white/10 border border-white/20 text-white/70 hover:text-white transition-all"
-          >
-            <Minimize2 className="w-3 h-3" /> Close
-          </button>
-        </div>
-      </div>
-    </div>
-  );
+  // Auto-close expanded mode on outside interaction
+  useEffect(() => {
+    if (!fullscreen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('[data-simulator-root]')) {
+        setFullscreen(false);
+      }
+    };
+    const timer = setTimeout(() => {
+      document.addEventListener("click", handleClickOutside);
+    }, 100);
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener("click", handleClickOutside);
+    };
+  }, [fullscreen]);
 
   return (
-    <>
-      {fullscreenOverlay}
-      <div className={cn("flex gap-4 items-start", className)}>
+    <div data-simulator-root className={cn(
+      "flex gap-4 items-start transition-all duration-300",
+      fullscreen && "absolute inset-0 z-20 bg-secondary/40 backdrop-blur-sm flex items-center justify-center rounded-xl",
+      className
+    )}>
         {/* ── Left: Phone Simulator ── */}
         <div className="flex flex-col items-center gap-1.5">
           {/* Preview mode tabs */}
@@ -447,10 +432,10 @@ export default function CampaignSimulator({
                 Safe
               </button>
               <button
-                onClick={() => setFullscreen(true)}
+                onClick={() => setFullscreen(!fullscreen)}
                 className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-semibold bg-secondary/50 border border-border text-muted-foreground hover:text-foreground transition-all"
               >
-                <Maximize2 className="w-2.5 h-2.5" />
+                {fullscreen ? <Minimize2 className="w-2.5 h-2.5" /> : <Maximize2 className="w-2.5 h-2.5" />}
               </button>
             </div>
           </div>
