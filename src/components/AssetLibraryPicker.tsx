@@ -299,7 +299,7 @@ const LibraryTabGrid = ({ tab, search, isSelected, toggleAsset, onChange, select
           {filtered.map((item: any) => {
             const asset = toLibraryAsset(item);
             const selected = isSelected(item.id);
-            const thumb = item.file_url || item.avatar_url || item.thumbnail_url || item.media_url || item.example_url;
+            const thumb = item.file_url || item.preview_url || item.avatar_url || item.thumbnail_url || item.media_url || item.example_url;
             const name = item[tab.nameField] || "Untitled";
             const tags = [...(item.tags || []), ...(item.mood_tags || [])].slice(0, 2);
 
