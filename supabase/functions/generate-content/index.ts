@@ -303,10 +303,103 @@ async function generateImageKie(prompt: string, width: number, height: number) {
 }
 
 // ── Video Generation via Replicate Kling 2.5 (Primary) / Kie AI (Fallback) ──
-async function generateVideo(prompt: string, width: number, height: number) {
+// Supports both text-to-video AND image-to-video (starting frame)
+async function generateVideo(prompt: string, width: number, height: number, startingFrameUrl?: string) {
   const REPLICATE_API_KEY = Deno.env.get("REPLICATE_API_KEY");
   const aspectRatio = mapAspectRatio(width, height);
 
+  // ── IMAGE-TO-VIDEO PATH: Use starting frame for product/template swap ──
+  if (startingFrameUrl) {
+    console.log(`[Video] Image-to-Video mode with starting frame`);
+    
+    // Try Kie AI Kling image-to-video first
+    const KIE_AI_API_KEY = Deno.env.get("KIE_AI_API_KEY");
+    if (KIE_AI_API_KEY) {
+      try {
+        console.log(`[Kling I2V] Generating video from starting frame via Kie AI`);
+        const startTime = Date.now();
+        const taskId = await kieCreateTask(KIE_AI_API_KEY, "kling/kling-2.5", {
+          prompt,
+          image_url: startingFrameUrl,
+          aspect_ratio: aspectRatio,
+          resolution: "720p",
+          duration: 5,
+          generate_audio: false,
+          web_search: false,
+        });
+        const result = await kiePollTask(KIE_AI_API_KEY, taskId, 120, 3000);
+        if (result.urls?.length) {
+          console.log(`[Kling I2V] ✅ Image-to-video success`);
+          return { url: result.urls[0], provider: "kie_ai_kling_2.5_i2v", cost: 0.40, timeMs: result.costTime || (Date.now() - startTime) };
+        }
+      } catch (e) {
+        console.error("[Kling I2V] Kie AI failed:", e);
+      }
+    }
+
+    // Fallback: Replicate Kling image-to-video
+    if (REPLICATE_API_KEY) {
+      try {
+        console.log(`[Kling I2V] Trying Replicate image-to-video`);
+        const startTime = Date.now();
+        const response = await fetch("https://api.replicate.com/v1/models/kwaai/kling-v2.5-pro/predictions", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${REPLICATE_API_KEY}`, "Content-Type": "application/json", Prefer: "wait=120" },
+          body: JSON.stringify({
+            input: { prompt, start_image: startingFrameUrl, duration: 5, aspect_ratio: aspectRatio },
+          }),
+        });
+        if (response.ok) {
+          const prediction = await response.json();
+          if (prediction.status === "succeeded" && prediction.output) {
+            const outputUrl = typeof prediction.output === "string" ? prediction.output : prediction.output?.[0] || prediction.output?.video;
+            if (outputUrl) return { url: outputUrl, provider: "replicate_kling_2.5_i2v", cost: 0.40, timeMs: Date.now() - startTime };
+          }
+          // Poll
+          for (let i = 0; i < 120; i++) {
+            await new Promise((r) => setTimeout(r, 3000));
+            const pollResp = await fetch(`https://api.replicate.com/v1/predictions/${prediction.id}`, { headers: { Authorization: `Bearer ${REPLICATE_API_KEY}` } });
+            const pollData = await pollResp.json();
+            if (pollData.status === "succeeded") {
+              const outputUrl = typeof pollData.output === "string" ? pollData.output : pollData.output?.[0] || pollData.output?.video;
+              if (outputUrl) return { url: outputUrl, provider: "replicate_kling_2.5_i2v", cost: 0.40, timeMs: Date.now() - startTime };
+            }
+            if (pollData.status === "failed" || pollData.status === "canceled") break;
+          }
+        }
+      } catch (e) {
+        console.error("[Kling I2V Replicate] Failed:", e);
+      }
+    }
+
+    // Fallback: Kie AI Seedance image-to-video
+    if (KIE_AI_API_KEY) {
+      try {
+        console.log(`[Seedance I2V] Trying Seedance 2 image-to-video`);
+        const startTime = Date.now();
+        const taskId = await kieCreateTask(KIE_AI_API_KEY, "bytedance/seedance-2", {
+          prompt,
+          image_url: startingFrameUrl,
+          aspect_ratio: aspectRatio,
+          resolution: "720p",
+          duration: 8,
+          generate_audio: false,
+          web_search: false,
+        });
+        const result = await kiePollTask(KIE_AI_API_KEY, taskId, 120, 3000);
+        if (result.urls?.length) {
+          console.log(`[Seedance I2V] ✅ Image-to-video success`);
+          return { url: result.urls[0], provider: "kie_ai_seedance_2_i2v", cost: 0.35, timeMs: result.costTime || (Date.now() - startTime) };
+        }
+      } catch (e) {
+        console.error("[Seedance I2V] Failed:", e);
+      }
+    }
+
+    console.warn("[Video I2V] All image-to-video providers failed, falling back to text-to-video");
+  }
+
+  // ── TEXT-TO-VIDEO PATH (original) ──
   if (REPLICATE_API_KEY) {
     try {
       console.log(`[Kling 2.5] Generating video via Replicate, aspect: ${aspectRatio}`);
