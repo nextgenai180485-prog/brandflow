@@ -172,12 +172,7 @@ const SentientCMORail = () => {
 
     setInsights(deduplicated);
 
-    const toastable = deduplicated.find(
-      (i) => (i.type === "critical" || i.type === "opportunity") && !toastDismissed.has(i.id)
-    );
-    if (toastable && !isExpanded && !toastSuppressedRef.current) {
-      setActiveToast(toastable);
-    }
+    // Toast popups removed — the rail pulse indicator is sufficient
 
     initialized.current = true;
   }, [user, isExpanded, toastDismissed]);
