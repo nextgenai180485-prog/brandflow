@@ -108,6 +108,31 @@ const NewCampaign = () => {
     if (contentTypes.length === 0) setContentTypes(["image"]);
   }, []);
 
+  // Auto-populate from bulk refs (multi-select from dashboard)
+  useEffect(() => {
+    if (!showcaseState?.bulkRefs?.length) return;
+    const assets: LibraryAsset[] = showcaseState.bulkRefs
+      .filter(r => r.mediaUrl)
+      .map(r => ({
+        id: r.id, file_name: r.title, file_url: r.mediaUrl!,
+        asset_type: "reference", created_at: new Date().toISOString(),
+      }));
+    if (assets.length > 0) {
+      setSelectedAssets(assets);
+      setCreativeReferenceAssets(assets);
+      const first = showcaseState.bulkRefs[0];
+      if (first.mediaUrl) {
+        setSelectedTemplate({
+          id: first.id, title: first.title, description: null,
+          media_url: first.mediaUrl, thumbnail_url: first.mediaUrl,
+          industry_tags: first.industryTags || null, mood_tags: first.moodTags || null,
+          platform_tags: first.platformTags || null, sealcam_analysis: {}, performance_notes: null,
+        });
+      }
+    }
+    if (contentTypes.length === 0) setContentTypes(["image"]);
+  }, []);
+
   // Check for brand strategy + load brand profile
   useEffect(() => {
     if (!user) return;
