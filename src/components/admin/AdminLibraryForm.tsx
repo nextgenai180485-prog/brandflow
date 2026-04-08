@@ -85,7 +85,7 @@ const FORM_FIELDS: Record<TableName, { key: string; label: string; type: FieldTy
   hooks: [
     { key: "hook_text", label: "Hook Text", type: "textarea" },
     { key: "hook_type", label: "Hook Type", type: "select", options: ["question", "shock", "story", "statistic", "challenge", "visual", "curiosity"] },
-    { key: "family", label: "Family", type: "select", options: ["F1_UGC", "F2_SPOKESPERSON", "F5_CINEMATIC", "F8_CREATIVE_CLONER"] },
+    { key: "family", label: "Family", type: "select", options: ["F1_UGC", "F2_SPOKESPERSON", "F3_PRODUCT_VIDEO", "F4_SOCIAL_CONTENT", "F5_CINEMATIC", "F6_CORE_ELEMENTS", "F7_AD_CREATOR", "F8_CREATIVE_CLONER", "F9_IMAGE_TEMPLATE"] },
     { key: "platform", label: "Platform", type: "select", options: ["instagram", "tiktok", "facebook", "linkedin", "x", "youtube"] },
     { key: "effectiveness_score", label: "Effectiveness Score (0-1)", type: "number" },
   ],

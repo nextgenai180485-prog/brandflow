@@ -26,7 +26,7 @@ import {
 const TABS = [
   { value: "video_templates", label: "Video Templates", icon: Film, table: "video_templates" as const, nameField: "template_name",
     categories: [
-      { key: "family", label: "Family", options: ["F1_UGC", "F2_SPOKESPERSON", "F5_CINEMATIC"] },
+      { key: "family", label: "Family", options: ["F1_UGC", "F2_SPOKESPERSON", "F3_PRODUCT_VIDEO", "F4_SOCIAL_CONTENT", "F5_CINEMATIC", "F6_CORE_ELEMENTS", "F7_AD_CREATOR", "F8_CREATIVE_CLONER", "F9_IMAGE_TEMPLATE"] },
       { key: "mood", label: "Mood", options: ["aspirational", "authentic", "cinematic", "dramatic", "educational", "energetic", "epic", "inspirational", "luxurious", "professional", "urgent", "warm"] },
     ]},
   { value: "character_library", label: "Characters", icon: Users, table: "character_library" as const, nameField: "name",
@@ -47,7 +47,7 @@ const TABS = [
   { value: "hooks", label: "Hooks", icon: Zap, table: "hooks" as const, nameField: "hook_text",
     categories: [
       { key: "hook_type", label: "Type", options: ["bold_claim", "curiosity", "question", "statistic", "story"] },
-      { key: "family", label: "Family", options: ["F1_UGC", "F2_SPOKESPERSON", "F5_CINEMATIC"] },
+      { key: "family", label: "Family", options: ["F1_UGC", "F2_SPOKESPERSON", "F3_PRODUCT_VIDEO", "F4_SOCIAL_CONTENT", "F5_CINEMATIC", "F6_CORE_ELEMENTS", "F7_AD_CREATOR", "F8_CREATIVE_CLONER", "F9_IMAGE_TEMPLATE"] },
       { key: "platform", label: "Platform", options: ["facebook", "instagram_reels", "tiktok", "youtube_shorts"] },
     ]},
   { value: "ad_intelligence", label: "Ad Intel", icon: Radar, table: "foreplay" as const, nameField: "name", categories: [] },
