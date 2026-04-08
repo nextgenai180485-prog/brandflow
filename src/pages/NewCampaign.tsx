@@ -296,9 +296,9 @@ const NewCampaign = () => {
 
     const referenceImageUrl = selectedTemplate?.media_url || showcaseState?.templateRef?.mediaUrl || undefined;
 
-    // Collect all workspace template reference URLs
+    // Collect all workspace template reference URLs from library selections
     const templateRefs = librarySelections
-      .map((s: LibrarySelection) => s.mediaUrl || s.thumbnail_url)
+      .map((s: LibrarySelection) => s.data?.media_url || s.data?.thumbnail_url || s.data?.example_url || s.data?.avatar_url)
       .filter(Boolean);
 
     // Collect user-uploaded swap assets (product images, models, etc.)
