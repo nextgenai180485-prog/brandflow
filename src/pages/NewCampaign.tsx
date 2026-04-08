@@ -31,7 +31,7 @@ interface SelectedFormat {
   format: string;
 }
 
-const ALL_STEPS = ["Details", "Platforms", "Content Type", "Creative Direction", "Review"];
+const ALL_STEPS = ["Campaign Brief", "Assets & Delivery", "Creative Direction", "Review"];
 
 const CONTENT_TYPE_ICONS: Record<ContentType, React.ReactNode> = {
   image: <ImageIcon className="w-5 h-5" />,
