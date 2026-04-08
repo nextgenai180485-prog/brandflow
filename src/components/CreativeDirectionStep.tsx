@@ -155,7 +155,10 @@ const CreativeDirectionStep = ({
           Creative Direction
         </h2>
         <p className="text-sm text-muted-foreground mt-1">
-          Describe your video vision — the engine will structure it into production-ready scenes.
+          {selectedTemplate
+            ? `Auto-populated from "${selectedTemplate.title}" — edit or refine below.`
+            : "Describe your video vision — the engine will structure it into production-ready scenes."
+          }
         </p>
       </div>
 
@@ -169,8 +172,8 @@ const CreativeDirectionStep = ({
             className="min-h-[120px] resize-none text-sm"
           />
 
-          {/* Example briefs */}
-          {!brief && (
+          {/* Example briefs — only show if no template and no text */}
+          {!brief && !selectedTemplate && (
             <div className="space-y-1.5">
               <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Try an example</p>
               {EXAMPLE_BRIEFS.map((ex, i) => (
@@ -185,17 +188,6 @@ const CreativeDirectionStep = ({
             </div>
           )}
 
-          {/* Reference assets */}
-          <AssetLibraryPicker selectedAssets={referenceAssets} onChange={onReferenceAssetsChange} />
-
-          {/* Library templates/characters/references */}
-          {onLibrarySelectionsChange && (
-            <LibraryBrowser
-              selections={librarySelections}
-              onSelectionsChange={onLibrarySelectionsChange}
-              allowedTypes={["video_template", "character", "ad_reference"]}
-            />
-          )}
           <Button
             onClick={handleStructure}
             disabled={loading || brief.trim().length < 10}
