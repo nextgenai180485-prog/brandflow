@@ -17,6 +17,7 @@ import fitnessImg from "@/assets/showcase/fitness-energy.jpg";
 interface EmptyCampaignsProps {
   onCreateClick: (selectedRefs?: ShowcaseRef[]) => void;
   hasProfile?: boolean;
+  onSelectionChange?: (refs: ShowcaseRef[]) => void;
 }
 
 interface ShowcaseRef {
@@ -65,7 +66,7 @@ const STATIC_REFS: ShowcaseRef[] = [
   { id: "s6", title: "Fitness Brand", media_url: fitnessImg, thumbnail_url: fitnessImg, industry_tags: ["fitness"], mood_tags: ["energetic"], platform_tags: ["instagram"] },
 ];
 
-const EmptyCampaigns = ({ onCreateClick }: EmptyCampaignsProps) => {
+const EmptyCampaigns = ({ onCreateClick, onSelectionChange }: EmptyCampaignsProps) => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [refs, setRefs] = useState<ShowcaseRef[]>(STATIC_REFS);
@@ -112,6 +113,9 @@ const EmptyCampaigns = ({ onCreateClick }: EmptyCampaignsProps) => {
       const next = new Set(prev);
       if (next.has(ref.id)) next.delete(ref.id);
       else next.add(ref.id);
+      // Notify parent of selection change
+      const newSelectedRefs = refs.filter(r => next.has(r.id));
+      onSelectionChange?.(newSelectedRefs);
       return next;
     });
   };
@@ -150,11 +154,6 @@ const EmptyCampaigns = ({ onCreateClick }: EmptyCampaignsProps) => {
           <h2 className="text-xl font-semibold text-foreground">Launch your first campaign</h2>
           <p className="text-sm text-muted-foreground mt-0.5">Choose a template or select inspiration references below</p>
         </div>
-        {selectedIds.size > 0 && (
-          <Button size="sm" onClick={handleCreateWithSelection} className="h-8 text-xs gap-1.5">
-            <Plus className="w-3.5 h-3.5" /> Create with {selectedIds.size} ref{selectedIds.size > 1 ? "s" : ""}
-          </Button>
-        )}
       </div>
 
       {/* Brand readiness + templates row */}
