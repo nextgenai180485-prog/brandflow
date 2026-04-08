@@ -3,6 +3,7 @@ import type { LibrarySelection } from "@/components/LibraryBrowser";
 import { useNavigate, useLocation } from "react-router-dom";
 import { ArrowLeft, ArrowRight, Loader2, ImageIcon, Sparkles, Film, Camera, Check, VideoIcon, Layout, Brain, X } from "lucide-react";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useIsMobile } from "@/hooks/use-mobile";
