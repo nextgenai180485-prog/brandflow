@@ -29,6 +29,7 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [strategy, setStrategy] = useState<any>(null);
   const [strategyOpen, setStrategyOpen] = useState(false);
+  const [pendingRefs, setPendingRefs] = useState<any[]>([]);
 
   // Sheet state
   const [sheetCampaignId, setSheetCampaignId] = useState<string | null>(null);
@@ -193,8 +194,17 @@ const Dashboard = () => {
               {campaigns.length} campaign{campaigns.length !== 1 ? "s" : ""} · {totalAssets} total assets
             </p>
           </div>
-          <Button size="sm" onClick={() => navigate("/dashboard/campaigns/new")} className="h-8 text-xs gap-1.5">
-            <Plus className="w-3.5 h-3.5" /> New Campaign
+          <Button size="sm" onClick={() => {
+            const state = pendingRefs.length > 0 ? {
+              bulkRefs: pendingRefs.map((r: any) => ({
+                id: r.id, title: r.title,
+                mediaUrl: r.media_url || r.thumbnail_url,
+                industryTags: r.industry_tags, moodTags: r.mood_tags, platformTags: r.platform_tags,
+              })),
+            } : undefined;
+            navigate("/dashboard/campaigns/new", { state });
+          }} className="h-8 text-xs gap-1.5">
+            <Plus className="w-3.5 h-3.5" /> New Campaign{pendingRefs.length > 0 ? ` · ${pendingRefs.length} ref${pendingRefs.length > 1 ? 's' : ''}` : ''}
           </Button>
         </div>
 
@@ -293,21 +303,24 @@ const Dashboard = () => {
             ))}
           </div>
         ) : campaigns.length === 0 ? (
-          <EmptyCampaigns onCreateClick={(selectedRefs) => {
-            if (selectedRefs && selectedRefs.length > 0) {
-              navigate("/dashboard/campaigns/new", {
-                state: {
-                  bulkRefs: selectedRefs.map(r => ({
-                    id: r.id, title: r.title,
-                    mediaUrl: r.media_url || r.thumbnail_url,
-                    industryTags: r.industry_tags, moodTags: r.mood_tags, platformTags: r.platform_tags,
-                  })),
-                },
-              });
-            } else {
-              navigate("/dashboard/campaigns/new");
-            }
-          }} />
+          <EmptyCampaigns
+            onCreateClick={(selectedRefs) => {
+              if (selectedRefs && selectedRefs.length > 0) {
+                navigate("/dashboard/campaigns/new", {
+                  state: {
+                    bulkRefs: selectedRefs.map(r => ({
+                      id: r.id, title: r.title,
+                      mediaUrl: r.media_url || r.thumbnail_url,
+                      industryTags: r.industry_tags, moodTags: r.mood_tags, platformTags: r.platform_tags,
+                    })),
+                  },
+                });
+              } else {
+                navigate("/dashboard/campaigns/new");
+              }
+            }}
+            onSelectionChange={(refs) => setPendingRefs(refs)}
+          />
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {campaigns.map(campaign => (
