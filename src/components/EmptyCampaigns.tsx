@@ -225,11 +225,13 @@ const EmptyCampaigns = ({ onCreateClick }: EmptyCampaignsProps) => {
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-            {refs.map((ref) => (
+            {refs.map((ref) => {
+              const isSelected = selectedIds.has(ref.id);
+              return (
               <div
                 key={ref.id}
-                onClick={() => handleShowcaseRef(ref)}
-                className="rounded-xl overflow-hidden border border-border/50 group cursor-pointer transition-all hover:shadow-md hover:border-border hover:scale-[1.02]"
+                onClick={() => toggleSelect(ref)}
+                className={`rounded-xl overflow-hidden border-2 group cursor-pointer transition-all hover:shadow-md hover:scale-[1.02] ${isSelected ? "border-primary ring-2 ring-primary/20" : "border-border/50 hover:border-border"}`}
               >
                 <div className="aspect-[4/5] relative overflow-hidden">
                   <img
@@ -238,9 +240,15 @@ const EmptyCampaigns = ({ onCreateClick }: EmptyCampaignsProps) => {
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     loading="lazy"
                   />
+                  {isSelected && (
+                    <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-primary flex items-center justify-center">
+                      <Check className="w-3 h-3 text-primary-foreground" />
+                    </div>
+                  )}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-2.5">
                     <div className="flex items-center gap-1.5 text-[10px] font-medium text-white">
-                      <Zap className="w-3 h-3" /> Use This
+                      {isSelected ? <Check className="w-3 h-3" /> : <Zap className="w-3 h-3" />}
+                      {isSelected ? "Selected" : "Select"}
                     </div>
                   </div>
                 </div>
