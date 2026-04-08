@@ -17,7 +17,7 @@ import AssetPlatformSelector from "@/components/AssetPlatformSelector";
 import AssetLibraryPicker, { type LibraryAsset } from "@/components/AssetLibraryPicker";
 import CreativeDirectionStep, { type DirectorOutput } from "@/components/CreativeDirectionStep";
 import CampaignSimulator from "@/components/campaign/CampaignSimulator";
-import SourceGallery, { type SourceTemplate } from "@/components/campaign/SourceGallery";
+import type { SourceTemplate } from "@/components/campaign/SourceGallery";
 import SaveToLibraryModal from "@/components/campaign/SaveToLibraryModal";
 import type { SocialPlatform, ContentType, BrandProfile } from "@/types/campaigns";
 import { CONTENT_TYPE_LABELS } from "@/types/campaigns";
@@ -62,7 +62,7 @@ const NewCampaign = () => {
 
   // Source gallery + simulator state
   const [selectedTemplate, setSelectedTemplate] = useState<SourceTemplate | null>(null);
-  const [mobileTab, setMobileTab] = useState<"builder" | "preview" | "source">("builder");
+  const [mobileTab, setMobileTab] = useState<"builder" | "preview">("builder");
   const [isStarred, setIsStarred] = useState(false);
   const [showSaveModal, setShowSaveModal] = useState(false);
 
@@ -274,7 +274,7 @@ const NewCampaign = () => {
       if (genError) console.error("[Generation] Trigger error:", genError);
     });
 
-    navigate("/dashboard");
+    navigate(`/dashboard?open=${campaign.id}`);
   };
 
   const currentStepName = STEPS[step];
@@ -470,7 +470,7 @@ const NewCampaign = () => {
             )}
           </div>
           <p className="text-[10px] text-muted-foreground">
-            Total generations: {platforms.length} × {contentTypes.length} = <strong>{platforms.length * contentTypes.length}</strong> assets
+            Total generations: {selectedAssets.length > 0 ? `${selectedAssets.length} ref${selectedAssets.length !== 1 ? "s" : ""} × ` : ""}{platforms.length} platform{platforms.length !== 1 ? "s" : ""} × {contentTypes.length} type{contentTypes.length !== 1 ? "s" : ""} = <strong>{Math.max(1, selectedAssets.length) * platforms.length * contentTypes.length}</strong> assets
           </p>
         </div>
       )}
@@ -575,9 +575,6 @@ const NewCampaign = () => {
                 <TabsTrigger value="preview" className="flex-1 text-[10px] data-[state=active]:bg-background h-6">
                   Preview
                 </TabsTrigger>
-                <TabsTrigger value="source" className="flex-1 text-[10px] data-[state=active]:bg-background h-6">
-                  Source
-                </TabsTrigger>
               </TabsList>
             </Tabs>
           </div>
@@ -609,14 +606,6 @@ const NewCampaign = () => {
               </div>
             )}
 
-            {mobileTab === "source" && (
-              <div className="px-4 py-4">
-                <SourceGallery
-                  selectedId={selectedTemplate?.id || null}
-                  onSelect={handleTemplateSelect}
-                />
-              </div>
-            )}
           </div>
 
           {/* Sticky footer */}
@@ -694,15 +683,6 @@ const NewCampaign = () => {
           </div>
         </div>
 
-        {/* ── Bottom Zone: Source Gallery ── */}
-        <div className="shrink-0 h-[220px] xl:h-[260px] border-t border-border bg-background overflow-hidden">
-          <div className="h-full overflow-y-auto px-4 sm:px-6 py-3">
-            <SourceGallery
-              selectedId={selectedTemplate?.id || null}
-              onSelect={handleTemplateSelect}
-            />
-          </div>
-        </div>
       </div>
 
       {/* Save to Library Modal */}

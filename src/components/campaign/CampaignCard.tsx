@@ -1,5 +1,5 @@
 import { format } from "date-fns";
-import { Clock, ImageIcon, Video, Layers, FileText, LayoutGrid, CheckCircle2, Loader2, Trash2 } from "lucide-react";
+import { Clock, ImageIcon, Video, Layers, FileText, LayoutGrid, CheckCircle2, Loader2, Trash2, Copy } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import type { Campaign, GeneratedAsset, CampaignStatus } from "@/types/campaigns";
@@ -18,9 +18,10 @@ interface CampaignCardProps {
   assets: GeneratedAsset[];
   onClick: () => void;
   onDelete: (e: React.MouseEvent) => void;
+  onDuplicate?: (e: React.MouseEvent) => void;
 }
 
-export default function CampaignCard({ campaign, assets, onClick, onDelete }: CampaignCardProps) {
+export default function CampaignCard({ campaign, assets, onClick, onDelete, onDuplicate }: CampaignCardProps) {
   const status = statusConfig[campaign.status as CampaignStatus] || statusConfig.draft;
   const thumbnails = assets.filter(a => a.content_url && a.asset_type !== "copy").slice(0, 4);
   const isGenerating = campaign.status === "generating";
@@ -142,12 +143,23 @@ export default function CampaignCard({ campaign, assets, onClick, onDelete }: Ca
           <h3 className="text-sm font-semibold text-foreground truncate group-hover:text-primary transition-colors">
             {campaign.title}
           </h3>
-          <button
-            className="h-6 w-6 shrink-0 flex items-center justify-center rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors opacity-0 group-hover:opacity-100"
-            onClick={onDelete}
-          >
-            <Trash2 className="w-3.5 h-3.5" />
-          </button>
+          <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+            {onDuplicate && (
+              <button
+                className="h-6 w-6 shrink-0 flex items-center justify-center rounded text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+                onClick={onDuplicate}
+                title="Duplicate"
+              >
+                <Copy className="w-3.5 h-3.5" />
+              </button>
+            )}
+            <button
+              className="h-6 w-6 shrink-0 flex items-center justify-center rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+              onClick={onDelete}
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
         <div className="flex items-center gap-2 mt-1.5 text-[10px] text-muted-foreground">
           <span className="flex items-center gap-1">

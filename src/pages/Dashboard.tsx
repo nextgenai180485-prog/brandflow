@@ -110,6 +110,20 @@ const Dashboard = () => {
     if (sheetCampaignId === campaignId) setSheetCampaignId(null);
   }, [sheetCampaignId]);
 
+  const duplicateCampaign = useCallback(async (campaign: CampaignWithAssets) => {
+    if (!user) return;
+    const { data, error } = await supabase.from("campaigns").insert({
+      profile_id: user.id,
+      title: `${campaign.title} (copy)`,
+      instructions: campaign.instructions || null,
+      status: "draft",
+      publish_platforms: campaign.publish_platforms || null,
+    }).select().single();
+    if (error || !data) { toast.error("Failed to duplicate"); return; }
+    toast.success("Campaign duplicated");
+    navigate(`/dashboard/campaigns/new`);
+  }, [user, navigate]);
+
   // Stats
   const totalAssets = campaigns.reduce((s, c) => s + c.assetCount, 0);
   const pendingReview = campaigns.reduce((s, c) => s + c.assets.filter(a => a.status === "pending_review" && a.content_url).length, 0);
@@ -289,6 +303,7 @@ const Dashboard = () => {
                   assets={campaign.assets}
                   onClick={() => setSheetCampaignId(campaign.id)}
                   onDelete={(e) => { e.stopPropagation(); setDeleteConfirmId(campaign.id); }}
+                  onDuplicate={(e) => { e.stopPropagation(); duplicateCampaign(campaign); }}
                 />
                 <AlertDialogContent onClick={(e) => e.stopPropagation()}>
                   <AlertDialogHeader>
