@@ -1,58 +1,64 @@
 
 
-# Wire OKLCH Color Engine + Apple-Grade Typography into Text Overlay
+# Consolidate Wizard Steps + Bulletproof Auto-Save
 
-## What This Does
-Makes every generated creative look like it came from an Apple design studio: mathematically precise brand colors derived from your seed hex via the OKLCH perceptual color engine, paired with premium typography directives (SF Pro / Inter weight hierarchy, precise tracking/leading, optical sizing).
+## Current State
 
-## Architecture
+The wizard has 5 steps: **Details → Platforms → Content Type → Creative Direction → Review**
 
-### 1. Port OKLCH Color Engine to Edge Function
-**File**: `supabase/functions/generate-content/index.ts`
+Auto-save triggers on every state change (title, platforms, contentTypes, swapAssets, etc.) — it does NOT require clicking "Next." However, there's a guard: it only saves when `title.trim() || platforms.length > 0 || contentTypes.length > 0`, meaning if a user only uploads assets without typing a title, nothing saves.
 
-Copy the minimal OKLCH math from `src/lib/colorEngine.ts` into the edge function:
-- `hexToRgb`, `srgbToLinear`, `linearRgbToOklab`, `oklabToOklch`, `oklchToOklab`, `oklabToLinearRgb`, `clampToGamut`, `oklchToHex`
-- `generateBrandScale` — takes a single hex seed, returns 10-step scale with semantic tokens
+Assets (AssetLibraryPicker, SwapAssetStrip, logo toggle) currently live under the **Details** step, making it overloaded while **Platforms** is very thin (just a grid selector).
 
-### 2. Compute Brand Color Tokens in `buildPromptBundle`
-When `brandContext.brandColors.primary` exists, run it through `generateBrandScale` to produce:
-- `vibrant` (step 400) — headlines
-- `active` (step 600) — CTA backgrounds
-- `soft` (step 200) — subtitle fills
-- `text` (step 900) — dark readable text
-- `deep` (step 800) — shadows/backing
-- `subtle` (step 100) — near-white tints
+## Enterprise UX Assessment
 
-Attach these hex values to `textOverlay.brandColors`.
+The current 5-step wizard creates unnecessary friction:
+- **Details** is overloaded (name + brief + assets + swap assets + logo toggle)
+- **Platforms** is too thin (single selector)
+- Users must mentally separate "what I'm building" from "where I'm publishing" from "what assets to use" — but these are interrelated decisions
 
-### 3. Rewrite `applyTextOverlay` with Exact Hex + Apple Typography
+Enterprise tools (Canva, Adobe Express, Figma) consolidate related inputs into fewer, denser steps to reduce click-through fatigue.
 
-Replace the current vague line 842 (`"use brand color accents"`) with:
+## Proposed Step Restructure
 
-```
-Typography system (Apple-grade):
-- Font: SF Pro Display or Inter — clean geometric sans-serif only
-- Headline: Semibold 600 weight, -0.02em tracking, 1.1 line-height
-  Color: ${vibrant} or #FFFFFF — pick whichever has higher contrast
-- Subheadline: Regular 400 weight, -0.01em tracking, 1.3 line-height
-  Color: ${soft} or #FFFFFF
-- CTA: Medium 500 weight, ALL CAPS, 0.08em tracking
-  Background: ${active}, text: #FFFFFF, rounded pill shape
-- Brand name: Light 300 weight, 0.04em tracking
-  Color: ${text}
-- Text shadow: ${deep} at 40% opacity, 2px blur — only if needed for contrast
-- WCAG AA minimum contrast required on all text
-- No decorative fonts, no serifs, no outlines, no gradients on text
+Collapse from 5 steps to **4 steps**:
+
+```text
+Step 1: Campaign Brief     — Name, Objective, Tone, CTA, Copy, Emotion
+Step 2: Assets & Platforms  — Your Assets (product/model/logo), Templates, Platform selector, Content type, Logo toggle
+Step 3: Creative Direction  — (video only, same as now)
+Step 4: Review & Launch     — Summary + generate
 ```
 
-### 4. Fallback
-If no brand colors exist: white text, `rgba(0,0,0,0.5)` shadow — current safe default preserved.
+### Why This Works
 
-## Files Changed
-- **`supabase/functions/generate-content/index.ts`** — Add ~120 lines of OKLCH math, update `TextOverlayMeta` interface, rewrite overlay color/typography directives
+1. **Step 2 becomes the "production setup"** — everything about *what goes in* and *where it goes out* lives together. Users see their assets alongside their target platforms, which is how they naturally think: "I have this product photo, I want it on Instagram and TikTok."
 
-## Result
-- Text colors are mathematically computed from your brand seed — no AI guessing
-- Typography follows Apple's exact weight/tracking/leading hierarchy
-- Every generated creative has consistent, premium-feeling text layout
+2. **Fewer clicks to save state** — since auto-save triggers on any state change, consolidating means more fields change per step, giving the system more save opportunities.
+
+3. **Labels**: "Select from Asset Library" → renamed to **"Templates"** (style references). SwapAssetStrip already labeled as product/model/logo → grouped under **"Your Assets"** header.
+
+## Auto-Save Hardening
+
+- Remove the guard that requires title OR platforms — save on ANY meaningful interaction (asset upload, template selection, swap asset added)
+- Add `beforeunload` event listener to flush pending saves when user closes tab
+- Add `useEffect` cleanup that forces an immediate save (no debounce) on component unmount / route change
+
+## Technical Changes
+
+### `src/pages/NewCampaign.tsx`
+- Change `ALL_STEPS` from `["Details", "Platforms", "Content Type", "Creative Direction", "Review"]` to `["Campaign Brief", "Assets & Delivery", "Creative Direction", "Review"]`
+- Move AssetLibraryPicker, SwapAssetStrip, logo toggle, platform selector, and content type selector into the "Assets & Delivery" step
+- Keep CreativeBriefBuilder + campaign name in "Campaign Brief"
+- Update step validation: step 0 requires title, step 1 requires platforms + content types
+- Rename AssetLibraryPicker trigger label from "Select from Asset Library" to "Templates"
+- Add "Your Assets" section header above SwapAssetStrip
+
+### `src/hooks/useAutoSaveDraft.ts`
+- Relax the save guard: trigger save when ANY of title, platforms, contentTypes, swapAssets, or selectedAssets has data
+- Add `beforeunload` listener to flush pending timer immediately
+- On unmount, if timer is pending, execute save synchronously (clear debounce, save immediately)
+
+### `src/components/AssetLibraryPicker.tsx`
+- Rename display label from "Select from Asset Library" to "Templates" with subtitle "Browse style references and templates"
 
