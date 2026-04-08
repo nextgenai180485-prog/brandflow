@@ -66,6 +66,12 @@ const NewCampaign = () => {
   const [isStarred, setIsStarred] = useState(false);
   const [showSaveModal, setShowSaveModal] = useState(false);
 
+  // Inline strategy gate
+  const [needsStrategy, setNeedsStrategy] = useState(false);
+  const [strategyChecked, setStrategyChecked] = useState(false);
+  const [businessName, setBusinessName] = useState("");
+  const [industry, setIndustry] = useState("");
+
   const hasVideoContent = contentTypes.some(ct => ct === "ugc_video" || ct === "pro_video");
 
   const STEPS = useMemo(() => {
