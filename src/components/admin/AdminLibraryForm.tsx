@@ -197,6 +197,10 @@ const AdminLibraryForm = ({ tableName, editingItem, onClose, onSaved }: AdminLib
         if (uploadError) throw uploadError;
         const { data: { publicUrl } } = supabase.storage.from("library-assets").getPublicUrl(uploadData.path);
         analysisUrl = publicUrl;
+        // Auto-populate thumbnail_url field for video_templates
+        if (tableName === "video_templates") {
+          setValues((prev) => ({ ...prev, thumbnail_url: publicUrl }));
+        }
         toast.info("🔍 Analyzing extracted frame…", { id: "auto-analyze" });
       } else {
         toast.info("🔍 Auto-analyzing media…", { id: "auto-analyze" });
