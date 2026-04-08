@@ -97,10 +97,11 @@ interface FullLibraryDialogProps {
   isSelected: (id: string) => boolean;
   toggleAsset: (asset: LibraryAsset) => void;
   onChange: (assets: LibraryAsset[]) => void;
+  defaultTab?: LibTabValue;
 }
 
-const FullLibraryDialog = ({ open, selectedAssets, isSelected, toggleAsset, onChange }: FullLibraryDialogProps) => {
-  const [activeTab, setActiveTab] = useState<LibTabValue>("your_assets");
+const FullLibraryDialog = ({ open, selectedAssets, isSelected, toggleAsset, onChange, defaultTab }: FullLibraryDialogProps) => {
+  const [activeTab, setActiveTab] = useState<LibTabValue>(defaultTab || "your_assets");
   const [search, setSearch] = useState("");
 
   return (
