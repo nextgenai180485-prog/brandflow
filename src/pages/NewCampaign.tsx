@@ -297,12 +297,14 @@ const NewCampaign = () => {
     const referenceImageUrl = selectedTemplate?.media_url || showcaseState?.templateRef?.mediaUrl || undefined;
 
     // Collect all workspace template reference URLs
-    const templateRefs = workspaceRefs.map(r => r.mediaUrl).filter(Boolean);
+    const templateRefs = librarySelections
+      .map((s: LibrarySelection) => s.mediaUrl || s.thumbnail_url)
+      .filter(Boolean);
 
     // Collect user-uploaded swap assets (product images, models, etc.)
     const userAssets = swapAssets
-      .filter(a => a.url)
-      .map(a => ({ url: a.url, tag: a.tag, name: a.name }));
+      .filter(a => a.file_url)
+      .map(a => ({ url: a.file_url, role: a.role, name: a.file_name }));
 
     supabase.functions.invoke("generate-content", {
       body: {
