@@ -1380,6 +1380,7 @@ async function processAssetsInBackground(
         hook: assetDirection?.hook_suggestion || "",
         trace_id: decisionTraceId,
         prompt_words: 80,
+        creative_mode: bundle?.creativeMode || "editorial_free",
         image_refs: userAssets?.filter((a: any) => a.role === "product" || a.role === "model").length || 0,
         text_overlay: campaignCopy?.headline ? true : false,
       });
