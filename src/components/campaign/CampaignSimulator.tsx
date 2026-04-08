@@ -498,7 +498,6 @@ export default function CampaignSimulator({
             </div>
           </div>
         )}
-      </div>
     </div>
   );
 }
