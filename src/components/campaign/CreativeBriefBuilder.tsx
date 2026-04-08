@@ -302,13 +302,17 @@ const CreativeBriefBuilder = ({ brief, onBriefChange, copy, onCopyChange, brandC
 
 function buildCopyPrompt(brief: CreativeBrief, brand?: CreativeBriefBuilderProps["brandContext"]): string {
   const parts: string[] = [
-    "Generate campaign copy for the following creative brief. Return EXACTLY this format:",
-    "HEADLINE: [compelling headline]",
+    "IMPORTANT: You are generating campaign copy based ONLY on the creative brief below.",
+    "Do NOT default to generic brand messaging. The user has provided specific campaign inputs — use THOSE as the primary creative direction.",
+    "If the user specified a core message, build the copy around THAT message, not the brand's general value proposition.",
+    "",
+    "Return EXACTLY this format (no markdown, no extra text):",
+    "HEADLINE: [compelling headline based on the brief below]",
     "SUBHEADLINE: [supporting line]",
     "CTA: [call-to-action button text]",
     "BODY: [1-2 sentence body copy or social caption]",
     "",
-    "Brief details:",
+    "=== CAMPAIGN CREATIVE BRIEF (USE THIS) ===",
   ];
 
   if (brief.objective) parts.push(`- Objective: ${brief.objective}`);
@@ -319,14 +323,14 @@ function buildCopyPrompt(brief: CreativeBrief, brand?: CreativeBriefBuilderProps
   if (brief.freeformNotes) parts.push(`- Additional notes: ${brief.freeformNotes}`);
 
   if (brand) {
-    parts.push("", "Brand context:");
+    parts.push("", "=== BRAND CONTEXT (secondary, for voice consistency only) ===");
     if (brand.businessName) parts.push(`- Brand: ${brand.businessName}`);
     if (brand.industry) parts.push(`- Industry: ${brand.industry}`);
     if (brand.voiceTone) parts.push(`- Voice: ${brand.voiceTone}`);
     if (brand.targetAudience) parts.push(`- Audience: ${brand.targetAudience}`);
   }
 
-  parts.push("", "Be concise, punchy, and on-brand. No explanations, just the copy.");
+  parts.push("", "Be concise, punchy, and campaign-specific. No explanations, just the copy lines.");
   return parts.join("\n");
 }
 
