@@ -21,38 +21,62 @@ serve(async (req) => {
 
     const adminClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    // Parse optional limit from body
+    // Parse body
     let limit = 2;
+    let targetTable: "image_templates" | "video_templates" = "image_templates";
     try {
       const body = await req.json();
       if (body?.limit) limit = Math.min(body.limit, 5);
+      if (body?.table === "video_templates") targetTable = "video_templates";
     } catch { /* no body is fine */ }
 
-    // Fetch templates missing preview_url
-    const { data: templates, error: fetchErr } = await adminClient
-      .from("image_templates")
-      .select("id, style_name, vertical, format, style_guide")
-      .is("preview_url", null)
-      .limit(limit);
+    let templates: any[] = [];
 
-    if (fetchErr) throw fetchErr;
-    if (!templates || templates.length === 0) {
-      return new Response(JSON.stringify({ message: "All templates already have previews" }), {
+    if (targetTable === "image_templates") {
+      const { data, error } = await adminClient
+        .from("image_templates")
+        .select("id, style_name, vertical, format, style_guide")
+        .is("preview_url", null)
+        .limit(limit);
+      if (error) throw error;
+      templates = (data || []).map((t: any) => ({
+        id: t.id,
+        name: t.style_name,
+        table: "image_templates" as const,
+        urlField: "preview_url" as const,
+        storagePath: `image-templates/${t.id}.png`,
+        prompt: buildImageTemplatePrompt(t),
+      }));
+    } else {
+      const { data, error } = await adminClient
+        .from("video_templates")
+        .select("id, template_name, family, mood, tags, aspect_ratio, duration_s, sealcam_analysis")
+        .is("example_url", null)
+        .limit(limit);
+      if (error) throw error;
+      templates = (data || []).map((t: any) => ({
+        id: t.id,
+        name: t.template_name,
+        table: "video_templates" as const,
+        urlField: "example_url" as const,
+        storagePath: `video-templates/${t.id}.png`,
+        prompt: buildVideoTemplatePrompt(t),
+      }));
+    }
+
+    if (templates.length === 0) {
+      return new Response(JSON.stringify({ message: `All ${targetTable} already have previews` }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    console.log(`Generating previews for ${templates.length} templates...`);
-    const results: { id: string; style_name: string; status: string; preview_url?: string }[] = [];
+    console.log(`Generating previews for ${templates.length} ${targetTable}...`);
+    const results: any[] = [];
 
     for (const tpl of templates) {
-      const sg = tpl.style_guide as Record<string, string> || {};
-      const prompt = `Professional ${tpl.vertical} product photography preview for a "${tpl.style_name}" template style. ${sg.composition || "balanced composition"}, ${sg.lighting || "studio lighting"}, ${sg.background || "clean background"}. ${sg.color_treatment || "natural color treatment"}. Shot on Nikon Z8 45.7MP, 85mm f/1.8 lens. Organic textures, subtle cinematic film grain. No text, no watermarks, no logos. Photorealistic, editorial quality. Format: ${tpl.format || "1:1"}.`;
-
-      console.log(`[${tpl.style_name}] Generating...`);
+      console.log(`[${tpl.name}] Generating...`);
 
       try {
-        // Generate image via Gemini
         const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
           method: "POST",
           headers: {
@@ -61,15 +85,15 @@ serve(async (req) => {
           },
           body: JSON.stringify({
             model: "google/gemini-2.5-flash-image",
-            messages: [{ role: "user", content: prompt }],
+            messages: [{ role: "user", content: tpl.prompt }],
             modalities: ["image", "text"],
           }),
         });
 
         if (!aiResp.ok) {
           const errText = await aiResp.text();
-          console.error(`[${tpl.style_name}] AI error: ${errText}`);
-          results.push({ id: tpl.id, style_name: tpl.style_name, status: `ai_error: ${aiResp.status}` });
+          console.error(`[${tpl.name}] AI error: ${errText}`);
+          results.push({ id: tpl.id, name: tpl.name, status: `ai_error: ${aiResp.status}` });
           continue;
         }
 
@@ -77,8 +101,8 @@ serve(async (req) => {
         const imageUrl = aiData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
 
         if (!imageUrl || !imageUrl.startsWith("data:image")) {
-          console.error(`[${tpl.style_name}] No image in response`);
-          results.push({ id: tpl.id, style_name: tpl.style_name, status: "no_image_returned" });
+          console.error(`[${tpl.name}] No image in response`);
+          results.push({ id: tpl.id, name: tpl.name, status: "no_image_returned" });
           continue;
         }
 
@@ -91,52 +115,50 @@ serve(async (req) => {
         }
 
         // Upload to storage
-        const fileName = `image-templates/${tpl.id}.png`;
         const { error: uploadErr } = await adminClient.storage
           .from("library-assets")
-          .upload(fileName, bytes, {
+          .upload(tpl.storagePath, bytes, {
             contentType: "image/png",
             upsert: true,
           });
 
         if (uploadErr) {
-          console.error(`[${tpl.style_name}] Upload error:`, uploadErr);
-          results.push({ id: tpl.id, style_name: tpl.style_name, status: `upload_error: ${uploadErr.message}` });
+          console.error(`[${tpl.name}] Upload error:`, uploadErr);
+          results.push({ id: tpl.id, name: tpl.name, status: `upload_error: ${uploadErr.message}` });
           continue;
         }
 
-        // Get public URL
         const { data: urlData } = adminClient.storage
           .from("library-assets")
-          .getPublicUrl(fileName);
+          .getPublicUrl(tpl.storagePath);
 
         const publicUrl = urlData.publicUrl;
 
         // Update template row
         const { error: updateErr } = await adminClient
-          .from("image_templates")
-          .update({ preview_url: publicUrl })
+          .from(tpl.table)
+          .update({ [tpl.urlField]: publicUrl })
           .eq("id", tpl.id);
 
         if (updateErr) {
-          console.error(`[${tpl.style_name}] DB update error:`, updateErr);
-          results.push({ id: tpl.id, style_name: tpl.style_name, status: `db_error: ${updateErr.message}` });
+          console.error(`[${tpl.name}] DB update error:`, updateErr);
+          results.push({ id: tpl.id, name: tpl.name, status: `db_error: ${updateErr.message}` });
           continue;
         }
 
-        console.log(`[${tpl.style_name}] ✅ Done: ${publicUrl}`);
-        results.push({ id: tpl.id, style_name: tpl.style_name, status: "success", preview_url: publicUrl });
+        console.log(`[${tpl.name}] ✅ Done: ${publicUrl}`);
+        results.push({ id: tpl.id, name: tpl.name, status: "success", preview_url: publicUrl });
 
       } catch (e: any) {
-        console.error(`[${tpl.style_name}] Error:`, e.message);
-        results.push({ id: tpl.id, style_name: tpl.style_name, status: `error: ${e.message}` });
+        console.error(`[${tpl.name}] Error:`, e.message);
+        results.push({ id: tpl.id, name: tpl.name, status: `error: ${e.message}` });
       }
     }
 
-    const successCount = results.filter(r => r.status === "success").length;
-    return new Response(JSON.stringify({ 
-      message: `Generated ${successCount}/${templates.length} previews`,
-      results 
+    const successCount = results.filter((r: any) => r.status === "success").length;
+    return new Response(JSON.stringify({
+      message: `Generated ${successCount}/${templates.length} previews for ${targetTable}`,
+      results,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
@@ -149,3 +171,23 @@ serve(async (req) => {
     });
   }
 });
+
+function buildImageTemplatePrompt(tpl: any): string {
+  const sg = tpl.style_guide as Record<string, string> || {};
+  return `Professional ${tpl.vertical} product photography preview for a "${tpl.style_name}" template style. ${sg.composition || "balanced composition"}, ${sg.lighting || "studio lighting"}, ${sg.background || "clean background"}. ${sg.color_treatment || "natural color treatment"}. Shot on Nikon Z8 45.7MP, 85mm f/1.8 lens. Organic textures, subtle cinematic film grain. No text, no watermarks, no logos. Photorealistic, editorial quality. Format: ${tpl.format || "1:1"}.`;
+}
+
+function buildVideoTemplatePrompt(tpl: any): string {
+  const sealcam = tpl.sealcam_analysis as Record<string, any> || {};
+  const family = (tpl.family || "").replace(/_/g, " ");
+  const mood = tpl.mood || "professional";
+  const tags = (tpl.tags || []).slice(0, 3).join(", ");
+  const aspect = tpl.aspect_ratio || "9:16";
+
+  // Build a cinematic still-frame that represents the video template style
+  const sceneDesc = sealcam.opening_scene || sealcam.scene_description || "";
+  const lighting = sealcam.lighting || "professional studio lighting";
+  const colorGrade = sealcam.color_grade || "cinematic color grade";
+
+  return `A cinematic still frame representing a "${tpl.template_name}" video template in the ${family} style. Mood: ${mood}. ${sceneDesc ? `Scene: ${sceneDesc}.` : ""} ${tags ? `Style tags: ${tags}.` : ""} ${lighting}, ${colorGrade}. Aspect ratio ${aspect}. Shot on RED Komodo 6K, anamorphic lens, shallow depth of field. Film grain, organic skin tones, professional production quality. No text, no watermarks, no logos. This is a preview thumbnail for a video template — show a single striking cinematic frame that captures the template's visual essence.`;
+}
