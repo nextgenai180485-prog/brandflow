@@ -99,16 +99,35 @@ const CreativeBriefBuilder = ({ brief, onBriefChange, copy, onCopyChange, brandC
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        // Extract the error message from the edge function response body
+        let errMsg = "Failed to generate copy. Try again.";
+        try {
+          const ctx = (error as any)?.context;
+          if (ctx && typeof ctx.json === "function") {
+            const body = await ctx.json();
+            errMsg = body?.error || errMsg;
+          } else if (error.message) {
+            errMsg = error.message;
+          }
+        } catch {}
+        toast.error(errMsg);
+        return;
+      }
 
       const response = data?.reply || "";
+      if (data?.error) {
+        toast.error(data.error);
+        return;
+      }
+
       const parsed = parseCopyResponse(response);
       onCopyChange(parsed);
       setCopyGenerated(true);
       toast.success("Copy generated — edit as needed");
-    } catch (e) {
+    } catch (e: any) {
       console.error("Copy generation failed:", e);
-      toast.error("Failed to generate copy. Try again.");
+      toast.error(e?.message || "Failed to generate copy. Try again.");
     } finally {
       setGenerating(false);
     }
